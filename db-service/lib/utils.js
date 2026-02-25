@@ -41,7 +41,8 @@ function isRuntimeView(definition) {
     })
     return true
   }
-
+  // views with "as select from" variant are also runtime views, even if they are annotated with persistence skip
+  if (definition.query && !definition.query._target) return true
   if (definition.query) return isRuntimeView(definition.query._target)
 
   return false

@@ -178,17 +178,33 @@ function cqn4sql(originalQuery, model) {
 
   return transformedQuery
 
+  /**
+   * If the target entity is annotated with persistence skip and has an underlying db entity,
+   * we treat it as a runtime view and transform it into a CTE.
+   * 
+   * @param {object} transformedQuery - The query object to be transformed.
+   * @param {string} model - The data model used for inference and transformation.
+   */
   function processRuntimeViews(transformedQuery, model) {
     const currentDef = transformedQuery._target
 
     if (hasOwnSkip(currentDef)) {
-      if (!currentDef?.query) throw new Error(`${currentDef.name} is not a runtime view`)
+      if (!isRuntimeView(currentDef)) throw new Error(`${currentDef.name} is not a runtime view`)
 
       addWith(currentDef, transformedQuery, model)
       updateRefsWithRTVAlias(transformedQuery._with, transformedQuery)
     }
   }
 
+  /**
+   * Recursively call cqn4sql for all nested runtime views to calculate cte and 
+   * add it as a with clause to the transformed query.
+   * Alias the runtime view with a unique alias and update all references to the runtime view to point to the alias.
+   * 
+   * @param {object} rootDefinition - The root definition of the query. This is used to recursively process nested runtime views.
+   * @param {object} transformedQuery - The query object to be transformed.
+   * @param {string} model - The data model used for infer and cqn4sql.
+   */
   function addWith(rootDefinition, transformedQuery, model) {
     if (!rootDefinition?.query) return
 
@@ -230,7 +246,7 @@ function cqn4sql(originalQuery, model) {
 
     defineProperty(transformedDQ, '_source', rootDefinition)
     const alias = `RTV_${getImplicitAlias(rootDefinitionName)}`
-    transformedDQ.as = getNextAvailableTableAlias(alias, newWiths, transformedDQ, rootDefinitionName)
+    transformedDQ.as = getNextAvailableWithClauseAlias(alias, newWiths, transformedDQ, rootDefinitionName)
 
     // update SELECT.from with runtime view alias
     if (hasOwnSkip(transformedDQ._target)) updateRefsWithRTVAlias(transformedDQ._with, transformedDQ)
@@ -264,6 +280,10 @@ function cqn4sql(originalQuery, model) {
 
     if (query.SELECT.from.args) for (const arg of query.SELECT.from.args) _updateRef(arg.ref)
     else if (query.SELECT.from.ref) _updateRef(query.SELECT.from.ref)
+  }
+
+  function getNextAvailableWithClauseAlias(id, outerQueries = inferred.outerQueries, _inferred = inferred, key) {
+    return _inferred.joinTree.addNextAvailableTableAlias(id, outerQueries, key)
   }
 
   function transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery) {
@@ -1958,8 +1978,8 @@ function cqn4sql(originalQuery, model) {
     return whereExistsSubSelects[0]
   }
 
-  function getNextAvailableTableAlias(id, outerQueries = inferred.outerQueries, _inferred = inferred, key) {
-    return _inferred.joinTree.addNextAvailableTableAlias(id, outerQueries, key)
+  function getNextAvailableTableAlias(id) {
+    return inferred.joinTree.addNextAvailableTableAlias(id, inferred.outerQueries)
   }
 
   /**

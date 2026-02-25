@@ -133,6 +133,7 @@ class JoinTree {
    *
    * @param {string} alias - The original alias name.
    * @param {unknown[]} outerQueries - An array of outer queries.
+   * @param {string} key - The key to be used for storing the alias in the map. If not provided, the upper-case version of the alias will be used as the key.
    * @returns {string} - The next unambiguous table alias.
    */
   addNextAvailableTableAlias(alias, outerQueries, key) {
