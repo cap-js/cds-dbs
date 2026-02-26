@@ -767,9 +767,7 @@ class CQN2SQLRenderer {
       if (
         c in elements
         && transitions.mapping.has(c)
-        && !elements[c].virtual
-        && !elements[c].value
-        && !elements[c].isAssociation
+        && this.physical_column(elements, c)
       ) {
         viewCols.push({ ref: [c] })
         tableCols.push(transitions.mapping.get(c))
