@@ -1,8 +1,6 @@
 const cds = require('@sap/cds')
 const cds_infer = require('./infer')
 const cqn4sql = require('./cqn4sql')
-const _simple_queries = cds.env.features.sql_simple_queries
-const _strict_booleans = _simple_queries < 2
 
 const { Readable } = require('stream')
 
@@ -622,27 +620,11 @@ class CQN2SQLRenderer {
     if (!SELECT.columns) return sql
 
     const isRoot = SELECT.expand === 'root'
-    const isSimple = _simple_queries &&
-      isRoot && // Simple queries are only allowed to have a root
-      !ObjectKeys(q.elements).some(e =>
-        _strict_booleans && q.elements[e].type === 'cds.Boolean' || // REVISIT: Booleans require json for sqlite
-        q.elements[e].isAssociation || // Indicates columns contains an expand
-        q.elements[e].$assocExpand || // REVISIT: sometimes associations are structs
-        q.elements[e].items // Array types require to be inlined with a json result
-      )
 
-    let cols = SELECT.columns.map(isSimple
-      ? x => {
-        const name = this.column_name(x)
-        const escaped = `${name.replace(/"/g, '""')}`
-        return `${this.output_converter4(x.element, this.quote(name))} AS "${escaped}"`
-      }
-      : x => {
-        const name = this.column_name(x)
-        return `${this.string(`$.${JSON.stringify(name)}`)},${this.output_converter4(x.element, this.quote(name))}`
-      }).flat()
-
-    if (isSimple) return `SELECT ${cols} FROM (${sql})`
+    let cols = SELECT.columns.map(x => {
+      const name = this.column_name(x)
+      return `${this.string(`$.${JSON.stringify(name)}`)},${this.output_converter4(x.element, this.quote(name))}`
+    }).flat()
 
     // Prevent SQLite from hitting function argument limit of 100
     let obj = "'{}'"
