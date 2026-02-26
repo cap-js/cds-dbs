@@ -438,7 +438,7 @@ class HANAService extends SQLService {
           if (c.element?.type === 'cds.Boolean') hasBooleans = true
           if (c.elements && c.element?.isAssociation) hasExpands = true
           if (c.element?.type in this.BINARY_TYPES || c.elements || c.element?.elements || c.element?.items) hasStructures = true
-          return c.elements ? c : { __proto__: c, ref: [this.column_name(c)] }
+          return c.elements && c.element?.isAssociation ? c : { __proto__: c, ref: [this.column_name(c)] }
         })
 
         const isSimpleQuery = (
@@ -1204,6 +1204,19 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
 
     managed_default(name, managed, src) {
       return `(CASE WHEN ${this.quote('$.' + name)} IS NULL THEN ${managed} ELSE ${src} END)`
+    }
+
+    render_with() {
+      const sql = this.sql
+      const values = this.values
+      const prefix = this._with.map(q => {
+        const values = this.values = []
+        const sql = `${this.quote(q.as)} AS (${this.SELECT(q)})`
+        return { sql, values }
+      })
+      if (this.withclause?.length) this.withclause = [...prefix.map(p => p.sql), ...this.withclause]
+      else this.sql = `WITH ${prefix.map(p => p.sql)} ${sql}`
+      this.values = [...prefix.map(p => p.values).flat(), ...values]
     }
 
     // Loads a static result from the query `SELECT * FROM RESERVED_KEYWORDS`
