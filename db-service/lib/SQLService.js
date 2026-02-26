@@ -253,8 +253,15 @@ class SQLService extends DatabaseService {
         })
         return this.onDELETE({ query, target: transitions.target })
       }
+
+
       const table = getDBTable(req.target)
       const { compositions } = table
+
+      // Check if we are in the hierarchy case
+      let isHierarchy = req.target.elements.LimitedDescendantCount
+      const recursiveBacklinks = []
+
       if (compositions) {
         // Transform CQL`DELETE from Foo[p1] WHERE p2` into CQL`DELETE from Foo[p1 and p2]`
         let { from, where } = req.query.DELETE
@@ -271,6 +278,20 @@ class SQLService extends DatabaseService {
           Object.values(compositions).map(c => {
             if (c._target['@cds.persistence.skip'] === true) return
             if (c._target === req.target) {
+              if (isHierarchy) {
+                // special treatment for recursive compositions in hierarchies
+                function _getBacklinkName(on) {
+                  const i = on.findIndex(e => e.ref && e.ref[0] === '$self')
+                  if (i === -1) return
+                  let ref
+                  if (on[i + 1] && on[i + 1] === '=') ref = on[i + 2].ref
+                  if (on[i - 1] && on[i - 1] === '=') ref = on[i - 2].ref
+                  return ref && ref[ref.length - 1]
+                }
+                const backlinkName = _getBacklinkName(c.on)
+                recursiveBacklinks.push(backlinkName)
+                return
+              }
               // the Genre.children case
               if (++depth > (c['@depth'] || 3)) return
             } else if (visited.includes(c._target.name))
@@ -285,6 +306,38 @@ class SQLService extends DatabaseService {
             return this.onDELETE({ query, depth, visited: [...visited], target: c._target })
           }),
         )
+        if (recursiveBacklinks.length) {
+          let key
+          // For hierarchies, only a single key is supported
+          for (const _key in req.target.keys) {
+            if (key === 'IsActiveEntity') continue
+            key = _key
+            break
+          }
+          // TODO: If key value is already part of query, we could skip this select
+          const data = await SELECT.from(req.query.DELETE.from).columns(key).where(req.query.DELETE.where)
+          const recursiveQuery = SELECT.from(req.query.DELTE.from).columns(key)
+          const recursiveQueries = []
+          for (const backlink of recursiveBacklinks) {
+            const _recursiveQuery = recursiveQuery.clone()
+            const where = data.flatMap((d,i) => {
+              const res = [{ func: 'DistanceTo', args: [{ val: d[key]}, {val: null }] }]
+              if (i > 0) res.unshift('or')
+              return res
+            })
+            // [[],[],[]]
+            _recursiveQuery.SELECT.recurse = {
+              ref: [backlink],
+              where
+            }
+            recursiveQueries.push(recursiveQuery)
+            // TODO: We could also perform a DELETE.from(SELECT) based on a recursive SELEECT, to be investiagated
+            const recursiveResults = await Promise.all(recursiveQueries) // [[], [], []]
+            // TODO: Also handle transitions etc.
+            // TODO: call this.onDELETE instead
+            await DELETE.from(req.target).where({ ref: [key] }, 'in', { list: recursiveResults.flatMap(r => r.map(r1 => ({ val: r1[key] }))) })
+          }
+        }
       }
       return this.onSIMPLE(req)
     }
