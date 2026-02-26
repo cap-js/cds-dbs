@@ -6,7 +6,14 @@ class WasmSqlite {
   constructor(/*database*/) {
     // TODO: load / store database file contents
     this.ready = init
-      .then(SQL => { this.db = new SQL.Database() })
+      .then(SQL => {
+        this.db = new SQL.Database()
+        // polyfill for missing or mismatched default sqlite3 math functions
+        this.db.create_function('ln', x => Math.log(x))
+        this.db.create_function('log', (x) => Math.log10(x))
+        this.db.create_function('log', (x, y) => Math.log(y) / Math.log(x))
+        this.db.create_function('mod', (x, y) => x % y)
+      })
 
     this.memory = true
     this.gc = new FinalizationRegistry(stmt => { stmt.free() })
