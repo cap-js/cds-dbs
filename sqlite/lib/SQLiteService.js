@@ -1,17 +1,6 @@
 const { SQLService } = require('@cap-js/db-service')
 const cds = require('@sap/cds/lib')
-let sqlite
-
-try {
-  sqlite = require('./node-sqlite')
-} catch {
-  try {
-    sqlite = require('better-sqlite3')
-  } catch (err) {
-    // When failing to load better-sqlite3 it fallsback to sql.js (wasm version of sqlite)
-    sqlite = require('./sql.js.js')
-  }
-}
+let sqlite // sqlite driver is loaded on connect
 
 const $session = Symbol('dbc.session')
 const sessionVariableMap = require('./session.json')  // Adjust the path as necessary for your project
@@ -41,6 +30,7 @@ class SQLiteService extends SQLService {
     return {
       options: this.options.pool || {},
       create: async tenant => {
+        if (!sqlite) loadSQLite(this.options.driver || this.options.credentials?.driver)
         const database = this.url4(tenant)
         const dbc = new sqlite(database, this.options.client || {})
         await dbc.ready
@@ -55,7 +45,7 @@ class SQLiteService extends SQLService {
         dbc.function('hour', deterministic, d => d === null ? null : toDate(d, true).getUTCHours())
         dbc.function('minute', deterministic, d => d === null ? null : toDate(d, true).getUTCMinutes())
         dbc.function('second', deterministic, d => d === null ? null : toDate(d, true).getUTCSeconds())
-        if (!dbc.memory) dbc.pragma?.('journal_mode = WAL')
+        if (database !== ':memory:') dbc.pragma?.('journal_mode = WAL') || dbc.exec('PRAGMA journal_mode = WAL')
         return dbc
       },
       destroy: dbc => dbc.close(),
@@ -302,6 +292,30 @@ class SQLiteService extends SQLService {
     }
 
     static ReservedWords = { ...super.ReservedWords, ...sqliteKeywords }
+  }
+}
+
+function loadSQLite(driver) {
+  const drivers = {
+    node: './node-sqlite.js',
+    'better-sqlite3': 'better-sqlite3',
+    'sql.js': './sql.js.js',
+  }
+
+  if (driver) {
+    sqlite = require(drivers[driver])
+    return
+  }
+
+  try {
+    sqlite = require(drivers['better-sqlite3'])
+  } catch {
+    try {
+      sqlite = require(drivers.node)
+    } catch (err) {
+      // When failing to load better-sqlite3 it fallsback to sql.js (wasm version of sqlite)
+      sqlite = require(drivers['sql.js'])
+    }
   }
 }
 
