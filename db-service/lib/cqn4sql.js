@@ -262,8 +262,8 @@ function cqn4sql(originalQuery, model) {
     if (!_with?.length) return
 
     const _updateRef = (ref) => {
-      if (/RTV_$/.test(ref)) return
       const refAlias = ref[0]
+      if (/RTV_$/.test(refAlias)) return
       for (const w of _with) {
         const aliasValue = w.joinTree._queryAliases.get(refAlias)
         if (aliasValue) {
