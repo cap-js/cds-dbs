@@ -1,11 +1,16 @@
 const { SQLService } = require('@cap-js/db-service')
 const cds = require('@sap/cds/lib')
 let sqlite
+
 try {
-  sqlite = require('better-sqlite3')
-} catch (err) {
-  // When failing to load better-sqlite3 it fallsback to sql.js (wasm version of sqlite)
-  sqlite = require('./sql.js.js')
+  sqlite = require('./node-sqlite')
+} catch {
+  try {
+    sqlite = require('better-sqlite3')
+  } catch (err) {
+    // When failing to load better-sqlite3 it fallsback to sql.js (wasm version of sqlite)
+    sqlite = require('./sql.js.js')
+  }
 }
 
 const $session = Symbol('dbc.session')
@@ -37,7 +42,7 @@ class SQLiteService extends SQLService {
       options: this.options.pool || {},
       create: async tenant => {
         const database = this.url4(tenant)
-        const dbc = new sqlite(database, this.options.client)
+        const dbc = new sqlite(database, this.options.client || {})
         await dbc.ready
 
         const deterministic = { deterministic: true }
@@ -50,7 +55,7 @@ class SQLiteService extends SQLService {
         dbc.function('hour', deterministic, d => d === null ? null : toDate(d, true).getUTCHours())
         dbc.function('minute', deterministic, d => d === null ? null : toDate(d, true).getUTCMinutes())
         dbc.function('second', deterministic, d => d === null ? null : toDate(d, true).getUTCSeconds())
-        if (!dbc.memory) dbc.pragma('journal_mode = WAL')
+        if (!dbc.memory) dbc.pragma?.('journal_mode = WAL')
         return dbc
       },
       destroy: dbc => dbc.close(),
