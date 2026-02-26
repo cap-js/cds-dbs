@@ -60,10 +60,11 @@ The prefix is used to calculate the semver release level, and the section of the
 | fix        | A bug has been patched              | `patch`       | **Fixed**          |
 | deps        | Changes to the dependencies        | `patch`       | **Changed**          |
 | perf       | Performance improvements            | none          | **Performance Improvements**   |
+| removed       | Removed            | none          | **Removed**   |
 | chore      | Any changes that aren't user-facing | none          | none                   |
 | docs       | Documentation updates               | none          | none                   |
 | style      | Code style and formatting changes   | none          | none                   |
-| refactor   | Code refactoring                    | none          | none                   |                |
+| refactor   | Code refactoring                    | none          | none                   |
 | test       | Adding tests or test-related changes| none          | none                   |
 | build      | Build system or tooling changes     | none          | none                   |
 | ci         | Continuous Integration/Deployment    | none          | none                   |

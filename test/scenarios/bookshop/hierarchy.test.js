@@ -3,17 +3,17 @@ const bookshop = require('path').resolve(__dirname, '../../bookshop')
 
 describe('Bookshop - Genres', () => {
   if (cds.version < '9') return test.todo('Tests are skipped until release of cds9')
-  const { expect, GET, perf } = cds.test(bookshop)
+  const { expect, GET, perf } = cds.test(bookshop, '--service', 'TreeService')
   const { report } = perf || {}
 
-  beforeAll(() => {
+  beforeAll(async () => {
     cds.log('odata', 'error')
   })
 
   const topLevels = 'com.sap.vocabularies.Hierarchy.v1.TopLevels'
 
   test('TopLevels(1)', async () => {
-    const res = await GET(`/tree/Genres?$select=DrillState,ID,name&$apply=${topLevels}(HierarchyNodes=$root/GenreHierarchy,HierarchyQualifier='GenreHierarchy',NodeProperty='ID',Levels=1)`)
+    const res = await GET(`/tree/Genres?$select=DrillState,ID,name&$apply=${topLevels}(HierarchyNodes=$root/GenreHierarchy,HierarchyQualifier='GenreHierarchy',NodeProperty='ID',Levels=1)&$filter=ID eq 10 or ID eq 20`)
     expect(res).property('data').property('value').deep.eq([
       {
         ID: 10,
@@ -28,8 +28,40 @@ describe('Bookshop - Genres', () => {
     ])
   })
 
+  test('TopLevels with calculated element', async () => {
+    const res = await GET(`/tree/Genres?$select=DrillState,ID,name,timesTwo&$apply=${topLevels}(HierarchyNodes=$root/GenreHierarchy,HierarchyQualifier='GenreHierarchy',NodeProperty='ID',Levels=2)`)
+    expect(res).property('data').property('value').deep.eq([
+      { DrillState: 'expanded', ID: 10, name: 'Fiction', timesTwo: null },
+      { DrillState: 'leaf', ID: 11, name: 'Drama', timesTwo: 42 },
+      { DrillState: 'leaf', ID: 12, name: 'Poetry', timesTwo: 44 },
+      { DrillState: 'leaf', ID: 13, name: 'Fantasy', timesTwo: 46 },
+      { DrillState: 'leaf', ID: 14, name: 'Science Fiction', timesTwo: 48 },
+      { DrillState: 'leaf', ID: 15, name: 'Romance', timesTwo: 50 },
+      { DrillState: 'leaf', ID: 16, name: 'Mystery', timesTwo: 52 },
+      { DrillState: 'leaf', ID: 17, name: 'Thriller', timesTwo: 54 },
+      { DrillState: 'leaf', ID: 18, name: 'Dystopia', timesTwo: 56 },
+      { DrillState: 'leaf', ID: 19, name: 'Fairy Tale', timesTwo: 58 },
+      { DrillState: 'expanded', ID: 20, name: 'Non-Fiction', timesTwo: null },
+      { DrillState: 'collapsed', ID: 21, name: 'Biography', timesTwo: 82 },
+      { DrillState: 'leaf', ID: 23, name: 'Essay', timesTwo: 86 },
+      { DrillState: 'leaf', ID: 24, name: 'Speech', timesTwo: 88 },
+      { DrillState: 'expanded', ID: 52, name: 'Historical', timesTwo: null },
+      { DrillState: 'collapsed', ID: 51, name: 'Medieval', timesTwo: 206 },
+      { DrillState: 'leaf', ID: 53, name: 'Contemporary', timesTwo: null }
+    ])
+  })
+
   test('TopLevels(null)', async () => {
     await GET(`/tree/Genres?$select=DrillState,ID,name&$apply=${topLevels}(HierarchyNodes=$root/GenreHierarchy,HierarchyQualifier='GenreHierarchy',NodeProperty='ID')`)
+  })
+
+  test('TopLevels with $expand', async () => {
+    const query = `/tree/Genres?$select=DrillState,ID,name&$apply=${topLevels}(HierarchyNodes=$root/GenreHierarchy,HierarchyQualifier='GenreHierarchy',NodeProperty='ID',Levels=2)&$select=DrillState,ID,name&$expand=parent($select=ID,name)`
+    const res = await GET(query)
+
+    // should have parent expanded
+    const hasParent = res.data.value.some(item => item.parent)
+    expect(hasParent).to.be.true
   })
 
   test('ancestors($filter)/TopLevels(1)', async () => {
@@ -43,8 +75,73 @@ describe('Bookshop - Genres', () => {
     ])
   })
 
+  test('LimitedRank via composition and filter', async () => {
+    const query = `/tree/Root(ID=1)/genres?$select=LimitedRank,name&$apply=${topLevels}(HierarchyNodes=$root/Root(ID=1)/genres,HierarchyQualifier='GenresComptHierarchy',NodeProperty='ID',Levels=1,ExpandLevels=[{"NodeID":"52","Levels":1},{"NodeID":"51","Levels":1},{"NodeID":"50","Levels":1}])&$filter=ID eq 49`  
+    const res = await GET(query)
+    expect(res).property('data').property('value').deep.eq([
+      {
+        ID: 49,
+        LimitedRank: 5,
+        name: 'Arthurian Legend',
+      }
+    ])
+  })
+
   test('ancestors($filter)/TopLevels(null)', async () => {
     await GET(`/tree/Genres?$select=DrillState,ID,name&$apply=ancestors($root/GenreHierarchy,GenreHierarchy,ID,filter(tolower(name) eq tolower('Fantasy')),keep start)/${topLevels}(HierarchyNodes=$root/GenreHierarchy,HierarchyQualifier='GenreHierarchy',NodeProperty='ID')`)
+  })
+
+  test('Hierarchy query with projection alias should handle NODE_ID column conflicts', async () => {
+    const query = `/tree/GenresWithNodeIdAlias?$select=name,node_id&$apply=${topLevels}(HierarchyNodes=$root/GenresWithNodeIdAlias,HierarchyQualifier='GenresWithNodeIdAliasHierarchy',NodeProperty='ID',Levels=1)&$filter=ID eq 10 or ID eq 20`
+    const res = await GET(query)
+    expect(res).property('data').property('value').deep.eq([
+      {
+        ID: 10,
+        name: 'Fiction',
+        node_id: 10
+      },
+      {
+        ID: 20,
+        name: 'Non-Fiction',
+        node_id: 20
+      }
+    ])
+  })
+
+  test('Hierarchy query with null as node_id alias', async () => {
+    const query = `/tree/GenresAliases?$select=name,node_id&$apply=${topLevels}(HierarchyNodes=$root/GenresAliases,HierarchyQualifier='GenresAliases',NodeProperty='ID',Levels=1)&$filter=ID eq 10 or ID eq 20`
+    const res = await GET(query)
+    expect(res).property('data').property('value').deep.eq([
+      {
+        ID: 10,
+        name: 'Fiction',
+        node_id: null
+      },
+      {
+        ID: 20,
+        name: 'Non-Fiction',
+        node_id: null
+      }
+    ])
+  })
+
+  test('TopLevels pagination via composition with sorting', async () => {
+    const query = `/tree/Root(ID=1)/genres?$select=DrillState,ID,name&$apply=${topLevels}(HierarchyNodes=$root/GenreHierarchy,HierarchyQualifier='GenreHierarchy',NodeProperty='ID',Levels=1)&$count=true&$skip=1&$top=2&$orderby=name`
+    const res = await GET(query)
+
+    expect(res.data['@odata.count']).to.equal(4)
+    expect(res).property('data').property('value').deep.eq([
+      {
+        ID: 10,
+        DrillState: 'collapsed',
+        name: 'Fiction',
+      },
+      {
+        ID: 52,
+        DrillState: 'collapsed',
+        name: 'Historical',
+      }
+    ])
   })
 
   test.skip('perf', async () => {

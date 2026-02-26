@@ -4,6 +4,85 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.8.2](https://github.com/cap-js/cds-dbs/compare/db-service-v2.8.1...db-service-v2.8.2) (2026-02-03)
+
+
+### Fixed
+
+* compare conversion for right hand `null` transformation ([#1469](https://github.com/cap-js/cds-dbs/issues/1469)) ([ec1d0c6](https://github.com/cap-js/cds-dbs/commit/ec1d0c6fa08db1f75e9b72eed382a507b49815cc))
+* **cqn4sql:** calculated elements with function expr in from ([#1452](https://github.com/cap-js/cds-dbs/issues/1452)) ([970407e](https://github.com/cap-js/cds-dbs/commit/970407e29e4c98ee9c25d15277dff80c246b9523))
+* hierarchy with $top ([#1460](https://github.com/cap-js/cds-dbs/issues/1460)) ([dfc6226](https://github.com/cap-js/cds-dbs/commit/dfc62261681ced388e9c35aa8ce3e49e1c09f4e2))
+* search aggregate functions ([#1463](https://github.com/cap-js/cds-dbs/issues/1463)) ([a8db1f3](https://github.com/cap-js/cds-dbs/commit/a8db1f38e219bd7818c3cfc9f45e108bcab1dd95))
+* support all types for casting in queries ([#1481](https://github.com/cap-js/cds-dbs/issues/1481)) ([8392232](https://github.com/cap-js/cds-dbs/commit/8392232aafdcfa025a7dce597bf65fb6344acd1f))
+
+## [2.8.1](https://github.com/cap-js/cds-dbs/compare/db-service-v2.8.0...db-service-v2.8.1) (2025-12-19)
+
+
+### Fixed
+
+* hierarchy node_id as alias ([#1450](https://github.com/cap-js/cds-dbs/issues/1450)) ([d115345](https://github.com/cap-js/cds-dbs/commit/d115345e5acc30046159ede98d99a864df55e2af))
+
+## [2.8.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.7.0...db-service-v2.8.0) (2025-12-15)
+
+
+### Added
+
+* Added support to use `UPSERT` from `SELECT` ([#1435](https://github.com/cap-js/cds-dbs/issues/1435)) ([68f3db8](https://github.com/cap-js/cds-dbs/commit/68f3db8d79aa120768fe81324cd164782b9eec1b))
+
+
+### Fixed
+
+* propagte target to subquery ([#1438](https://github.com/cap-js/cds-dbs/issues/1438)) ([5460e43](https://github.com/cap-js/cds-dbs/commit/5460e4398079750ec3afec9a1747007618d23ecd))
+
+## [2.7.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.6.0...db-service-v2.7.0) (2025-11-26)
+
+
+### Added
+
+* `error` standard function ([#1421](https://github.com/cap-js/cds-dbs/issues/1421)) ([b1b0fca](https://github.com/cap-js/cds-dbs/commit/b1b0fca00387c45ed91280b2df4282be90ea0a6e))
+
+
+### Fixed
+
+* LimitedRank with compositions ([#1391](https://github.com/cap-js/cds-dbs/issues/1391)) ([31766cd](https://github.com/cap-js/cds-dbs/commit/31766cd8f9b626d090129b174ac9a04b4d578c21))
+* reject nested projection if duplicated ([#1411](https://github.com/cap-js/cds-dbs/issues/1411)) ([6e924c9](https://github.com/cap-js/cds-dbs/commit/6e924c9942de6e6a4abf7b2c168d4378efcaefa9))
+
+## [2.6.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.5.1...db-service-v2.6.0) (2025-10-23)
+
+
+### Added
+
+* **`flattening`:** allow flattening of `n`-ary structures in `list` ([#1337](https://github.com/cap-js/cds-dbs/issues/1337)) ([7ec18f2](https://github.com/cap-js/cds-dbs/commit/7ec18f24dba80ba31ad4e46f816c17fa64cba91a))
+* **`flattening`:** allow flattening of structures with exactly one leaf ([7ec18f2](https://github.com/cap-js/cds-dbs/commit/7ec18f24dba80ba31ad4e46f816c17fa64cba91a))
+
+
+### Fixed
+
+* **`@cds.search`:** properly exclude an association from being searched ([#1385](https://github.com/cap-js/cds-dbs/issues/1385)) ([9ed4245](https://github.com/cap-js/cds-dbs/commit/9ed42458417c15dc33409befd0ef40889f04a69f))
+* tree table with expand ([#1363](https://github.com/cap-js/cds-dbs/issues/1363)) ([bdad412](https://github.com/cap-js/cds-dbs/commit/bdad412f0362165b532ce35261773e5ecc7c696a))
+
+## [2.5.1](https://github.com/cap-js/cds-dbs/compare/db-service-v2.5.0...db-service-v2.5.1) (2025-09-30)
+
+
+### Fixed
+
+* revert own resolve ([#1366](https://github.com/cap-js/cds-dbs/issues/1366)) ([9037570](https://github.com/cap-js/cds-dbs/commit/9037570c5dda08eb8bc168c0a68045ef9fc85a9f))
+
+## [2.5.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.4.0...db-service-v2.5.0) (2025-09-30)
+
+
+### Added
+
+* make hana server version accessible to sub classes ([#1263](https://github.com/cap-js/cds-dbs/issues/1263)) ([a3ccc3e](https://github.com/cap-js/cds-dbs/commit/a3ccc3ed2fd6a65f1fd5924756a4a7b965adf9a3))
+* sets default to hana cloud if server version cannot be detected ([a3ccc3e](https://github.com/cap-js/cds-dbs/commit/a3ccc3ed2fd6a65f1fd5924756a4a7b965adf9a3))
+
+
+### Fixed
+
+* **`@cds.search`:** no duplicates for search along `to-many` paths ([#1341](https://github.com/cap-js/cds-dbs/issues/1341)) ([5c5f4fb](https://github.com/cap-js/cds-dbs/commit/5c5f4fbf790f718c3cf1bcb6f3bf7be421be598f))
+* associations in `[@cds](https://github.com/cds).search` are additive ([#1355](https://github.com/cap-js/cds-dbs/issues/1355)) ([ea931cb](https://github.com/cap-js/cds-dbs/commit/ea931cb120c2857aa18a4eb68b893926c0999a9f))
+* set proper element link for path into fk ([#1344](https://github.com/cap-js/cds-dbs/issues/1344)) ([9f365d3](https://github.com/cap-js/cds-dbs/commit/9f365d35ac614969d8fd2c2a9a1a2e0cd643969d))
+
 ## [2.4.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.3.0...db-service-v2.4.0) (2025-08-27)
 
 

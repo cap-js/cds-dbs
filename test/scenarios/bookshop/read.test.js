@@ -7,27 +7,30 @@ const admin = {
   },
 }
 
+const totalBooks = 6
+
 describe('Bookshop - Read', () => {
-  const { expect, GET, POST, DELETE } = cds.test(bookshop)
+  const expect = require('@cap-js/cds-test/lib/expect.js') // REVISIT: to.deep.contain is not mirror to jest
+  const { GET } = cds.test(bookshop)
 
   test('Books', async () => {
     const res = await GET('/browse/Books', { headers: { 'accept-language': 'de' } })
     expect(res.status).to.be.eq(200)
-    expect(res.data.value.length).to.be.eq(5)
+    expect(res.data.value.length).to.be.eq(totalBooks)
   })
 
   test('Books $count with $top=0', async () => {
     const res = await GET('/browse/ListOfBooks?$count=true&$top=0')
     expect(res.status).to.be.eq(200)
     expect(res.data.value.length).to.be.eq(0)
-    expect(res.data['@odata.count']).to.be.eq(5)
+    expect(res.data['@odata.count']).to.be.eq(totalBooks)
   })
 
   test('Books $count with $top=2', async () => {
     const res = await GET('/browse/ListOfBooks?$count=true&$top=2')
     expect(res.status).to.be.eq(200)
     expect(res.data.value.length).to.be.eq(2)
-    expect(res.data['@odata.count']).to.be.eq(5)
+    expect(res.data['@odata.count']).to.be.eq(totalBooks)
   })
 
   test('Books $count with $top=1 and groupby', async () => {
@@ -36,7 +39,7 @@ describe('Bookshop - Read', () => {
     )
     expect(res.status).to.be.eq(200)
     expect(res.data.value.length).to.be.eq(1)
-    expect(res.data['@odata.count']).to.be.eq(5)
+    expect(res.data['@odata.count']).to.be.eq(totalBooks)
   })
 
   test('Books $count in expand', async () => {
@@ -83,7 +86,7 @@ describe('Bookshop - Read', () => {
 
   test('same as above, with more depth', async () => {
     const res = await GET(
-      '/admin/Books?$apply=filter(title%20ne%20%27bar%27)/groupby((genre/parent/name),aggregate(price with sum as totalAmount))',
+      '/admin/Books?$apply=filter(title%20ne%20%27dracula%27)/groupby((genre/parent/name),aggregate(price with sum as totalAmount))',
       admin,
     )
     expect(res.data.value[0].genre.parent.name).to.be.eq('Fiction')
@@ -95,6 +98,17 @@ describe('Bookshop - Read', () => {
       admin,
     )
     expect(res.data.value.every(row => row.author.name)).to.be.true
+  })
+
+  test('groupby with nested path expression', async () => {
+    const res = await GET(
+      '/admin/Books(ID=280)?$apply=groupby((genre/name,genre/children/name,genre/children/children/name))',
+      admin,
+    )
+    expect(res.status).to.be.eq(200)
+    expect(res.data.genre.name).to.be.eq('Non-Fiction')
+    expect(res.data.genre.children[0].name).to.be.eq('Biography')
+    expect(res.data.genre.children[0].children[0].name).to.be.eq('Autobiography')
   })
 
   test('groupby with multiple path expressions', async () => {
@@ -267,6 +281,25 @@ describe('Bookshop - Read', () => {
     expect(res.data.author.books.length).to.be.eq(2)
   })
 
+  test('Expand Book with $apply + $filter', async () => {
+    const res = await GET(
+      `/admin/Books?$select=title&$expand=author($select=name;$expand=books($select=title))&$apply=filter(title ne 'bar')&$filter=ID eq 252`,
+      admin,
+    )
+
+    expect(res).to.deep.contain({
+      status: 200,
+      data: {
+        value: [{
+          ID: 252,
+          title: 'Eleonora',
+          author: { name: 'Edgar Allen Poe' }
+        }]
+      },
+    })
+    expect(res.data.value[0].author.books.length).to.be.eq(2)
+  })
+
   test('Expand Book with alias', async () => {
     const { Books } = cds.entities('sap.capire.bookshop')
     const res = await SELECT.one`ID as i, title as t, author as a { name as n, books as b { title as t } }`.from`${Books}[ID=252]`
@@ -275,6 +308,37 @@ describe('Bookshop - Read', () => {
     expect(res.t).to.be.eq('Eleonora')
     expect(res.a.n).to.be.eq('Edgar Allen Poe')
     expect(res.a.b.length).to.be.eq(2)
+  })
+
+  test('Expand Book with alias through sub select', async () => {
+    const { Books } = cds.entities('sap.capire.bookshop')
+    const res = await SELECT.one`ID as i, title as t, author as a { name as n, books as b { title as t } }`.from(SELECT.from`${Books}[ID=252]`)
+
+    expect(res).to.deep.contain({
+      i: 252,
+      t: 'Eleonora',
+      a: { n: 'Edgar Allen Poe' }
+    })
+    expect(res.a.b.length).to.be.eq(2)
+  })
+   
+  test('Expand books with group by aggregation', async () => {
+    const { Authors, Books } = cds.entities('sap.capire.bookshop')
+    const expand = await cds.ql`
+      SELECT from ${Authors} {
+        books [group by author.ID] {
+         sum(price * stock) as totalStockValue
+        }
+      } where name = 'Edgar Allen Poe'`
+    const compareTo = await cds.ql`
+      SELECT from ${Books} {
+        sum(price * stock) as totalStockValue
+      }
+      where author.name = 'Edgar Allen Poe'
+      group by author.ID
+      `
+    
+    expect(expand[0].books[0].totalStockValue).to.be.eq(compareTo[0].totalStockValue)
   })
 
   test.skip('Expand Book($count,$top,$orderby)', async () => {
@@ -291,40 +355,34 @@ describe('Bookshop - Read', () => {
     expect(res.data.author.books.length).to.be.eq(2)
   })
 
+  test('recursively expand children of Generes to exceed MAX_LENGTH_OF_IDENTIFIER (127)', async () => {
+    const { Genres } = cds.entities('sap.capire.bookshop')
+
+    const columns = Array.from({ length: 16 }).reduce(cols => {
+        const nestedCols = cols.pop()
+        cols.push([{ ref: ['ID'] }, { ref: ['children'], expand: nestedCols }])
+        return cols
+      }, [])
+
+    const cqn = SELECT.from(Genres).columns(...columns)
+
+    const res = await cds.run(cqn)
+    expect(res).to.not.be.undefined
+  })
+
   test('Sorting Books', async () => {
-    const res = await POST(
-      '/admin/Books',
-      {
-        ID: 280,
-        title: 'dracula',
-        descr:
-          "Dracula is a classic Gothic horror novel about a vampire's attempt to spread the undead curse from Transylvania to England.",
-        author: { ID: 101 },
-        genre: { ID: 10 },
-        stock: 5,
-        price: '12.05',
-        currency: { code: 'USD' },
-      },
-      admin,
-    )
-    try {
-      expect(res.status).to.be.eq(201)
+    const res2 = await GET('/browse/Books?$orderby=title', { headers: { 'accept-language': 'de' } })
+    expect(res2.status).to.be.eq(200)
+    expect(res2.data.value[1].title).to.be.eq('dracula')
 
-      const res2 = await GET('/browse/Books?$orderby=title', { headers: { 'accept-language': 'de' } })
-      expect(res2.status).to.be.eq(200)
-      expect(res2.data.value[1].title).to.be.eq('dracula')
+    const q = cds.ql`SELECT title FROM sap.capire.bookshop.Books ORDER BY title`
+    const res3 = await cds.run(q)
+    expect(res3.at(-1).title).to.be.eq('dracula')
 
-      const q = cds.ql`SELECT title FROM sap.capire.bookshop.Books ORDER BY title`
-      const res3 = await cds.run(q)
-      expect(res3.at(-1).title).to.be.eq('dracula')
-
-      // If no locale is set, we do not sort by default locale, standard sorting applies
-      q.SELECT.localized = true
-      const res4 = await cds.run(q)
-      expect(res4.at(-1).title).to.be.eq('dracula')
-    } finally {
-      await DELETE('/admin/Books(280)', admin)
-    }
+    // If no locale is set, we do not sort by default locale, standard sorting applies
+    q.SELECT.localized = true
+    const res4 = await cds.run(q)
+    expect(res4.at(-1).title).to.be.eq('dracula')
   })
 
   test('Filter Books(multiple functions)', async () => {
@@ -350,7 +408,7 @@ describe('Bookshop - Read', () => {
     expect(await GET(
       `/admin/Books?$filter=image eq null`,
       admin,
-    )).to.have.nested.property('data.value.length', 5)
+    )).to.have.nested.property('data.value.length', totalBooks)
 
     // intentionally not tranformed `null = image` SQL which always returns `null`
     expect(await GET(
@@ -444,9 +502,9 @@ describe('Bookshop - Read', () => {
 
   it('allows various mechanisms for expressing "not in"', async () => {
     const results = await cds.db.run([
-      SELECT.from('sap.capire.bookshop.Books', ['ID']).where({ ID: { 'not in': [201, 251] } }).orderBy('ID'),
-      SELECT.from('sap.capire.bookshop.Books', ['ID']).where({ ID: { not: { in: [201, 251] } } }).orderBy('ID'),
-      SELECT.from('sap.capire.bookshop.Books', ['ID']).where('ID not in', [201, 251]).orderBy('ID'),
+      SELECT.from('sap.capire.bookshop.Books', ['ID']).where({ ID: { 'not in': [201, 251, 280] } }).orderBy('ID'),
+      SELECT.from('sap.capire.bookshop.Books', ['ID']).where({ ID: { not: { in: [201, 251, 280] } } }).orderBy('ID'),
+      SELECT.from('sap.capire.bookshop.Books', ['ID']).where('ID not in', [201, 251, 280]).orderBy('ID'),
     ])
 
     for (const row of results) expect(row).to.deep.eq([{ ID: 207 }, { ID: 252 }, { ID: 271 }])
@@ -490,5 +548,34 @@ describe('Bookshop - Read', () => {
     const crossJoinResult = await cds.db.run(query)
     const pathExpressionResult = await cds.db.run(pathExpressionQuery)
     expect(crossJoinResult).to.deep.eq(pathExpressionResult)
+  })
+
+  it('special $main variable', async () => {
+    // INSERT a second Harry Potter book
+    // this one already exists: `{ ID: 272, title: 'Harry Potter', … }`
+    await INSERT.into('sap.capire.bookshop.Books').entries([
+      { ID: 678, title: 'Harry Potter and the Chamber of Secrets', author_ID: 171, stock: 10 }
+    ])
+    // with the $main syntax, we can check if the author of a given book
+    // has already written other books with a similar title
+    const thereExistsASimilarBook = cds.ql`
+      SELECT from sap.capire.bookshop.Books as Books
+      {
+        ID,
+        ( (
+          exists author.books[
+            (contains(title, $main.title) or contains($main.title, title)) and ID != $main.ID
+          ]) ?
+          'This author has already written similar books' :
+          'No similar books by the books author'
+        ) as hasSimilarBooks
+      }`
+    const allBooks = await cds.run(thereExistsASimilarBook)
+    for (const book of allBooks) {
+      if ([272, 678].includes(book.ID))
+        expect(book.hasSimilarBooks).to.equal('This author has already written similar books')
+      else
+        expect(book.hasSimilarBooks).to.equal('No similar books by the books author')
+    }
   })
 })

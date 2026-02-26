@@ -34,7 +34,7 @@ class SQLiteService extends SQLService {
 
   get factory() {
     return {
-      options: { max: 1, ...this.options.pool },
+      options: this.options.pool || {},
       create: async tenant => {
         const database = this.url4(tenant)
         const dbc = new sqlite(database, this.options.client)
