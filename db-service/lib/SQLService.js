@@ -168,7 +168,7 @@ class SQLService extends DatabaseService {
         return SQLService._arrayWithCount(rows, await this.count(query, rows))
       }
 
-      return iterator !== false && isOne ? rows[0] : rows
+      return !iterator && isOne ? rows[0] : rows
     } catch (err) {
       // Ensure that iterators receive pre stream errors
       if (iterator) rows.emit('error', err)
