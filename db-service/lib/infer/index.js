@@ -4,20 +4,8 @@ const cds = require('@sap/cds')
 
 const JoinTree = require('./join-tree')
 const { pseudos } = require('./pseudos')
-const { isCalculatedOnRead, getImplicitAlias, getModelUtils, defineProperty, hasOwnSkip } = require('../utils')
-const cdsTypes = cds.linked({
-  definitions: {
-    Timestamp: { type: 'cds.Timestamp' },
-    DateTime: { type: 'cds.DateTime' },
-    Date: { type: 'cds.Date' },
-    Time: { type: 'cds.Time' },
-    String: { type: 'cds.String' },
-    Decimal: { type: 'cds.Decimal' },
-    Integer: { type: 'cds.Integer' },
-    Boolean: { type: 'cds.Boolean' },
-  },
-}).definitions
-for (const each in cdsTypes) cdsTypes[`cds.${each}`] = cdsTypes[each]
+const { isCalculatedOnRead, getImplicitAlias, getModelUtils, defineProperty, hasOwnSkip, isRuntimeView } = require('../utils')
+const cdsTypes = cds.builtin.types
 /**
  * @param {import('@sap/cds/apis/cqn').Query|string} originalQuery
  * @param {import('@sap/cds/apis/csn').CSN} [model]
@@ -203,11 +191,12 @@ function infer(originalQuery, model) {
       const dollarSelfRefs = []
       columns.forEach(col => {
         if (col === '*') {
+          if (wildcardSelect) throw new Error('Duplicate wildcard "*" in column list')
           wildcardSelect = true
         } else if (col.val !== undefined || col.xpr || col.SELECT || col.func || col.param) {
           const as = col.as || col.func || col.val
           if (as === undefined) cds.error`Expecting expression to have an alias name`
-          if (queryElements[as]) cds.error`Duplicate definition of element “${as}”`
+          if (queryElements[as]) rejectDuplicatedElement(as)
           if (col.xpr || col.SELECT) {
             queryElements[as] = getElementForXprOrSubquery(col, queryElements, dollarSelfRefs)
           }
@@ -472,7 +461,7 @@ function infer(originalQuery, model) {
             const element = elements[id]
             if (inInfixFilter) {
               const nextStep = arg.ref[1]?.id || arg.ref[1]
-              if (isNonForeignKeyNavigation(element, nextStep)) {
+              if (isNonForeignKeyNavigation(element, nextStep) || arg.ref[0]?.where) {
                 defineProperty($baseLink, 'pathExpressionInsideFilter', true)
               }
             }
@@ -602,7 +591,8 @@ function infer(originalQuery, model) {
 
       if(!arg.$refLinks[i].$main)
         arg.$refLinks[i].alias = !arg.ref[i + 1] && arg.as ? arg.as : id.split('.').pop()
-      if (hasOwnSkip(getDefinition(arg.$refLinks[i].definition.target))) isPersisted = false
+      const def = getDefinition(arg.$refLinks[i].definition.target)
+      if (hasOwnSkip(def) && !isRuntimeView(def)) isPersisted = false
       if (!arg.ref[i + 1]) {
         const flatName = nameSegments.join('_')
         defineProperty(arg, 'flatName', flatName)
@@ -617,9 +607,17 @@ function infer(originalQuery, model) {
           if (arg.$refLinks.length === 1 && arg.$refLinks[0].definition.kind === 'entity')
             elementName = arg.$refLinks[0].alias
           else elementName = arg.as || flatName
-          if (queryElements) queryElements[elementName] = elements
+
+          if (queryElements) {
+            if (queryElements[elementName] !== undefined)
+              rejectDuplicatedElement(elementName)
+            queryElements[elementName] = elements
+          }
         } else if (arg.inline && queryElements) {
           const elements = resolveInline(arg)
+          for (const elName in elements) {
+            if (queryElements[elName] !== undefined) rejectDuplicatedElement(elName)  
+          }
           Object.assign(queryElements, elements)
         } else {
           // shortcut for `ref: ['$user']` -> `ref: ['$user', 'id']`
@@ -641,7 +639,7 @@ function infer(originalQuery, model) {
               else elementName = flatName
             }
             if (queryElements[elementName] !== undefined)
-              throw new Error(`Duplicate definition of element “${elementName}”`)
+              rejectDuplicatedElement(elementName)
             const element = getCopyWithAnnos(arg, leafArt)
             queryElements[elementName] = element
           }
@@ -654,7 +652,11 @@ function infer(originalQuery, model) {
     // ignore whole expand if target of assoc along path has ”@cds.persistence.skip”
     if (arg.expand) {
       const { $refLinks } = arg
-      const skip = $refLinks.some(link => hasOwnSkip(getDefinition(link.definition.target)))
+      
+      const skip = $refLinks.some(link => {
+        const def = getDefinition(link.definition.target)
+        return hasOwnSkip(def) && !isRuntimeView(def)
+      })
       if (skip) {
         $refLinks[$refLinks.length - 1].skipExpand = true
         return
@@ -707,9 +709,12 @@ function infer(originalQuery, model) {
         )
       }
       let elements = {}
+      let seenWildcard = false
       inline.forEach(inlineCol => {
         inferArg(inlineCol, null, $leafLink, { inXpr: true, baseColumn: col })
         if (inlineCol === '*') {
+          if (seenWildcard) throw new Error(`Duplicate wildcard "*" in inline of "${col.as || col.ref.map(idOnly).join('_')}"`)
+          seenWildcard = true
           const wildCardElements = {}
           // either the `.elements´ of the struct or the `.elements` of the assoc target
           const leafLinkElements = getDefinition($leafLink.definition.target)?.elements || $leafLink.definition.elements
@@ -724,7 +729,7 @@ function infer(originalQuery, model) {
         } else {
           const nameParts = namePrefix ? [namePrefix] : []
           if (inlineCol.as) nameParts.push(inlineCol.as)
-          else nameParts.push(...inlineCol.ref.map(idOnly))
+          else if (inlineCol.ref) nameParts.push(...inlineCol.ref.map(idOnly))
           const name = nameParts.join('_')
           if (inlineCol.inline) {
             const inlineElements = resolveInline(inlineCol, name)
@@ -733,8 +738,10 @@ function infer(originalQuery, model) {
             const expandElements = resolveExpand(inlineCol)
             elements = { ...elements, [name]: expandElements }
           } else if (inlineCol.val) {
-            elements[name] = { ...getCdsTypeForVal(inlineCol.val) }
+            elements[name] = getCdsTypeForVal(inlineCol.val)
           } else if (inlineCol.func) {
+            elements[name] = {}
+          } else if (inlineCol.xpr) {
             elements[name] = {}
           } else {
             elements[name] = inlineCol.$refLinks[inlineCol.$refLinks.length - 1].definition
@@ -762,6 +769,16 @@ function infer(originalQuery, model) {
         throw new Error(
           `Unexpected “expand” on “${col.ref.map(idOnly)}”; can only be used after a reference to a structure, association or table alias`,
         )
+      }
+      // Check for duplicate wildcards before creating the subquery
+      let seenWildcard = false
+      for (const e of expand) {
+        if (e === '*') {
+          if (seenWildcard) {
+            throw new Error(`Duplicate wildcard "*" in expand of "${col.as || col.ref.map(idOnly).join('_')}"`)
+          }
+          seenWildcard = true
+        }
       }
       const target = getDefinition($leafLink.definition.target)
       if (target) {
@@ -823,6 +840,10 @@ function infer(originalQuery, model) {
       throw new Error(err.join(','))
     }
   }
+  function rejectDuplicatedElement(elementName) {
+    throw new Error(`Duplicate definition of element “${elementName}”`)
+  }
+
   function linkCalculatedElement(column, baseLink, baseColumn, context = {}) {
     const calcElement = column.$refLinks?.[column.$refLinks.length - 1].definition || column
     if (alreadySeenCalcElements.has(calcElement)) return
@@ -850,7 +871,7 @@ function infer(originalQuery, model) {
           arg,
           null,
           { definition: parentElementDefinition, target: parentElementDefinition },
-          { inCalcElement: true },
+          { inCalcElement: true, ...context },
         )
         const basePath =
           column.$refLinks?.length > 1
@@ -1074,7 +1095,10 @@ function infer(originalQuery, model) {
     if ($refLinks?.[$refLinks.length - 1].definition.elements)
       // no cast on structure
       cds.error`Structured elements can't be cast to a different type`
-    thing.cast = cdsTypes[cast.type] || cast
+    const cdsType = cdsTypes[cast.type]
+    thing.cast = cdsType ? new cdsType.constructor(cast) : cast
+    if (cdsType)
+      thing.cast.type = cdsType._type
     return thing.cast
   }
 
@@ -1104,11 +1128,11 @@ function infer(originalQuery, model) {
     // if(val === null) return {type:'cds.String'}
     switch (typeof val) {
       case 'string':
-        return cdsTypes.String
+        return new cdsTypes.String.constructor()
       case 'boolean':
-        return cdsTypes.Boolean
+        return new cdsTypes.Boolean.constructor()
       case 'number':
-        return Number.isSafeInteger(val) ? cdsTypes.Integer : cdsTypes.Decimal
+        return Number.isSafeInteger(val) ? new cdsTypes.Integer.constructor() : new cdsTypes.Decimal.constructor()
       default:
         return {}
     }

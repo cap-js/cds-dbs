@@ -4,6 +4,57 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.1.3](https://github.com/cap-js/cds-dbs/compare/postgres-v2.1.2...postgres-v2.1.3) (2026-02-03)
+
+
+### Fixed
+
+* `between_*` function input types ([#1468](https://github.com/cap-js/cds-dbs/issues/1468)) ([1d3905a](https://github.com/cap-js/cds-dbs/commit/1d3905a0a8e6b2a6b11c787456c86e93ac2a41cd))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.8.1 to ^2.8.2
+
+## [2.1.2](https://github.com/cap-js/cds-dbs/compare/postgres-v2.1.1...postgres-v2.1.2) (2025-12-19)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.8.0 to ^2.8.1
+
+## [2.1.1](https://github.com/cap-js/cds-dbs/compare/postgres-v2.1.0...postgres-v2.1.1) (2025-12-15)
+
+
+### Fixed
+
+* fixed versions in postgres deployer package.json ([#1429](https://github.com/cap-js/cds-dbs/issues/1429)) ([c70ab92](https://github.com/cap-js/cds-dbs/commit/c70ab92a290e90eea64d4f54c25b301e8f3f6a0d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.7.0 to ^2.8.0
+
+## [2.1.0](https://github.com/cap-js/cds-dbs/compare/postgres-v2.0.6...postgres-v2.1.0) (2025-11-26)
+
+
+### Added
+
+* show default pool configuration in `env` ([#1422](https://github.com/cap-js/cds-dbs/issues/1422)) ([89b397a](https://github.com/cap-js/cds-dbs/commit/89b397ade2a15be8ce81ed3e8d717fc98f1a8107))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.6.0 to ^2.7.0
+
 ## [2.0.6](https://github.com/cap-js/cds-dbs/compare/postgres-v2.0.5...postgres-v2.0.6) (2025-10-23)
 
 

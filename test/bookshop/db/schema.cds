@@ -41,6 +41,7 @@ entity Genres : sap.common.CodeList {
       parent   : Association to Genres;
       children : Composition of many Genres
                    on children.parent = $self;
+      timesTwo : Integer = (ID + parent.ID) * 2;
 }
 
 entity A : managed {

@@ -881,6 +881,62 @@ describe('Unfolding calculated elements in other places', () => {
     expect(query).to.deep.equal(expected)
   })
 
+  it('in the from clause', () => {
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books[area < 13] as Books { ID }`, model)
+    const expected = cds.ql`SELECT from booksCalc.Books as Books { Books.ID }
+      where (Books.length * Books.width) < 13
+    `
+    expect(query).to.deep.equal(expected)
+  })
+
+  it('in the from clause with a function', () => {
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Authors[age > 30] as Oldies { ID }`, model)
+    const expected = cds.ql`
+      SELECT from booksCalc.Authors as Oldies { Oldies.ID }
+      where years_between( Oldies.dateOfBirth, Oldies.dateOfDeath ) > 30
+    `
+    expect(query).to.deep.equal(expected)
+  })
+
+  it('in the from clause with a function in a scoped query', () => {
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Authors[age > 30]:books as BooksOfOldies { ID }`, model)
+    const expected = cds.ql`
+      SELECT from booksCalc.Books as BooksOfOldies { BooksOfOldies.ID }
+      where exists (
+        select 1 from booksCalc.Authors as $A
+        where $A.ID = BooksOfOldies.author_ID
+          and years_between( $A.dateOfBirth, $A.dateOfDeath ) > 30
+      )
+    `
+    expect(query).to.deep.equal(expected)
+  })
+  it('in the from clause with a function in a scoped query, within another expression', () => {
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Authors[anotherFunc(age * (7+5)) + 42 > 'foo']:books as BooksOfOldies { ID }`, model)
+    const expected = cds.ql`
+      SELECT from booksCalc.Books as BooksOfOldies { BooksOfOldies.ID }
+      where exists (
+        select 1 from booksCalc.Authors as $A
+        where $A.ID = BooksOfOldies.author_ID
+          and anotherFunc( years_between( $A.dateOfBirth, $A.dateOfDeath ) * (7 + 5) ) + 42 > 'foo'
+      )
+    `
+    expect(query).to.deep.equal(expected)
+  })
+
+  it.skip('in the from clause with a join relevant path', () => {
+    // TODO: infix filter at from leaf is only a regular where,
+    // we must not reject the join relevant path with:
+    // Error: Only foreign keys of “author” can be accessed in infix filter, but found “firstName”
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books[authorFullName = 'Brandon Sanderson'] as Books { ID }`, model)
+    const expected = cds.ql`
+      SELECT from booksCalc.Books as Books
+        left join booksCalc.Authors as author on author.ID = Books.author_ID
+      { Books.ID }
+      where (author.firstName || ' ' || author.lastName) = 'Brandon Sanderson'
+    `
+    expect(query).to.deep.equal(expected)
+  })
+
   it('in filter in where exists', () => {
     let query = cqn4sql(cds.ql`SELECT from booksCalc.Authors { ID } where exists books[area < 13]`, model)
     const expected = cds.ql`SELECT from booksCalc.Authors as $A { $A.ID }
@@ -1086,4 +1142,33 @@ describe('Unfolding calculated elements and localized', () => {
     expected.SELECT.localized = true
     expect(query).to.deep.equal(expected)
   })
+
+  it('calc elements with sub selects', () => {
+    const q = cds.ql`SELECT ID, area from (SELECT ID, area from booksCalc.Books)`
+    let query = cqn4sql(q, model)
+    const expected = cds.ql`
+      SELECT __select__.ID, __select__.area from (
+          SELECT FROM booksCalc.Books as $B {
+            $B.ID,
+            $B.length * $B.width as area
+          }
+      ) AS __select__`
+    expect(query).to.deep.equal(expected)
+  })
+
+  it('calc elements with intermediate sub select star', () => {
+    const q = cds.ql`SELECT ID, area from (SELECT * FROM (SELECT ID, area from booksCalc.Books))`
+    let query = cqn4sql(q, model)
+    const expected = cds.ql`
+      SELECT __select__2.ID, __select__2.area from (
+        SELECT __select__.ID, __select__.area FROM (
+          SELECT FROM booksCalc.Books as $B {
+            $B.ID,
+            $B.length * $B.width as area
+          }
+        ) as __select__
+      ) AS __select__2`
+    expect(query).to.deep.equal(expected)
+  })
 })
+

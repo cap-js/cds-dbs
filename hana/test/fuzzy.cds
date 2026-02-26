@@ -3,3 +3,6 @@ using {sap.capire.bookshop.BooksAnnotated as BooksAnnotated} from '../../test/bo
 annotate BooksAnnotated with @cds.search: {title, descr, currency.code};
 annotate BooksAnnotated:title with @(Search.ranking: HIGH, Search.fuzzinessThreshold: 0.9);
 annotate BooksAnnotated:descr with @(Search.ranking: LOW, Search.fuzzinessThreshold: 0.9);
+
+@cds.search: {title: false, descr: true, currency.code: false}
+entity BooksSingleAnnotated as projection on BooksAnnotated;

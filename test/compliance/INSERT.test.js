@@ -163,6 +163,23 @@ describe('INSERT', () => {
   })
 
   describe('from', () => {
+    test('transform', async () => {
+      const { cuid, keys } = cds.entities('basic.common')
+      // fill other table first
+      await cds.run(INSERT([
+        { id: 1 },
+        { id: 1, default: 'overwritten' },
+      ]).into(keys))
+      await INSERT.into(cuid)
+        .columns(['ID'])
+        .from(cds.ql`SELECT id || '-' || default as ID FROM ${keys} WHERE id = ${1}`)
+      const select = await SELECT.from(cuid).orderBy('ID')
+      expect(select).deep.eq([
+        {ID:'1-defaulted'},
+        {ID:'1-overwritten'},
+      ])
+    })
+
     test('smart quoting', async () => {
       const { Alter, ASC } = cds.entities('complex.keywords')
       // fill other table first
@@ -196,7 +213,7 @@ describe('INSERT', () => {
     })
 
     const result = await SELECT.from('basic.common.dollar_now_default')
-    
+
     expect(result.length).to.eq(2)
     expect(result[0].date).to.match(/^\d{4}-\d{2}-\d{2}$/)
     expect(result[0].date).to.eq(result[1].date)

@@ -4,6 +4,85 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.6.0](https://github.com/cap-js/cds-dbs/compare/hana-v2.5.1...hana-v2.6.0) (2026-02-03)
+
+
+### Added
+
+* enable `group by` aggregation for expand queries ([#1482](https://github.com/cap-js/cds-dbs/issues/1482)) ([55942da](https://github.com/cap-js/cds-dbs/commit/55942daa58f05e0e27a67d180aca415021525db9))
+
+
+### Fixed
+
+* Add missing functions that require no brackets ([#1485](https://github.com/cap-js/cds-dbs/issues/1485)) ([cfd1c3e](https://github.com/cap-js/cds-dbs/commit/cfd1c3ef95a85e2650d67a1f26ad6ac86f809bbe))
+* association identifiers exceed limit ([#1480](https://github.com/cap-js/cds-dbs/issues/1480)) ([ffe80dd](https://github.com/cap-js/cds-dbs/commit/ffe80dd5ee4b0248a19c48ffffa659edf24a28ef))
+* compare conversion for right hand `null` transformation ([#1469](https://github.com/cap-js/cds-dbs/issues/1469)) ([ec1d0c6](https://github.com/cap-js/cds-dbs/commit/ec1d0c6fa08db1f75e9b72eed382a507b49815cc))
+* expand through sub select ([#1488](https://github.com/cap-js/cds-dbs/issues/1488)) ([9cb5497](https://github.com/cap-js/cds-dbs/commit/9cb5497fb1dafe616a460041b1dfbfdbcd6f81a7))
+* prevent Service Manager DoS on pool connection failures ([#1474](https://github.com/cap-js/cds-dbs/issues/1474)) ([02eaf29](https://github.com/cap-js/cds-dbs/commit/02eaf29bc0a40348acf67c23f411d76c46eb56fb))
+* search annotations were not applied if only single element was searched ([#1490](https://github.com/cap-js/cds-dbs/issues/1490)) ([a1f2123](https://github.com/cap-js/cds-dbs/commit/a1f2123e0ecb2918f8e6ba28f500d88b7d34dff7))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.8.1 to ^2.8.2
+
+## [2.5.1](https://github.com/cap-js/cds-dbs/compare/hana-v2.5.0...hana-v2.5.1) (2025-12-19)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.8.0 to ^2.8.1
+
+## [2.5.0](https://github.com/cap-js/cds-dbs/compare/hana-v2.4.1...hana-v2.5.0) (2025-12-15)
+
+
+### Added
+
+* Added support to use `UPSERT` from `SELECT` ([#1435](https://github.com/cap-js/cds-dbs/issues/1435)) ([68f3db8](https://github.com/cap-js/cds-dbs/commit/68f3db8d79aa120768fe81324cd164782b9eec1b))
+
+
+### Fixed
+
+* increase minimum hdb version to 2.26.3 ([#1442](https://github.com/cap-js/cds-dbs/issues/1442)) ([946a713](https://github.com/cap-js/cds-dbs/commit/946a713b35ddd3e4ace82001a1097e647a017b5c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.7.0 to ^2.8.0
+
+## [2.4.1](https://github.com/cap-js/cds-dbs/compare/hana-v2.4.0...hana-v2.4.1) (2025-11-26)
+
+
+### Fixed
+
+* introduce repository.url in package.json ([#1430](https://github.com/cap-js/cds-dbs/issues/1430)) ([00ad7fb](https://github.com/cap-js/cds-dbs/commit/00ad7fbf2904d254a307ef764d8036640694f395))
+
+## [2.4.0](https://github.com/cap-js/cds-dbs/compare/hana-v2.3.4...hana-v2.4.0) (2025-11-26)
+
+
+### Added
+
+* `error` standard function ([#1421](https://github.com/cap-js/cds-dbs/issues/1421)) ([b1b0fca](https://github.com/cap-js/cds-dbs/commit/b1b0fca00387c45ed91280b2df4282be90ea0a6e))
+* show default pool configuration in `env` ([#1422](https://github.com/cap-js/cds-dbs/issues/1422)) ([89b397a](https://github.com/cap-js/cds-dbs/commit/89b397ade2a15be8ce81ed3e8d717fc98f1a8107))
+
+
+### Fixed
+
+* **deps:** update dependency hdb to v2 ([#1266](https://github.com/cap-js/cds-dbs/issues/1266)) ([742a784](https://github.com/cap-js/cds-dbs/commit/742a784171503a5805c3f2e9d4f13135fa745ccb))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.6.0 to ^2.7.0
+
 ## [2.3.4](https://github.com/cap-js/cds-dbs/compare/hana-v2.3.3...hana-v2.3.4) (2025-10-23)
 
 

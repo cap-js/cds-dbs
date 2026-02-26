@@ -51,22 +51,14 @@ class HANAService extends SQLService {
     const isMultitenant = !!service.options.credentials.sm_url || !!service.options.credentials.baseurl || ('multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy)
     const acquireTimeoutMillis = this.options.pool?.acquireTimeoutMillis || (cds.env.profiles.includes('production') ? 1000 : 10000)
     return {
-      options: {
-        min: 0,
-        max: 10,
-        acquireTimeoutMillis,
-        idleTimeoutMillis: 60000,
-        evictionRunIntervalMillis: 100000,
-        numTestsPerEvictionRun: Math.ceil((this.options.pool?.max || 10) - (this.options.pool?.min || 0) / 3),
-        ...(this.options.pool || {}),
-        testOnBorrow: true,
-        fifo: false
-      },
+      options: this.options.pool || {},
       create: async function create(tenant, start = Date.now()) {
+        let credentials
         try {
-          const { credentials } = isMultitenant
+          const smTenant = isMultitenant
             ? await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: false })
             : service.options
+          credentials = smTenant.credentials
           const dbc = new driver({ ...credentials, ...clientOptions })
           await dbc.connect()
           service.server.major = dbc.server.major || service.server.major
@@ -77,9 +69,15 @@ class HANAService extends SQLService {
               if (err.status === 404 || err.status === 429) {
                 throw new Error(`Pool failed connecting to '${tenant}'`, { cause: err })
               }
-              await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true })
-              if (Date.now() - start < acquireTimeoutMillis) return create(tenant, start)
-              else throw new Error(`Pool failed connecting to '${tenant}' within ${acquireTimeoutMillis}ms`, { cause: err })
+              const deadline = start + acquireTimeoutMillis
+              try {
+                await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true, invalidCredentials: credentials, retryUntil: deadline })
+              } catch (smErr) {
+                 smErr.cause = err
+                 throw new Error(`Failed connecting to pool - could not get valid credentials from Service Manager`, { cause: smErr })
+              }
+              if (Date.now() < deadline) return create(tenant, start)
+              else throw new Error(`Pool exceeded for '${tenant}' within ${acquireTimeoutMillis}ms`, { cause: err })
             } else {
               // Stop trying when the tenant does not exist or is rate limited
               if (err.status == 404 || err.status == 429) {
@@ -202,16 +200,16 @@ class HANAService extends SQLService {
   }
 
   async onINSERT({ query, data }) {
-      const { sql, entries, cqn } = this.cqn2sql(query, data)
-      if (!sql) return // Do nothing when there is nothing to be done
-      const ps = await this.prepare(sql)
-      // HANA driver supports batch execution
-      const results = await (entries
-        ? this.server.major <= 2
-          ? entries.reduce((l, c) => l.then(() => this.ensureDBC() && ps.run(c)), Promise.resolve(0))
-          : entries.length > 1 ? this.ensureDBC() && await ps.runBatch(entries) : this.ensureDBC() && await ps.run(entries[0])
-        : this.ensureDBC() && ps.run())
-      return new this.class.InsertResults(cqn, results)
+    const { sql, entries, cqn } = this.cqn2sql(query, data)
+    if (!sql) return // Do nothing when there is nothing to be done
+    const ps = await this.prepare(sql)
+    // HANA driver supports batch execution
+    const results = await (entries
+      ? this.server.major <= 2
+        ? entries.reduce((l, c) => l.then(() => this.ensureDBC() && ps.run(c)), Promise.resolve(0))
+        : entries.length > 1 ? this.ensureDBC() && await ps.runBatch(entries) : this.ensureDBC() && await ps.run(entries[0])
+      : this.ensureDBC() && ps.run())
+    return new this.class.InsertResults(cqn, results)
   }
 
   async onNOTFOUND(req, next) {
@@ -220,6 +218,8 @@ class HANAService extends SQLService {
     } catch (err) {
       // Ensure that the known entity still exists
       if (!this.context.tenant && err.code === 259 && typeof req.query !== 'string') {
+        // decouple current request to avoid race condition
+        await this.release()
         // Clear current tenant connection pool
         this.disconnect(this.context.tenant)
       }
@@ -356,6 +356,7 @@ class HANAService extends SQLService {
       this.withclause = this.withclause || []
       this.temporary = this.temporary || []
       this.temporaryValues = this.temporaryValues || []
+      this.aliasIdx = this.aliasIdx || 0
 
       if (q.SELECT.from?.join && !q.SELECT.columns) {
         throw new Error('CQN query using joins must specify the selected columns.')
@@ -365,14 +366,17 @@ class HANAService extends SQLService {
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
-        const walkAlias = q => {
-          if (q.args) return q.as || walkAlias(q.args[0])
+        const walkAlias = (q) => {
+          if (q.as) return q.as
+          if (q.args) return walkAlias(q.args[0])
           if (q.SELECT?.from) return walkAlias(q.SELECT?.from)
-          return q.as
+          return 'unknown'
         }
+
         const alias = q.as // Use query alias as path name
-        q.as = walkAlias(q) // Use from alias for query re use alias
-        q.alias = `${parent ? parent.alias + '.' : ''}${alias || q.as}`
+        q.as = walkAlias(q.args?.[0] ?? q.SELECT.from ?? q) // Use from alias for query re use alias
+        q.alias = `$TA${this.aliasIdx++}`
+
         const src = q
 
         const { element, elements } = q
@@ -391,6 +395,9 @@ class HANAService extends SQLService {
           // Track parent _path_ for later concatination
           if (!columns.find(c => this.column_name(c) === '_path_'))
             columns.push({ ref: [parent.as, '_path_'], as: '_parent_path_' })
+          // make sure to include the _parent_path_ in group by is applied to expand
+          if (groupBy)
+            groupBy.push({ ref: [parent.as, '_path_'] })
         }
 
         if (recurse) {
@@ -431,7 +438,7 @@ class HANAService extends SQLService {
           if (c.element?.type === 'cds.Boolean') hasBooleans = true
           if (c.elements && c.element?.isAssociation) hasExpands = true
           if (c.element?.type in this.BINARY_TYPES || c.elements || c.element?.elements || c.element?.items) hasStructures = true
-          return c.elements ? c : { __proto__: c, ref: [this.column_name(c)] }
+          return c.elements && c.element?.isAssociation ? c : { __proto__: c, ref: [this.column_name(c)] }
         })
 
         const isSimpleQuery = (
@@ -592,41 +599,38 @@ class HANAService extends SQLService {
               // if (col.ref?.length === 1) { col.ref.unshift(parent.as) }
               if (col.ref?.length > 1) {
                 const colName = this.column_name(col)
-                if (!parent.SELECT.columns.some(c => !c.elements && this.column_name(c) === colName)) {
-                  const isSource = from => {
-                    if (from.as === col.ref[0]) return true
-                    return from.args?.some(a => {
-                      if (a.args) return isSource(a)
-                      return a.as === col.ref[0]
-                    })
-                  }
+                
+                const isSource = from => {
+                  if (from.as === col.ref[0]) return true
+                  return from.args?.some(a => {
+                    if (a.args) return isSource(a)
+                    return a.as === col.ref[0]
+                  })
+                }
 
-                  // Inject foreign columns into parent selects (recursively)
-                  const as = `$$${col.ref.join('.')}$$`
-                  let rename = col.ref[0] !== parent.as
-                  let curPar = parent
-                  while (curPar) {
-                    if (isSource(curPar.SELECT.from)) {
-                      if (curPar.SELECT.columns.find(c => c.as === as)) {
-                        rename = true
-                      } else {
-                        rename = rename || curPar === parent
-                        curPar.SELECT.columns.push(rename ? { __proto__: col, ref: col.ref, as } : { __proto__: col, ref: [...col.ref] })
-                      }
-                      break
+                // Inject foreign columns into parent selects (recursively)
+                const as = `$$${col.ref.join('.')}$$`
+                let rename = col.ref[0] !== parent.as
+                let curPar = parent
+                while (curPar) {
+                  if (isSource(curPar.SELECT.from)) {
+                    if (curPar.SELECT.columns.find(c => c.as === as)) {
+                      rename = true
                     } else {
-                      curPar.SELECT.columns.push({ __proto__: col, ref: [curPar.SELECT.parent.as, as], as })
-                      curPar = curPar.SELECT.parent
+                      rename = rename || curPar === parent
+                      curPar.SELECT.columns.push(rename ? { __proto__: col, ref: col.ref, as } : { __proto__: col, ref: [...col.ref] })
                     }
-                  }
-                  if (rename) {
-                    col.as = colName
-                    col.ref = [parent.as, as]
+                    break
                   } else {
-                    col.ref = [parent.as, colName]
+                    curPar.SELECT.columns.push({ __proto__: col, ref: [curPar.SELECT.parent.as, as], as })
+                    curPar = curPar.SELECT.parent
                   }
+                }
+                if (rename) {
+                  col.as = colName
+                  col.ref = [parent.as, as]
                 } else {
-                  col.ref[1] = colName
+                  col.ref = [parent.as, colName]
                 }
               }
             })
@@ -751,20 +755,26 @@ class HANAService extends SQLService {
     INSERT_entries(q) {
       this.values = undefined
       const { INSERT } = q
-      // REVISIT: should @cds.persistence.name be considered ?
-      const entity = q._target?.['@cds.persistence.name'] || this.name(q._target?.name || INSERT.into.ref[0], q)
 
       const elements = q.elements || q._target?.elements
       if (!elements) {
         return super.INSERT_entries(q)
       }
 
+      const entity = q._target ? this.table_name(q) : INSERT.into.ref[0]
+      const transitions = this.srv.resolve.transitions4db(q)
+
       const columns = elements
-        ? ObjectKeys(elements).filter(c => c in elements && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation && !elements[c][SYSTEM_VERSIONED])
+        ? ObjectKeys(elements).filter(c => this.physical_column(elements, c)
+          && (c = transitions.mapping.get(c)?.ref?.[0] || c)
+          && c in transitions.target.elements
+          && this.physical_column(transitions.target.elements, c)
+          && !elements[c]?.[SYSTEM_VERSIONED]
+        )
         : ObjectKeys(INSERT.entries[0])
       this.columns = columns
 
-      const extractions = this.managed(columns.map(c => ({ name: c })), elements)
+      const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), elements).slice(0, columns.length)
 
       // REVISIT: @cds.extension required
       const extraction = extractions.map(c => c.extract)
@@ -804,9 +814,8 @@ class HANAService extends SQLService {
       // With the buffer table approach the data is processed in chunks of a configurable size
       // Which allows even smaller HANA systems to process large datasets
       // But the chunk size determines the maximum size of a single row
-      return (this.sql = `INSERT INTO ${this.quote(entity)} (${this.columns.map(c =>
-        this.quote(c),
-      )}) WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
+      return (this.sql = `INSERT INTO ${this.quote(entity)} (${this.columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))
+        }) WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
       SELECT ${converter} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON ERROR) AS NEW`)
     }
 
@@ -874,8 +883,21 @@ class HANAService extends SQLService {
       const mixing = managed.map(c => c.upsert)
       const extraction = managed.map(c => c.extract)
 
-      const sql = `WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
+      let sql
+      if (UPSERT.entries || UPSERT.rows || UPSERT.values) {
+        sql = `WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
 SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON ERROR) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+      } else {
+        const src = this.cqn4sql(UPSERT.from || UPSERT.as)
+        if (this.values) this.values = []
+        const aliasedQuery = cds.ql.SELECT
+          .columns(src.SELECT.columns
+            .map((c, i) => ({ ref: [this.column_name(c)], as: this.columns[i] }))
+          )
+          .from(src)
+        sql = `SELECT ${mixing} FROM (${this.SELECT(aliasedQuery)}) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+        this.entries = [this.values]
+      }
 
       return (this.sql = `UPSERT ${this.quote(entity)} (${this.columns.map(c => this.quote(c))}) ${sql}`)
     }
@@ -935,6 +957,8 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
         '<=': null,
         '!<': null,
         '!>': null,
+        'IS': null,
+        'IS NOT': null,
       }
 
       if (!_internal) {
@@ -1182,6 +1206,19 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
       return `(CASE WHEN ${this.quote('$.' + name)} IS NULL THEN ${managed} ELSE ${src} END)`
     }
 
+    render_with() {
+      const sql = this.sql
+      const values = this.values
+      const prefix = this._with.map(q => {
+        const values = this.values = []
+        const sql = `${this.quote(q.as)} AS (${this.SELECT(q)})`
+        return { sql, values }
+      })
+      if (this.withclause?.length) this.withclause = [...prefix.map(p => p.sql), ...this.withclause]
+      else this.sql = `WITH ${prefix.map(p => p.sql)} ${sql}`
+      this.values = [...prefix.map(p => p.values).flat(), ...values]
+    }
+
     // Loads a static result from the query `SELECT * FROM RESERVED_KEYWORDS`
     static ReservedWords = { ...super.ReservedWords, ...hanaKeywords }
 
@@ -1229,7 +1266,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
       // REVISIT: BASE64_DECODE has stopped working
       // Unable to convert NVARCHAR to UTF8
       // Not encoded string with CESU-8 or some UTF-8 except a surrogate pair at "base64_decode" function
-      Binary: e => (typeof e === 'string' && e.match(/^NEW\./))  ? `HEXTOBIN(${e})`: e,
+      Binary: e => (typeof e === 'string' && e.match(/^NEW\./)) ? `HEXTOBIN(${e})` : e,
       Boolean: e => e === '?' ? e : `CASE WHEN ${e} = 'true' OR ${e} = '1' THEN TRUE WHEN ${e} = 'false' OR ${e} = '0' THEN FALSE END`,
       // TODO: Decimal: (expr, element) => element.precision ? `TO_DECIMAL(${expr},${element.precision},${element.scale})` : expr
 
