@@ -257,13 +257,15 @@ class CQN2SQLRenderer {
 
     // REVISIT: When selecting from an entity that is not in the model the from.where are not normalized (as cqn4sql is skipped)
     if (!where && from?.ref?.length === 1 && from.ref[0]?.where) where = from.ref[0]?.where
-    const columns = this.SELECT_columns(q)
+
     let sql = `SELECT`
     if (distinct) sql += ` DISTINCT`
-    if (!_empty(columns)) sql += ` ${columns}`
-    if (recurse) sql += ` FROM ${this.SELECT_recurse(q)}`
-    else if (!_empty(from)) sql += ` FROM ${this.from(from, q)}`
-    else sql += this.from_dummy()
+    if (recurse) sql += this.SELECT_recurse(q)
+    else {
+      sql += ` ${this.SELECT_columns(q)}`
+      if (!_empty(from)) sql += ` FROM ${this.from(from, q)}`
+      else sql += this.from_dummy()
+    }
     if (!recurse && !_empty(where)) sql += ` WHERE ${this.where(where)}`
     if (!recurse && !_empty(groupBy)) sql += ` GROUP BY ${this.groupBy(groupBy)}`
     if (!recurse && !_empty(having)) sql += ` HAVING ${this.having(having)}`
@@ -347,10 +349,16 @@ class CQN2SQLRenderer {
     for (const name in target.elements) {
       const ref = { ref: [name] }
       const element = target.elements[name]
-      if (element.virtual || element.value || element.isAssociation) continue
-      if (element['@Core.Computed'] && name in availableComputedColumns) continue
+      if (element.virtual || element.isAssociation) continue
+      if (name in availableComputedColumns) continue
       if (name.toUpperCase() in reservedColumnNames) ref.as = `$$${name}$$`
-      columnsIn.push(ref)
+      // This only supports calculated elements within the scope of the own entity
+      if ('value' in element) {
+        const requested = columnsFiltered.find(c => this.column_name(c) === element.name)
+        if (requested) columnsIn.push(requested)
+        else continue
+      }
+      else columnsIn.push(ref)
       const foreignkey4 = element._foreignKey4
       if (
         from.args ||
@@ -497,13 +505,19 @@ class CQN2SQLRenderer {
         }
       }
 
+    const columnsQuery = cds.ql(q).clone()
+    columnsQuery.SELECT.columns = columns.map(x => {
+      if (x.element && 'value' in x.element) return { element: x.element, ref: [this.column_name(x)] }
+      return x
+    })
+    const recurseColumns = this.SELECT_columns(columnsQuery)
     // Only apply result join if the columns contain a references which doesn't start with the source alias
     if (from.args && columns.find(c => c.ref?.[0] === alias)) {
       graph.as = alias
-      return this.from(setStableFrom(from, graph))
+      return ` ${recurseColumns} FROM ${this.from(setStableFrom(from, graph))}`
     }
 
-    return `(${this.SELECT(graph)})${alias ? ` AS ${this.quote(alias)}` : ''} `
+    return ` ${recurseColumns} FROM (${this.SELECT(graph)})${alias ? ` AS ${this.quote(alias)}` : ''} `
 
     function collectDistanceTo(where, innot = false) {
       for (let i = 0; i < where.length; i++) {
