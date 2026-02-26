@@ -755,20 +755,26 @@ class HANAService extends SQLService {
     INSERT_entries(q) {
       this.values = undefined
       const { INSERT } = q
-      // REVISIT: should @cds.persistence.name be considered ?
-      const entity = q._target?.['@cds.persistence.name'] || this.name(q._target?.name || INSERT.into.ref[0], q)
 
       const elements = q.elements || q._target?.elements
       if (!elements) {
         return super.INSERT_entries(q)
       }
 
+      const entity = q._target ? this.table_name(q) : INSERT.into.ref[0]
+      const transitions = this.srv.resolve.transitions4db(q)
+
       const columns = elements
-        ? ObjectKeys(elements).filter(c => c in elements && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation && !elements[c][SYSTEM_VERSIONED])
+        ? ObjectKeys(elements).filter(c => this.physical_column(elements, c)
+          && (c = transitions.mapping.get(c)?.ref?.[0] || c)
+          && c in transitions.target.elements
+          && this.physical_column(transitions.target.elements, c)
+          && !elements[c]?.[SYSTEM_VERSIONED]
+        )
         : ObjectKeys(INSERT.entries[0])
       this.columns = columns
 
-      const extractions = this.managed(columns.map(c => ({ name: c })), elements)
+      const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), elements).slice(0, columns.length)
 
       // REVISIT: @cds.extension required
       const extraction = extractions.map(c => c.extract)
@@ -808,9 +814,8 @@ class HANAService extends SQLService {
       // With the buffer table approach the data is processed in chunks of a configurable size
       // Which allows even smaller HANA systems to process large datasets
       // But the chunk size determines the maximum size of a single row
-      return (this.sql = `INSERT INTO ${this.quote(entity)} (${this.columns.map(c =>
-        this.quote(c),
-      )}) WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
+      return (this.sql = `INSERT INTO ${this.quote(entity)} (${this.columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))
+        }) WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
       SELECT ${converter} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON ERROR) AS NEW`)
     }
 
