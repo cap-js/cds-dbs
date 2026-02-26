@@ -2401,18 +2401,18 @@ function cqn4sql(originalQuery, model) {
   }
 
   /**
-     * For a given search term calculate a search expression which can be used in a where clause.
-     * The search function is pushed to a subquery and the primary key(s) of the entity is/are used to match
-     * the search results of the subquery.
-     *
-     * @param {object} searchTerm - The search expression which shall be applied to the searchable columns on the query source.
-     * @param {object} query - The FROM clause of the CQN statement.
-     *
-     * @returns {(Object|null)} returns either:
-     * - an expression of the form `<primaryKey> in (select <primaryKey> from <entity> where search(<searchableColumns>, <searchTerm>))`
-     * - a function with two arguments: The first one being the list of searchable columns, the second argument holds the search expression.
-     * - or null, if no searchable columns are found in neither in `@cds.search` nor in the target entity itself.
-     */
+   * For a given search term calculate a search expression which can be used in a where clause.
+   * The search function is pushed to a subquery and the primary key(s) of the entity is/are used to match
+   * the search results of the subquery.
+   *
+   * @param {object} searchTerm - The search expression which shall be applied to the searchable columns on the query source.
+   * @param {object} query - The FROM clause of the CQN statement.
+   *
+   * @returns {(Object|null)} returns either:
+   * - an expression of the form `<primaryKey> in (select <primaryKey> from <entity> where search(<searchableColumns>, <searchTerm>))`
+   * - a function with two arguments: The first one being the list of searchable columns, the second argument holds the search expression.
+   * - or null, if no searchable columns are found in neither in `@cds.search` nor in the target entity itself.
+   */
   function getSearch(searchTerm, query) {
     const entity = query.SELECT.from.SELECT ? query.SELECT.from : cds.infer.target(query) // REVISIT: we should reliably use inferred._target instead
     const searchIn = computeColumnsToBeSearched(inferred, entity)
