@@ -350,7 +350,7 @@ class CQN2SQLRenderer {
       const ref = { ref: [name] }
       const element = target.elements[name]
       if (element.virtual || element.isAssociation) continue
-      if (element['@Core.Computed'] && name in availableComputedColumns) continue
+      if (name in availableComputedColumns) continue
       if (name.toUpperCase() in reservedColumnNames) ref.as = `$$${name}$$`
       // This only supports calculated elements within the scope of the own entity
       if ('value' in element) {
