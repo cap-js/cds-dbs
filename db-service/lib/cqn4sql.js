@@ -246,7 +246,7 @@ function cqn4sql(originalQuery, model) {
 
     defineProperty(transformedDQ, '_source', rootDefinition)
     const alias = `RTV_${getImplicitAlias(rootDefinitionName)}`
-    transformedDQ.as = getNextAvailableWithClauseAlias(alias, newWiths, transformedDQ, rootDefinitionName)
+    transformedDQ.as = transformedDQ.joinTree.addNextAvailableTableAlias(alias, newWiths, rootDefinitionName)
 
     // update SELECT.from with runtime view alias
     if (hasOwnSkip(transformedDQ._target)) updateRefsWithRTVAlias(transformedDQ._with, transformedDQ)
@@ -280,10 +280,6 @@ function cqn4sql(originalQuery, model) {
 
     if (query.SELECT.from.args) for (const arg of query.SELECT.from.args) _updateRef(arg.ref)
     else if (query.SELECT.from.ref) _updateRef(query.SELECT.from.ref)
-  }
-
-  function getNextAvailableWithClauseAlias(id, outerQueries = inferred.outerQueries, _inferred = inferred, key) {
-    return _inferred.joinTree.addNextAvailableTableAlias(id, outerQueries, key)
   }
 
   function transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery) {
