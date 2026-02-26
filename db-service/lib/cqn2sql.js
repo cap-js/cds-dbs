@@ -27,7 +27,7 @@ class CQN2SQLRenderer {
     if (cds.env.sql.names === 'quoted') {
       this.class.prototype.name = (name, query) => {
         const e = name.id || name
-        const entity = query?._target || this.model?.definitions[e]
+        const entity = this.model?.definitions[e]
         return (!entity?.['@cds.persistence.skip'] && entity?.['@cds.persistence.name']) || e || query?._target
       }
       this.class.prototype.quote = (s) => `"${String(s).replace(/"/g, '""')}"`
