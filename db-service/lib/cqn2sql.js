@@ -748,12 +748,12 @@ class CQN2SQLRenderer {
 
   /**
    * Renders a transformed where clause that maps the query target view to the source table
-   * @param {import('./infer/cqn').source} from
+   * @param {import('./infer/cqn').source} alias
    * @param {import('./infer/cqn').predicate} where
    * @param {import('./infer/cqn').query} q
    * @returns SQL
    */
-  where_resolved(from, where, q) {
+  where_resolved(alias, where, q) {
     const transitions = this.srv.resolve.transitions4db(q)
     if (transitions.target === transitions.queryTarget) return this.where(where)
 
@@ -774,7 +774,7 @@ class CQN2SQLRenderer {
       }
     }
     return tableCols.length > 0
-      ? this.where([{ list: tableCols }, 'in', SELECT.from(from).columns(viewCols).where(where)])
+      ? this.where([{ list: tableCols }, 'in', SELECT.from(q._target).alias(alias).columns(viewCols).where(where)])
       : this.where(where)
   }
 
@@ -1222,7 +1222,7 @@ class CQN2SQLRenderer {
       }).map((c, i) => `${this.quote(transitions.mapping.get(c.name)?.ref?.[0] || c.name)}=${!columns[i] ? c.onUpdate : c.sql}`)
 
     sql += ` SET ${extraction}`
-    if (where) sql += ` WHERE ${this.where_resolved(entity, where, q)}`
+    if (where) sql += ` WHERE ${this.where_resolved(entity.as, where, q)}`
     return (this.sql = sql)
   }
 
