@@ -1076,7 +1076,7 @@ class CQN2SQLRenderer {
     const alias = INSERT.into.as
     const src = this.cqn4sql(INSERT.from)
     const elements = q.elements || q._target?.elements || {}
-    const transitions = this.srv.resolve.transitions4db(q, this.srv)
+    const transitions = this.srv.resolve.transitions4db(q)
     let columns = (this.columns = (INSERT.columns || src.SELECT.columns?.map(c => this.column_name(c)) || ObjectKeys(src.elements) || ObjectKeys(elements))
       .filter(c => this.physical_column(elements, c)
         && (c = transitions.mapping.get(c)?.ref?.[0] || c)
