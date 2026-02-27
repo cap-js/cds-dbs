@@ -1,3 +1,6 @@
+const fs = require('fs')
+const path = require('path')
+
 const cds = require('@sap/cds'),
   DEBUG = cds.debug('sql|db')
 const { Readable, Transform } = require('stream')
@@ -136,13 +139,31 @@ class SQLService extends DatabaseService {
       query.SELECT.expand = 'root'
     }
 
+    // Disable explain queries for databases that don't support the feature
+    if (query.SELECT.explain && typeof this.explain !== 'function') {
+      query.SELECT.explain = undefined
+    }
+
     const { sql, values, cqn } = this.cqn2sql(query, data)
     const expand = query.SELECT.expand
     delete query.SELECT.expand
     const isOne = cqn.SELECT.one || query.SELECT.from?.ref?.[0].cardinality?.max === 1
 
     let ps = await this.prepare(sql)
-    let rows = iterator ? await ps.stream(values, isOne, objectMode) : await ps.all(values)
+    let rows = !query.SELECT.explain && iterator ? await ps.stream(values, isOne, objectMode) : await ps.all(values)
+   
+    if (query.SELECT.explain) {
+      // Store the explain results in a folder
+      const dir = query.SELECT.explain
+      query.SELECT.explain = undefined
+      await fs.promises.mkdir(dir, { recursive: true })
+      await fs.promises.writeFile(
+        path.resolve(dir, `${Date.now()}.md`),
+        this.explain(rows),
+      )
+      return this.onSELECT({ query, data, iterator, objectMode })
+    }
+
     try {
       if (rows.length)
         if (expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))

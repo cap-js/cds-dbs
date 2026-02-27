@@ -159,6 +159,21 @@ class SQLiteService extends SQLService {
     return this.dbc.exec(sql)
   }
 
+  /**
+   * Renders the SQLite3 explain results into a markdown format
+   * @param {Object[]} plan The SQLite3 explain results
+   * @returns {String} The markdown contents
+   */
+  explain(plan) {
+    const columns = ['', 'addr', 'opcode', 'p1', 'p2', 'p3', 'p4', 'p5', 'comment', '']
+    return `https://www.sqlite.org/opcode.html#codes
+
+${columns.join('|')}
+${columns.map(a => a ? '---' : '').join('|')}
+${plan.map(r => `|${r.addr}|${r.opcode}|${r.p1}|${r.p2}|${r.p3}|${r.p4}|${r.p5}|${r.comment}`).join('\n')}
+`
+  }
+
   _prepareStreams(values) {
     let any
     values.forEach((v, i) => {

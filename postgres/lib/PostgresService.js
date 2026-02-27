@@ -249,6 +249,49 @@ GROUP BY k
     return this.dbc.query(sql)
   }
 
+  /**
+   * Renders the Postgres explain results into a markdown format
+   * @param {Object[]} plan The Postgres explain results
+   * @returns {String} The markdown contents
+   */
+  explain(plan) {
+    const steps = []
+    const links = []
+
+    let counter = 0
+    const walk = function (step, parent) {
+      step._id = counter++
+
+      // Calculate self time for better rendering
+      let selfTime = step['Actual Total Time']
+      if (step.Plans) { step.Plans.forEach(p => { selfTime -= p['Actual Total Time'] }) }
+
+      steps.push(`
+        class \`${step._id}\`["${step['Node Type']} (${selfTime} ms)${step['Relation Name'] ? '\n' + step['Relation Name'] : ''}"] {
+  ${step.Output.map(a => `        + ${a}`).join('\n')}
+        }
+  `)
+      if (parent) links.push(`    \`${parent._id}\` <-- \`${step._id}\``)
+      if (step.Plans) { step.Plans.forEach(p => walk(p, step)) }
+    }
+
+    plan[0]["QUERY PLAN"].forEach(p => walk(p.Plan))
+
+    return `\`\`\`mermaid
+classDiagram
+
+%% If you see this line, there is no Mermaid extension installed.
+%% For example, use https://marketplace.visualstudio.com/items?itemName=bierner.markdown-mermaid
+
+  namespace plan {
+${steps.join('')}
+  }
+
+${links.join('\n')}
+\`\`\`
+`
+  }
+
   async onPlainSQL(req, next) {
     const query = req.query
     if (this.options.independentDeploy) {
@@ -382,6 +425,10 @@ GROUP BY k
     orderByLIBC(orderBy, localized) {
       const locale = this.collationMap[this.context.locale] || this.collationMap.default
       return this._orderBy(orderBy, localized && locale, locale)
+    }
+
+    explain() {
+      return 'EXPLAIN (ANALYZE, COSTS, VERBOSE, BUFFERS, FORMAT JSON)'
     }
 
     from(from) {

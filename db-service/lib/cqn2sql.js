@@ -250,7 +250,7 @@ class CQN2SQLRenderer {
    * @param {import('./infer/cqn').SELECT} q
    */
   SELECT(q) {
-    let { from, expand, where, groupBy, having, orderBy, limit, one, distinct, localized, forUpdate, forShareLock, recurse } =
+    let { from, expand, where, groupBy, having, orderBy, limit, one, distinct, localized, forUpdate, forShareLock, explain, recurse } =
       q.SELECT
 
     if (from?.join && !q.SELECT.columns) {
@@ -281,6 +281,7 @@ class CQN2SQLRenderer {
       if ('elements' in q) sql = this.SELECT_expand(q, sql)
       else cds.error`Query was not inferred and includes expand. For which the metadata is missing.`
     }
+    if (explain) sql = `${this.explain()} ${sql}`
     return (this.sql = sql)
   }
 
@@ -687,7 +688,13 @@ class CQN2SQLRenderer {
   column_alias4(x) {
     return typeof x.as === 'string' ? x.as : x.func || x.val
   }
-
+  /**
+   * Renders a explain clause into generic SQL
+   * @returns {string} SQL
+   */
+  explain() {
+    return 'EXPLAIN'
+  }
   /**
    * Renders a FROM clause into generic SQL
    * @param {import('./infer/cqn').source} from
