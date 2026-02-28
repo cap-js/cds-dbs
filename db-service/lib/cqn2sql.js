@@ -1101,7 +1101,7 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   output_converter4(element, expr) {
-    const fn = element?.[this.class._convertOutput]
+    const fn = element && (element[this.class._convertOutput] ?? cds.builtin.types[element.type]?.[this.class._convertOutput])
     return fn?.(expr, element) || expr
   }
 
