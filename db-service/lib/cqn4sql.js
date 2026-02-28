@@ -2418,7 +2418,7 @@ function cqn4sql(originalQuery, model) {
     const searchFunc = {
       func: 'search',
       args: [
-        searchIn.length === 1 ? searchIn[0] : { list: searchIn },
+        { list: searchIn },
         searchTerm.length === 1 && 'val' in searchTerm[0] ? searchTerm[0] : { xpr: searchTerm },
       ],
     }
