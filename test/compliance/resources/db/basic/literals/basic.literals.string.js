@@ -44,6 +44,13 @@ module.exports = [
     string:
       'Simplified Chinese: 中国, Traditional Chinese: 中國, Korean: 대한민국, Japanese: 日本国, Russion: Российская Федерация, Greek: Ελληνική Δημοκρατία',
   },
+  {
+    string: JSON.stringify({
+      json: JSON.stringify({
+        innerjson: { text: '"my text"'}
+      })
+    })
+  }
   /* Ignoring transformations
   {
     char: () => alphabet,
