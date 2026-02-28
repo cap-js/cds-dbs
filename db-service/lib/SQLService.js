@@ -4,6 +4,7 @@ const { Readable, Transform } = require('stream')
 const { pipeline } = require('stream/promises')
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
+const { attachConstraints, checkConstraints } = require('./assert-constraint')
 
 const BINARY_TYPES = {
   'cds.Binary': 1,
@@ -36,6 +37,8 @@ const _hasProps = (obj) => {
 class SQLService extends DatabaseService {
   init() {
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
+    this.after(['INSERT', 'UPSERT', 'UPDATE'], attachConstraints)
+    this.after(['INSERT', 'UPSERT', 'UPDATE'], checkConstraints)
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./deep-queries').onDeep)
     if (cds.env.features.db_strict) {
       this.before(['INSERT', 'UPSERT', 'UPDATE'], ({ query }) => {
