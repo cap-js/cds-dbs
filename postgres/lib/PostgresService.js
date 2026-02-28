@@ -616,6 +616,7 @@ GROUP BY k
         DROP USER IF EXISTS "${creds.user}";
         CREATE GROUP "${creds.usergroup}";
         CREATE USER "${creds.user}" WITH CREATEROLE IN GROUP "${creds.usergroup}" PASSWORD '${creds.user}';
+        ALTER USER "${creds.user}" SUPERUSER;
         GRANT "${creds.usergroup}" TO "${creds.user}" WITH ADMIN OPTION;
       `)
       await this.exec(`CREATE DATABASE "${creds.database}" OWNER="${creds.user}" TEMPLATE=template0`)
