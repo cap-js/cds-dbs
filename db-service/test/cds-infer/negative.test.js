@@ -21,7 +21,8 @@ describe('negative', () => {
         _inferred(cds.ql`SELECT from bookshop.Books { ID, dedication[text='foo'].sub.foo }`, model),
       ).to.throw(/A filter can only be provided when navigating along associations/)
     })
-    it('join relevant path is rejected (path expressions inside filter only enabled for exists subqueries)', () => {
+    // the following was enabled:
+    it.skip('join relevant path is rejected (path expressions inside filter only enabled for exists subqueries)', () => {
       expect(() =>
         _inferred(
           cds.ql`SELECT from bookshop.Authors { ID, books[dedication.addressee.name = 'Hasso'].dedication.addressee.name as Hasso }`,
@@ -449,7 +450,8 @@ describe('negative', () => {
   })
 
   describe('infix filters', () => {
-    it('rejects non fk traversal in infix filter in from', () => {
+    // works now
+    it.skip('rejects non fk traversal in infix filter in from', () => {
       expect(() => _inferred(cds.ql`SELECT from bookshop.Books[author.name = 'Kurt']`, model)).to.throw(
         /Only foreign keys of “author” can be accessed in infix filter, but found “name”/,
       )
@@ -460,7 +462,8 @@ describe('negative', () => {
         /Only foreign keys of “author” can be accessed in infix filter, but found “name”/,
       )
     })
-    it('rejects non fk traversal in infix filter in where', () => {
+    // works now
+    it.skip('rejects non fk traversal in infix filter in where', () => {
       let query = cds.ql`SELECT from bookshop.Books where author.books[author.name = 'John Doe'].title = 'foo'`
       expect(() => _inferred(query)).to.throw(
         /Only foreign keys of “author” can be accessed in infix filter, but found “name”/,
@@ -473,7 +476,8 @@ describe('negative', () => {
       )
     })
 
-    it('rejects non fk traversal in infix filter in column', () => {
+    // works now
+    it.skip('rejects non fk traversal in infix filter in column', () => {
       expect(() =>
         _inferred(
           cds.ql`SELECT from bookshop.Authors {
