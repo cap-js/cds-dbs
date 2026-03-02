@@ -312,7 +312,7 @@ function loadSQLite(driver) {
   } catch {
     try {
       sqlite = require(drivers.node)
-    } catch (err) {
+    } catch {
       // When failing to load better-sqlite3 it fallsback to sql.js (wasm version of sqlite)
       sqlite = require(drivers['sql.js'])
     }
