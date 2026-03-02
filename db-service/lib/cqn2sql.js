@@ -1,7 +1,7 @@
 const cds = require('@sap/cds')
 const cds_infer = require('./infer')
 const cqn4sql = require('./cqn4sql')
-const { _resolve_table } = require('./SQLService')
+const { resolveTable } = require('./utils')
 
 const _simple_queries = cds.env.features.sql_simple_queries
 const _strict_booleans = _simple_queries < 2
@@ -1456,7 +1456,7 @@ class CQN2SQLRenderer {
    * @returns {string} Database table name
    */
   table_name(q) {
-    const table = _resolve_table(q._target)
+    const table = resolveTable(q._target)
     return this.name(table.name, { _target: table })
   }
 

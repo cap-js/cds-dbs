@@ -4,6 +4,7 @@ const { Readable, Transform } = require('stream')
 const { pipeline } = require('stream/promises')
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
+const { resolveTable } = require('./utils')
 
 const BINARY_TYPES = {
   'cds.Binary': 1,
@@ -253,7 +254,7 @@ class SQLService extends DatabaseService {
         })
         return this.onDELETE({ query, target: transitions.target })
       }
-      const table = _resolve_table(req.target)
+      const table = resolveTable(req.target)
       const { compositions } = table
       if (compositions) {
         // Transform CQL`DELETE from Foo[p1] WHERE p2` into CQL`DELETE from Foo[p1 and p2]`
@@ -508,12 +509,6 @@ const _target_name4 = q => {
   return first.id || first
 }
 
-const _resolve_table = target => {
-  if (target.query?._target && !Object.prototype.hasOwnProperty.call(target, '@cds.persistence.table'))
-    return _resolve_table(target.query._target)
-  return target
-}
-
 const sqls = new (class extends SQLService {
   get factory() {
     return null
@@ -540,5 +535,5 @@ cds.extend(cds.ql.Query).with(
   },
 )
 
-Object.assign(SQLService, { _target_name4, _resolve_table })
+Object.assign(SQLService, { _target_name4 })
 module.exports = SQLService
