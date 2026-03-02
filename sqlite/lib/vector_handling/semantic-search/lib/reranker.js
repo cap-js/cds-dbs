@@ -1,7 +1,7 @@
-import path from 'path'
-import * as ort from 'onnxruntime-web'
-import { getDataDir } from './utils.js'
-import {
+const path = require('path')
+const ort = require('onnxruntime-web')
+const { getDataDir } = require('./utils.js')
+const {
   downloadModelIfNeeded,
   forceRedownloadModel,
   loadModelAndVocab,
@@ -9,7 +9,7 @@ import {
   preTokenize,
   wordPieceTokenize,
   validateTokenIds
-} from './model-utils.js'
+} = require('./model-utils.js')
 
 const MODEL_NAME = 'cross-encoder/ms-marco-TinyBERT-L-2-v2'
 const MODEL_DIR = path.join(getDataDir(), 'models', MODEL_NAME.replace('/', '_'))
@@ -106,7 +106,7 @@ let session = null
 let vocab = null
 let modelInitPromise = null
 
-export function resetSession() {
+function resetSession() {
   session = null
   vocab = null
   modelInitPromise = null
@@ -118,7 +118,7 @@ export function resetSession() {
  * @param {string} document - The document to score
  * @returns {Promise<number>} Relevance score (higher is more relevant)
  */
-export default async function rerank(query, document) {
+async function rerank(query, document) {
   if (!modelInitPromise) {
     modelInitPromise = (async () => {
       try {
@@ -188,3 +188,6 @@ export default async function rerank(query, document) {
     return output.data[0]
   }
 }
+
+module.exports = rerank
+module.exports.resetSession = resetSession

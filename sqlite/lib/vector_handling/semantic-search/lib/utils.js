@@ -1,12 +1,12 @@
-import os from 'os'
-import path from 'path'
+const os = require('os')
+const path = require('path')
 
 /**
  * Get the platform-specific data directory for the application
  * @param {string} appName - The application name (defaults to 'semantic-search')
  * @returns {string} The full path to the data directory
  */
-export function getDataDir(appName = 'semantic-search') {
+function getDataDir(appName = 'semantic-search') {
   const home = os.homedir()
   const platform = os.platform()
 
@@ -19,4 +19,8 @@ export function getDataDir(appName = 'semantic-search') {
   }
 
   return path.join(dir, appName)
+}
+
+module.exports = {
+  getDataDir
 }

@@ -10,7 +10,7 @@ const {
   clearCache,
   rootDir,
   embeddingsDir
-} = './lib/embeddings.js'
+} = require('./lib/embeddings.js')
 
 module.exports = {
   search,

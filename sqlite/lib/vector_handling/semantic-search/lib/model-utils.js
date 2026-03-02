@@ -1,17 +1,17 @@
-import fs from 'fs/promises'
-import { constants } from 'fs'
-import path from 'path'
-import * as ort from 'onnxruntime-web'
+const fs = require('fs/promises')
+const { constants } = require('fs')
+const path = require('path')
+const ort = require('onnxruntime-web')
 
 ort.env.debug = false
 ort.env.logLevel = 'error'
 
 // File operations
-export async function saveFile(buffer, outputPath) {
+async function saveFile(buffer, outputPath) {
   await fs.writeFile(outputPath, Buffer.from(buffer))
 }
 
-export async function fileExists(filePath) {
+async function fileExists(filePath) {
   try {
     await fs.access(filePath, constants.F_OK)
     return true
@@ -20,7 +20,7 @@ export async function fileExists(filePath) {
   }
 }
 
-export async function downloadFile(url, outputPath) {
+async function downloadFile(url, outputPath) {
   const res = await fetch(url)
   if (!res.ok) throw new Error(`Failed to download ${url}, status ${res.status}`)
 
@@ -37,7 +37,7 @@ export async function downloadFile(url, outputPath) {
 }
 
 // Model management
-export async function downloadModelIfNeeded(modelDir, files, modelName) {
+async function downloadModelIfNeeded(modelDir, files, modelName) {
   try {
     await fs.access(modelDir)
   } catch {
@@ -53,7 +53,7 @@ export async function downloadModelIfNeeded(modelDir, files, modelName) {
   }
 }
 
-export async function forceRedownloadModel(modelDir, files) {
+async function forceRedownloadModel(modelDir, files) {
   for (const file of files) {
     const filePath = path.join(modelDir, path.basename(file))
     if (await fileExists(filePath)) {
@@ -62,7 +62,7 @@ export async function forceRedownloadModel(modelDir, files) {
   }
 }
 
-export async function loadModelAndVocab(modelDir) {
+async function loadModelAndVocab(modelDir) {
   const modelPath = path.join(modelDir, 'model.onnx')
   const vocabPath = path.join(modelDir, 'tokenizer.json')
 
@@ -86,15 +86,16 @@ export async function loadModelAndVocab(modelDir) {
 }
 
 // Text normalization
-export function normalizeText(text) {
+function normalizeText(text) {
   text = text.normalize('NFD')
+  // eslint-disable-next-line no-control-regex
   text = text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, '')
   text = text.replace(/\s+/g, ' ').trim()
   return text
 }
 
 // Tokenization helpers
-export function isPunctuation(char) {
+function isPunctuation(char) {
   const cp = char.codePointAt(0)
 
   if ((cp >= 33 && cp <= 47) || (cp >= 58 && cp <= 64) || (cp >= 91 && cp <= 96) || (cp >= 123 && cp <= 126)) {
@@ -105,7 +106,7 @@ export function isPunctuation(char) {
   return unicodeCat && /^P[cdfipeos]$/.test(unicodeCat)
 }
 
-export function getUnicodeCategory(char) {
+function getUnicodeCategory(char) {
   if (/\p{P}/u.test(char)) return 'P'
   if (/\p{N}/u.test(char)) return 'N'
   if (/\p{L}/u.test(char)) return 'L'
@@ -115,7 +116,7 @@ export function getUnicodeCategory(char) {
   return null
 }
 
-export function preTokenize(text) {
+function preTokenize(text) {
   const tokens = []
   let currentToken = ''
 
@@ -143,7 +144,7 @@ export function preTokenize(text) {
   return tokens.filter(token => token.length > 0)
 }
 
-export function wordPieceTokenize(token, vocab, unkToken = '[UNK]', maxInputCharsPerWord = 200) {
+function wordPieceTokenize(token, vocab, unkToken = '[UNK]', maxInputCharsPerWord = 200) {
   if (token.length > maxInputCharsPerWord) {
     return [unkToken]
   }
@@ -181,7 +182,7 @@ export function wordPieceTokenize(token, vocab, unkToken = '[UNK]', maxInputChar
 }
 
 // Validate token IDs before conversion to BigInt
-export function validateTokenIds(ids) {
+function validateTokenIds(ids) {
   const validIds = ids.filter(id => {
     const isValid = typeof id === 'number' && !isNaN(id) && isFinite(id)
     if (!isValid) {
@@ -195,4 +196,19 @@ export function validateTokenIds(ids) {
   }
 
   return validIds
+}
+
+module.exports = {
+  saveFile,
+  fileExists,
+  downloadFile,
+  downloadModelIfNeeded,
+  forceRedownloadModel,
+  loadModelAndVocab,
+  normalizeText,
+  isPunctuation,
+  getUnicodeCategory,
+  preTokenize,
+  wordPieceTokenize,
+  validateTokenIds
 }

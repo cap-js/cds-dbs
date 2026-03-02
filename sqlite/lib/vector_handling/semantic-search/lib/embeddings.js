@@ -1,13 +1,13 @@
-import fs from 'fs/promises'
-import path from 'path'
-import crypto from 'crypto'
-import embedding from './embedding.js'
-import reranker from './reranker.js'
-import { getDataDir } from './utils.js'
+const fs = require('fs/promises')
+const path = require('path')
+const crypto = require('crypto')
+const embedding = require('./embedding.js')
+const reranker = require('./reranker.js')
+const { getDataDir } = require('./utils.js')
 
 // Export the root data directory as a constant
-export const rootDir = getDataDir()
-export const embeddingsDir = path.join(rootDir, 'embeddings')
+const rootDir = getDataDir()
+const embeddingsDir = path.join(rootDir, 'embeddings')
 
 // Cache for loaded embeddings by ID
 const embeddingsCache = new Map()
@@ -29,7 +29,7 @@ const embeddingsCache = new Map()
  * @param {boolean} [options.rerank=true] - Whether to apply reranking for improved accuracy (default: true when limit is specified, can be disabled by setting to false)
  * @returns {Promise<SearchResult[]>} Promise that resolves to chunks sorted by relevance (highest first)
  */
-export async function search(query, embeddings, options = {}) {
+async function search(query, embeddings, options = {}) {
   const { limit, weights, rerank: shouldRerank = limit !== undefined } = options
   const searchEmbedding = await embedding(query)
 
@@ -283,7 +283,7 @@ async function rerank(query, results, options = {}) {
  * @param {object} [config] - Optional config object with id, description, and other metadata
  * @returns {Promise<object>} Returns wrapper object { embeddings, id?, ...metadata }
  */
-export async function embeddings(chunks, config) {
+async function embeddings(chunks, config) {
   const result = []
 
   for (const chunk of chunks) {
@@ -339,7 +339,7 @@ export async function embeddings(chunks, config) {
  * @param {object} config - Wrapper object from embeddings() with {id, embeddings, ...metadata}
  * @returns {Promise<void>}
  */
-export async function store(dir, config) {
+async function store(dir, config) {
   // Validate config format
   if (!config || !config.id || !config.embeddings || !Array.isArray(config.embeddings)) {
     throw new Error('Invalid config format: must have id and embeddings array')
@@ -394,7 +394,7 @@ export async function store(dir, config) {
  * @param {object} [config] - Optional config object for filtering for metadata
  * @returns {Promise<object[]>} Array of wrapper objects {id, embeddings, ...metadata}
  */
-export async function load(dir, config) {
+async function load(dir, config) {
   // Check if path exists
   try {
     await fs.access(dir)
@@ -487,7 +487,7 @@ export async function load(dir, config) {
  * Clear the embeddings cache
  * @param {string} [id] - Optional ID to clear specific entry, or clear all if omitted
  */
-export function clearCache(id) {
+function clearCache(id) {
   if (id) {
     embeddingsCache.delete(id)
   } else {
@@ -501,7 +501,7 @@ export function clearCache(id) {
  * @param {string} [registryDir] - Optional registry directory (defaults to embeddingsDir)
  * @returns {Promise<void>}
  */
-export async function register(embeddingPath, registryDir = embeddingsDir) {
+async function register(embeddingPath, registryDir = embeddingsDir) {
   // Ensure registry directory exists
   await fs.mkdir(registryDir, { recursive: true })
   
@@ -624,7 +624,7 @@ async function processRegistered(config, registryDir = embeddingsDir, metadataOn
  * @param {string} [registryDir] - Optional registry directory (defaults to embeddingsDir)
  * @returns {Promise<object[]>} Array of metadata objects from all registered embeddings
  */
-export async function registered(config, registryDir = embeddingsDir) {
+async function registered(config, registryDir = embeddingsDir) {
   return processRegistered(config, registryDir, true)
 }
 
@@ -634,7 +634,7 @@ export async function registered(config, registryDir = embeddingsDir) {
  * @param {string} [registryDir] - Optional registry directory (defaults to embeddingsDir)
  * @returns {Promise<object[]>} Array of wrapper objects from all registered embeddings
  */
-export async function loadRegistered(config, registryDir = embeddingsDir) {
+async function loadRegistered(config, registryDir = embeddingsDir) {
   return processRegistered(config, registryDir, false)
 }
 
@@ -719,4 +719,17 @@ function getWrapperIdForDataset(embeddings, dataset) {
     }
   }
   return null
+}
+
+module.exports = {
+  search,
+  embeddings,
+  store,
+  load,
+  clearCache,
+  register,
+  registered,
+  loadRegistered,
+  rootDir,
+  embeddingsDir
 }
