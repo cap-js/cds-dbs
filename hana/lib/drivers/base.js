@@ -17,10 +17,12 @@ class HANADriver {
    * @returns {import('@cap-js/db-service/lib/SQLService').PreparedStatement}
    */
   async prepare(sql) {
+    this._native._statement_count ??= 0
     const prep = module.exports.prom(
       this._native,
       'prepare',
     )(sql).then(stmt => {
+      this._native._statement_count++
       stmt._parentConnection = this._native
       return stmt
     })
