@@ -60,6 +60,7 @@ class HDBDriver extends driver {
   }
 
   async validate() {
+    if (Object.keys(this.statements).length > 10_000) return false
     return this._native.readyState === 'connected'
   }
 
@@ -88,34 +89,36 @@ class HDBDriver extends driver {
 
     if (hasBlobs) {
       ret.all = async (values) => {
-        const stmt = await ret._prep
-        // Create result set
-        const rs = await prom(stmt, 'execute')(values)
-        const cols = rs.metadata.map(b => b.columnName)
-        const stream = rs.createReadStream()
+        const stmt = await this._prepare(sql)
+        try {
+          // Create result set
+          const rs = await prom(stmt, 'execute')(values)
+          const cols = rs.metadata.map(b => b.columnName)
+          const stream = rs.createReadStream()
 
-        const result = []
-        for await (const row of stream) {
-          const obj = {}
-          for (let i = 0; i < cols.length; i++) {
-            const col = cols[i]
-            // hdb returns large strings as streams sometimes
-            if (col === '_json_' && typeof row[col] === 'object') {
-              obj[col] = await text(row[col].createReadStream())
-              continue
+          const result = []
+          for await (const row of stream) {
+            const obj = {}
+            for (let i = 0; i < cols.length; i++) {
+              const col = cols[i]
+              // hdb returns large strings as streams sometimes
+              if (col === '_json_' && typeof row[col] === 'object') {
+                obj[col] = await text(row[col].createReadStream())
+                continue
+              }
+              obj[col] = i > 3
+                ? row[col] === null
+                  ? null
+                  : (
+                    row[col].createReadStream?.()
+                    || row[col]
+                  )
+                : row[col]
             }
-            obj[col] = i > 3
-              ? row[col] === null
-                ? null
-                : (
-                  row[col].createReadStream?.()
-                  || row[col]
-                )
-              : row[col]
+            result.push(obj)
           }
-          result.push(obj)
-        }
-        return result
+          return result
+        } finally { stmt.release() }
       }
     }
 
@@ -125,9 +128,9 @@ class HDBDriver extends driver {
     }
 
     ret.stream = async (values, one, objectMode) => {
-      const stmt = await ret._prep
+      const stmt = await this._prepare(sql, true)
       const rs = await prom(stmt, 'execute')(values || [])
-      return rsIterator(rs, one, objectMode)
+      return rsIterator(rs, one, objectMode, () => { stmt.drop() })
     }
     return ret
   }
@@ -176,7 +179,7 @@ class HDBDriver extends driver {
   }
 }
 
-async function rsIterator(rs, one, objectMode) {
+async function rsIterator(rs, one, objectMode, onDone) {
   // Raw binary data stream unparsed
   const raw = rs.createBinaryStream()[Symbol.asyncIterator]()
 
@@ -397,7 +400,7 @@ async function rsIterator(rs, one, objectMode) {
     }
   }
 
-  return resultSetStream(state, one, objectMode)
+  return resultSetStream(state, one, objectMode, onDone)
 }
 
 const readString = function (state, isJson = false) {

@@ -134,7 +134,7 @@ function rsNextRaw(state, next) {
   return writeBlobs ? writeBlobs.then(_return) : _return()
 }
 
-async function rsIterator(state, one, objectMode) {
+async function rsIterator(state, one, objectMode, onDone) {
   const stream = state.stream = new Readable({
     objectMode,
     async read() {
@@ -159,6 +159,8 @@ async function rsIterator(state, one, objectMode) {
   if (!objectMode && !one) {
     stream.push('[')
   }
+
+  if (onDone) { stream.on('close', onDone) }
 
   return stream
 }
