@@ -26,11 +26,17 @@
     "test": "cds-test"
   },
   "dependencies": {
-    "@cap-js/db-service": "^2.8.2",
-    "better-sqlite3": "^12.0.0"
+    "better-sqlite3": "^12.0.0",
+    "@cap-js/db-service": "^2.8.2"
   },
   "peerDependencies": {
-    "@sap/cds": ">=9"
+    "@sap/cds": ">=9",
+    "sql.js": "^1.13.0"
+  },
+  "peerDependenciesMeta": {
+    "sql.js": {
+      "optional": true
+    }
   },
   "cds": {
     "requires": {

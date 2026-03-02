@@ -49,7 +49,9 @@ cds.test = Object.setPrototypeOf(function () {
       const serviceDefinitionPath = `${testSource}/test/service`
 
       // Overwrite default cds.requires.db with test config
-      process.env.CDS_REQUIRES_DB = JSON.stringify(require(serviceDefinitionPath))
+      const config = require(serviceDefinitionPath)
+      config.driver = process.env.CDS_REQUIRES_DB_DRIVER ?? config.driver
+      process.env.CDS_REQUIRES_DB = JSON.stringify(config)
     } catch {
       // Default to sqlite for packages without their own service
       process.env.CDS_REQUIRES_DB = JSON.stringify(require('@cap-js/sqlite/test/service'))
