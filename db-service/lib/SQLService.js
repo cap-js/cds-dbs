@@ -253,7 +253,7 @@ class SQLService extends DatabaseService {
         })
         return this.onDELETE({ query, target: transitions.target })
       }
-      const table = resolve.table(req.target)
+      const table = _resolve_table(req.target)
       const { compositions } = table
       if (compositions) {
         // Transform CQL`DELETE from Foo[p1] WHERE p2` into CQL`DELETE from Foo[p1 and p2]`
@@ -508,6 +508,12 @@ const _target_name4 = q => {
   return first.id || first
 }
 
+const _resolve_table = target => {
+  if (target.query?._target && !Object.prototype.hasOwnProperty.call(target, '@cds.persistence.table'))
+    return _resolve_table(target.query._target)
+  return target
+}
+
 const sqls = new (class extends SQLService {
   get factory() {
     return null
@@ -534,5 +540,5 @@ cds.extend(cds.ql.Query).with(
   },
 )
 
-Object.assign(SQLService, { _target_name4 })
+Object.assign(SQLService, { _target_name4, _resolve_table })
 module.exports = SQLService
