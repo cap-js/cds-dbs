@@ -4,6 +4,26 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.7.0](https://github.com/cap-js/cds-dbs/compare/hana-v2.6.0...hana-v2.7.0) (2026-03-02)
+
+
+### Added
+
+* runtime views ([#1410](https://github.com/cap-js/cds-dbs/issues/1410)) ([5242675](https://github.com/cap-js/cds-dbs/commit/5242675c97472b86b81b3dc5fe0906141d276b02))
+
+
+### Fixed
+
+* avoid rollback race condition during .disconnect ([#1502](https://github.com/cap-js/cds-dbs/issues/1502)) ([4fa5758](https://github.com/cap-js/cds-dbs/commit/4fa57587c931b279d3832ee2ce95fc39dffbe3db))
+* hana groupby with path expressions ([#1493](https://github.com/cap-js/cds-dbs/issues/1493)) ([920acde](https://github.com/cap-js/cds-dbs/commit/920acdee0edb538b74d6e5cb0a82a086556df85e))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.8.2 to ^2.9.0
+
 ## [2.6.0](https://github.com/cap-js/cds-dbs/compare/hana-v2.5.1...hana-v2.6.0) (2026-02-03)
 
 
