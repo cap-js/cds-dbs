@@ -4,6 +4,22 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.9.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.8.2...db-service-v2.9.0) (2026-03-02)
+
+
+### Added
+
+* runtime views ([#1410](https://github.com/cap-js/cds-dbs/issues/1410)) ([5242675](https://github.com/cap-js/cds-dbs/commit/5242675c97472b86b81b3dc5fe0906141d276b02))
+* support calculated elements in hierarchies ([#1456](https://github.com/cap-js/cds-dbs/issues/1456)) ([97c6f66](https://github.com/cap-js/cds-dbs/commit/97c6f6661f0ac4043245e021f2bf182f4e5d406f))
+
+
+### Fixed
+
+* **`exists`:** detect join relevant path after exists ([#1412](https://github.com/cap-js/cds-dbs/issues/1412)) ([c5bad06](https://github.com/cap-js/cds-dbs/commit/c5bad06724ce6761379f91748490c6caac84153a)), closes [#1407](https://github.com/cap-js/cds-dbs/issues/1407)
+* **cqn2sql:** Relied on inconstistent behavior of cds.ql.cloned queries ([#1500](https://github.com/cap-js/cds-dbs/issues/1500)) ([f9cb201](https://github.com/cap-js/cds-dbs/commit/f9cb2011219a86ae22f22fcc105e597b23209adf))
+* enable expressions for `inline` ([#1512](https://github.com/cap-js/cds-dbs/issues/1512)) ([65f78e1](https://github.com/cap-js/cds-dbs/commit/65f78e1f3af83188462e9d44db67daa5d743ceb0))
+* reject duplicated wildcards ([#1511](https://github.com/cap-js/cds-dbs/issues/1511)) ([b483062](https://github.com/cap-js/cds-dbs/commit/b483062e2ff5a8d0960dc2e7b71880af87ee8f78))
+
 ## [2.8.2](https://github.com/cap-js/cds-dbs/compare/db-service-v2.8.1...db-service-v2.8.2) (2026-02-03)
 
 
