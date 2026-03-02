@@ -68,6 +68,11 @@ entity Assets {
   }
 }
 
+entity RetiredEmployee : Employee {
+  isRetired = department.name = 'Retired';
+  self: Association to RetiredEmployee;
+}
+
 entity foo as  select from Employee {
   office.{
     floor,
