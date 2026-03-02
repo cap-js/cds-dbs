@@ -29,8 +29,7 @@
     "@cap-js/db-service": "^2.8.2",
     "better-sqlite3": "^12.0.0",
     "onnxruntime-web": "^1.24.2",
-    "sqlite-vec": "github:vlasky/sqlite-vec",
-    "synckit": "^0.11.12"
+    "sqlite-vec": "github:vlasky/sqlite-vec"
   },
   "peerDependencies": {
     "@sap/cds": ">=9"

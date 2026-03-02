@@ -1,4 +1,3 @@
-const { runAsWorker } = require('synckit');
 const cds = require('@sap/cds');
 const { embeddings } = require('./semantic-search');
 
@@ -11,7 +10,7 @@ const hasAIOrchestration = () => {
 	}
 };
 
-runAsWorker(async (text, text_type, model_and_version) => {
+const generateVector = async (text, text_type, model_and_version) => {
 	if (model_and_version.startsWith('SAP_GXY') || model_and_version.startsWith('SAP_NEB') || !cds.env.requires.AICore.credentials) {
 		if (text) {
 			const res = await embeddings([text]);
@@ -49,7 +48,7 @@ runAsWorker(async (text, text_type, model_and_version) => {
 		}
 		return result;
 	}
-});
+};
 
 function getEmptyVector(dimensions) {
 	const result = [];
@@ -57,4 +56,34 @@ function getEmptyVector(dimensions) {
 		result.push(0);
 	}
 	return result;
+}
+
+
+const { workerData, parentPort } = require("node:worker_threads");
+if (parentPort) {
+	const { workerPort, sharedBufferView } = workerData;
+	parentPort.on("message", ({ id, args }) => {
+		(async () => {
+			let isAborted = false;
+			workerPort.on("message", (msg) => {
+				if (msg.id === id && msg.cmd === "abort") isAborted = true;
+			});
+			let msg;
+			try {
+				msg = {
+					id,
+					result: await generateVector(...args)
+				};
+			} catch (error) {
+				msg = { id, error };
+			}
+			workerPort.off("message", (msg) => {
+				if (msg.id === id && msg.cmd === "abort") isAborted = true;
+			});
+			if (isAborted) return;
+			workerPort.postMessage(msg);
+			Atomics.add(sharedBufferView, 0, 1);
+			Atomics.notify(sharedBufferView, 0);
+		})();
+	});
 }
