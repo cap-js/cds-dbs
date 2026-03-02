@@ -1159,10 +1159,21 @@ class CQN2SQLRenderer {
       const extractions = this._managed
       if (this.values) this.values = [] // Clear previously computed values
       const src = this.cqn4sql(UPSERT.from || UPSERT.as)
+      const missingKeys = this._managed.slice(src.SELECT.columns.length)
+        .filter(c => keys.includes(c.name))
+        .map(c => ({
+          __proto__: this.managed_session_context(elements[c.name]['@cds.on.insert']?.['='])
+            || this.managed_session_context(elements[c.name].default?.ref?.[0])
+            || (elements[c.name].default && { __proto__: elements[c.name].default, param: false })
+            || { val: null, param: false },
+          as: c.name,
+        }))
       const aliasedQuery = cds.ql.SELECT
-        .columns(src.SELECT.columns
-          .map((c, i) => ({ ref: [this.column_name(c)], as: this.columns[i] }))
-        )
+        .columns([
+          ...src.SELECT.columns
+            .map((c, i) => ({ ref: [this.column_name(c)], as: this.columns[i] })),
+          ...missingKeys,
+        ])
         .from(src)
       sql = `SELECT ${extractions.map(c => `${c.upsert}`)} FROM (${this.SELECT(aliasedQuery)}) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
       if (extractions.length > columns.length) columns = this.columns = extractions.map(c => c.name)
@@ -1515,6 +1526,9 @@ class CQN2SQLRenderer {
     const keyZero = keys[0] && this.quote(keys[0])
 
     return [...columns, ...requiredColumns].map(({ name, sql }) => {
+      const isNull = sql === 'NULL'
+      const json = !sql
+
       const element = elements?.[name] || {}
 
       const converter = a => element[_convertInput]?.(a, element) || a
@@ -1536,8 +1550,8 @@ class CQN2SQLRenderer {
 
       const qname = this.quote(name)
 
-      const insert = onInsert ? this.managed_default(name, converter(onInsert), sql) : sql
-      const update = onUpdate ? this.managed_default(name, converter(onUpdate), sql) : sql
+      const insert = onInsert ? json ? this.managed_default(name, converter(onInsert), sql) : !isNull ? sql : onInsert : sql
+      const update = onUpdate ? json ? this.managed_default(name, converter(onUpdate), sql) : !isNull ? sql : onUpdate : sql
       const upsert = keyZero && (
         // upsert requires the keys to be provided for the existance join (default values optional)
         element.key
@@ -1549,7 +1563,7 @@ class CQN2SQLRenderer {
           insert
           } ELSE ${
           // Else execute managed update or keep old if no new data if provided
-          onUpdate ? update : this.managed_default(name, `OLD.${qname}`, update)
+          onUpdate || !json ? update : this.managed_default(name, `OLD.${qname}`, update)
           } END as ${qname}`
       )
 
