@@ -390,7 +390,7 @@ class CQN2SQLRenderer {
     )
 
     if (orderBy) {
-      orderBy = orderBy.map(r => {
+      orderBy = orderBy.filter(o => o.ref).map(r => {
         let col = r.ref.at(-1)
         if (col.toUpperCase() in reservedColumnNames) col = `$$${col}$$`
         if (!columnsIn.find(c => this.column_name(c) === col)) {
