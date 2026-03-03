@@ -424,6 +424,7 @@ describe('infer elements', () => {
       cast( '00:00:00' as cds.Time ) as time,
       cast( '1970-01-01 00:00:00' as cds.DateTime ) as datetime,
       cast( '1970-01-01 00:00:00.000' as cds.Timestamp ) as timestamp,
+      cast( price * stock as cds.Decimal(10,2) ) as total
     }`)
       let inferred = _inferred(query)
       let { Books } = model.entities
@@ -466,6 +467,11 @@ describe('infer elements', () => {
         },
         stringl: {
           _type: 'cds.LargeString',
+        },
+        total: {
+          _type: 'cds.Decimal',
+          precision: 10,
+          scale: 2
         },
       })
     })
