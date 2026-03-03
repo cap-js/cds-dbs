@@ -4,7 +4,7 @@ const cds = require('@sap/cds')
 
 const JoinTree = require('./join-tree')
 const { pseudos } = require('./pseudos')
-const { isCalculatedOnRead, getImplicitAlias, getModelUtils, defineProperty, hasOwnSkip } = require('../utils')
+const { isCalculatedOnRead, getImplicitAlias, getModelUtils, defineProperty, hasOwnSkip, isRuntimeView } = require('../utils')
 const cdsTypes = cds.builtin.types
 /**
  * @param {import('@sap/cds/apis/cqn').Query|string} originalQuery
@@ -596,7 +596,8 @@ function infer(originalQuery, model) {
 
       if(!arg.$refLinks[i].$main)
         arg.$refLinks[i].alias = !arg.ref[i + 1] && arg.as ? arg.as : id.split('.').pop()
-      if (hasOwnSkip(getDefinition(arg.$refLinks[i].definition.target))) isPersisted = false
+      const def = getDefinition(arg.$refLinks[i].definition.target)
+      if (hasOwnSkip(def) && !isRuntimeView(def)) isPersisted = false
       if (!arg.ref[i + 1]) {
         const flatName = nameSegments.join('_')
         defineProperty(arg, 'flatName', flatName)
@@ -656,7 +657,11 @@ function infer(originalQuery, model) {
     // ignore whole expand if target of assoc along path has ”@cds.persistence.skip”
     if (arg.expand) {
       const { $refLinks } = arg
-      const skip = $refLinks.some(link => hasOwnSkip(getDefinition(link.definition.target)))
+      
+      const skip = $refLinks.some(link => {
+        const def = getDefinition(link.definition.target)
+        return hasOwnSkip(def) && !isRuntimeView(def)
+      })
       if (skip) {
         $refLinks[$refLinks.length - 1].skipExpand = true
         return
