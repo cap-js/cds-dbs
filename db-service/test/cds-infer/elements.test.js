@@ -410,6 +410,66 @@ describe('infer elements', () => {
       })
     })
 
+    it('simple values, sql style cast', () => {
+      let query = CQL(`SELECT from bookshop.Books as Books {
+      cast( 5 as cds.Integer ) as price,
+      cast( 3.14 as cds.Decimal ) as pi,
+      cast( 3.1415 as cds.Decimal(5,4) ) as pid,
+      cast( 'simple string' as cds.String ) as string,
+      cast( 'large string' as cds.LargeString ) as stringl,
+      cast( false as cds.Boolean ) as boolf,
+      cast( true as cds.Boolean ) as boolt,
+      cast( null as cds.String ) as nullc,
+      cast( '1970-01-01' as cds.Date ) as date,
+      cast( '00:00:00' as cds.Time ) as time,
+      cast( '1970-01-01 00:00:00' as cds.DateTime ) as datetime,
+      cast( '1970-01-01 00:00:00.000' as cds.Timestamp ) as timestamp,
+    }`)
+      let inferred = _inferred(query)
+      let { Books } = model.entities
+      expect(inferred.sources).to.have.nested.property('Books.definition', Books)
+      expect(inferred.elements).to.deep.contain({
+        price: {
+          _type: 'cds.Integer',
+        },
+        pi: {
+          _type: 'cds.Decimal',
+        },
+        pid: {
+          _type: 'cds.Decimal',
+          precision: 5,
+          scale: 4
+        },
+        boolf: {
+          _type: 'cds.Boolean',
+        },
+        boolt: {
+          _type: 'cds.Boolean',
+        },
+        nullc: {
+          _type: 'cds.String',
+        },
+        date: {
+          _type: 'cds.Date',
+        },
+        time: {
+          _type: 'cds.Time',
+        },
+        datetime: {
+          _type: 'cds.DateTime',
+        },
+        timestamp: {
+          _type: 'cds.Timestamp',
+        },
+        string: {
+          _type: 'cds.String',
+        },
+        stringl: {
+          _type: 'cds.LargeString',
+        },
+      })
+    })
+
     it('supports a cast expression in the select list', () => {
       let query = cds.ql`SELECT from bookshop.Books as Books { cast(cast(ID as Integer) as String) as IDS, cast(ID as bookshop.DerivedFromDerivedString) as IDCustomType }`
       let inferred = _inferred(query)
