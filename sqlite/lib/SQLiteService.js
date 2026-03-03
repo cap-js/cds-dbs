@@ -106,7 +106,10 @@ class SQLiteService extends SQLService {
     const pageSize = (1 << 16)
     // Allow for both array and iterator result sets
     const first = Array.isArray(rs) ? { done: !rs[0], value: rs[0] } : rs.next()
-    if (first.done) return
+    if (first.done) {
+      yield one ? 'null' : '[]'
+      return
+    }
     if (one) {
       yield first.value[0]
       // Close result set to release database connection
