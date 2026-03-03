@@ -4,7 +4,7 @@ const cds = require('@sap/cds')
 
 const JoinTree = require('./join-tree')
 const { pseudos } = require('./pseudos')
-const { isCalculatedOnRead, getImplicitAlias, getModelUtils, defineProperty, hasOwnSkip } = require('../utils')
+const { isCalculatedOnRead, getImplicitAlias, getModelUtils, defineProperty, hasOwnSkip, isRuntimeView } = require('../utils')
 const cdsTypes = cds.builtin.types
 /**
  * @param {import('@sap/cds/apis/cqn').Query|string} originalQuery
@@ -191,6 +191,7 @@ function infer(originalQuery, model) {
       const dollarSelfRefs = []
       columns.forEach(col => {
         if (col === '*') {
+          if (wildcardSelect) throw new Error('Duplicate wildcard "*" in column list')
           wildcardSelect = true
         } else if (col.val !== undefined || col.xpr || col.SELECT || col.func || col.param) {
           const as = col.as || col.func || col.val
@@ -595,7 +596,8 @@ function infer(originalQuery, model) {
 
       if(!arg.$refLinks[i].$main)
         arg.$refLinks[i].alias = !arg.ref[i + 1] && arg.as ? arg.as : id.split('.').pop()
-      if (hasOwnSkip(getDefinition(arg.$refLinks[i].definition.target))) isPersisted = false
+      const def = getDefinition(arg.$refLinks[i].definition.target)
+      if (hasOwnSkip(def) && !isRuntimeView(def)) isPersisted = false
       if (!arg.ref[i + 1]) {
         const flatName = nameSegments.join('_')
         defineProperty(arg, 'flatName', flatName)
@@ -655,7 +657,11 @@ function infer(originalQuery, model) {
     // ignore whole expand if target of assoc along path has ”@cds.persistence.skip”
     if (arg.expand) {
       const { $refLinks } = arg
-      const skip = $refLinks.some(link => hasOwnSkip(getDefinition(link.definition.target)))
+      
+      const skip = $refLinks.some(link => {
+        const def = getDefinition(link.definition.target)
+        return hasOwnSkip(def) && !isRuntimeView(def)
+      })
       if (skip) {
         $refLinks[$refLinks.length - 1].skipExpand = true
         return
@@ -708,9 +714,12 @@ function infer(originalQuery, model) {
         )
       }
       let elements = {}
+      let seenWildcard = false
       inline.forEach(inlineCol => {
         inferArg(inlineCol, null, $leafLink, { inXpr: true, baseColumn: col })
         if (inlineCol === '*') {
+          if (seenWildcard) throw new Error(`Duplicate wildcard "*" in inline of "${col.as || col.ref.map(idOnly).join('_')}"`)
+          seenWildcard = true
           const wildCardElements = {}
           // either the `.elements´ of the struct or the `.elements` of the assoc target
           const leafLinkElements = getDefinition($leafLink.definition.target)?.elements || $leafLink.definition.elements
@@ -725,7 +734,7 @@ function infer(originalQuery, model) {
         } else {
           const nameParts = namePrefix ? [namePrefix] : []
           if (inlineCol.as) nameParts.push(inlineCol.as)
-          else nameParts.push(...inlineCol.ref.map(idOnly))
+          else if (inlineCol.ref) nameParts.push(...inlineCol.ref.map(idOnly))
           const name = nameParts.join('_')
           if (inlineCol.inline) {
             const inlineElements = resolveInline(inlineCol, name)
@@ -736,6 +745,8 @@ function infer(originalQuery, model) {
           } else if (inlineCol.val) {
             elements[name] = getCdsTypeForVal(inlineCol.val)
           } else if (inlineCol.func) {
+            elements[name] = {}
+          } else if (inlineCol.xpr) {
             elements[name] = {}
           } else {
             elements[name] = inlineCol.$refLinks[inlineCol.$refLinks.length - 1].definition
@@ -763,6 +774,16 @@ function infer(originalQuery, model) {
         throw new Error(
           `Unexpected “expand” on “${col.ref.map(idOnly)}”; can only be used after a reference to a structure, association or table alias`,
         )
+      }
+      // Check for duplicate wildcards before creating the subquery
+      let seenWildcard = false
+      for (const e of expand) {
+        if (e === '*') {
+          if (seenWildcard) {
+            throw new Error(`Duplicate wildcard "*" in expand of "${col.as || col.ref.map(idOnly).join('_')}"`)
+          }
+          seenWildcard = true
+        }
       }
       const target = getDefinition($leafLink.definition.target)
       if (target) {
