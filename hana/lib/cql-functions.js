@@ -269,8 +269,8 @@ const HANAFunctions = {
   HIERARCHY_ANCESTORS: undefined,
 
   // Ease of use for stakeholders for auto-filling the remote source
-  vector_embedding(text, text_type, model_and_version, remote_source = cds.env.ai.embeddings.remoteSource) {
-    if (model_and_version.startswith('SAP')) {
+  vector_embedding(text, text_type, model_and_version, remote_source = cds.env.ai?.embeddings?.remoteSource) {
+    if (!remote_source || (model_and_version.val ?? model_and_version).startswith('SAP')) {
       return `vector_embedding(${text},${text_type},${model_and_version})`
     } else {
       return `vector_embedding(${text},${text_type},${model_and_version},${remote_source})`
