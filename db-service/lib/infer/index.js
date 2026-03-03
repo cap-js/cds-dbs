@@ -566,7 +566,7 @@ function infer(originalQuery, model) {
       if (step.where) {
         const danglingFilter = !(arg.ref[i + 1] || arg.expand || arg.inline || inExists)
         const definition = arg.$refLinks[i].definition
-        if ((!definition.target && definition.kind !== 'entity') || (!inFrom && danglingFilter))
+        if ((!definition.target && definition.kind !== 'entity') || (!inFrom && !inCalcElement && danglingFilter))
           throw new Error('A filter can only be provided when navigating along associations')
         if (!inFrom && !arg.expand)defineProperty(arg, 'isJoinRelevant', true)
         let skipJoinsForFilter = false
