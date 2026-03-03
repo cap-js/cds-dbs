@@ -19,6 +19,10 @@ jobs:
     permissions:
       packages: write
 
+    env:
+      cds_features_pool: true # TODO: make it work with Postgres test setup
+      FORCE_COLOR: true
+
     strategy:
       fail-fast: true
       matrix:
@@ -41,7 +45,13 @@ jobs:
       # testing
       - run: npm test -ws
         env:
-          cds_features_pool: true
-          FORCE_COLOR: true
           TAG: ${{ steps.hxe.outputs.TAG }}
           IMAGE_ID: ${{ steps.hxe.outputs.IMAGE_ID }}
+      - name: sqlite driver (node:sqlite)
+        run: npm test -w sqlite
+        env:
+          CDS_REQUIRES_DB_DRIVER: 'node'
+      - name: sqlite driver (sql.js)
+        run: npm test -w sqlite
+        env:
+          CDS_REQUIRES_DB_DRIVER: 'sql.js'
