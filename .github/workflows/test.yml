@@ -20,7 +20,7 @@ jobs:
       packages: write
 
     env:
-      cds_features_pool: 'builtin'
+      cds_features_pool: true # TODO: make it work with Postgres test setup
       FORCE_COLOR: true
 
     strategy:
