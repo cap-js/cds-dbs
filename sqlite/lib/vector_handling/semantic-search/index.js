@@ -1,8 +1,8 @@
 // Main exports for semantic search functionality
 const {
-  embeddings,
+  embedding,
 } = require('./lib/embeddings.js')
 
 module.exports = {
-  embeddings,
+  embedding,
 }

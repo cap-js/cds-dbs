@@ -1,5 +1,5 @@
 const cds = require('@sap/cds');
-const { embeddings } = require('./semantic-search');
+const { embedding } = require('./semantic-search');
 
 const hasAIOrchestration = () => {
 	try {
@@ -13,8 +13,8 @@ const hasAIOrchestration = () => {
 const generateVector = async (text, text_type, model_and_version) => {
 	if (model_and_version.startsWith('SAP_GXY') || model_and_version.startsWith('SAP_NEB') || !cds.env.requires.AICore.credentials) {
 		if (text) {
-			const res = await embeddings([text]);
-			return Array.from(res.embeddings[0].embedding);
+			const res = await embedding(text);
+			return Array.from(res.embedding);
 		}
 		return getEmptyVector(384);
 	} else if (hasAIOrchestration()) {
