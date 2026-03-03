@@ -726,6 +726,7 @@ function infer(originalQuery, model) {
           const leafLinkElements = targetDef?.elements || $leafLink.definition.elements
           const isAssociation = !!$leafLink.definition.target
 
+          const deferredCalcElements = []
           Object.entries(leafLinkElements).forEach(([k, v]) => {
             const name = namePrefix ? `${namePrefix}_${k}` : k
             // if overwritten/excluded omit from wildcard elements
@@ -734,14 +735,10 @@ function infer(originalQuery, model) {
             if (!(name in elements || col.excluding?.includes(k))) {
               wildCardElements[name] = v
 
-              // For associations, we need to create fake columns and merge them into join tree
-              // so that the join gets generated for non-FK elements
               if(v.value) {
-                linkCalculatedElement(
-                  { ref: [...col.ref, k], $refLinks: [...col.$refLinks, { definition: v, target: targetDef }] },
-                  $leafLink,
-                  col
-                )
+                // defer linkCalculatedElement calls until after all association joins are registered
+                // so that the join tree order is correct
+                deferredCalcElements.push({ k, v })
               }
               else if (isAssociation && !v.virtual && v.type !== 'cds.LargeBinary' && !(v.on && !v.keys)) {
                 // Check if this element is a foreign key (FK elements don't need join)
@@ -764,6 +761,13 @@ function infer(originalQuery, model) {
               }
             }
           })
+          // link calculated elements after association joins are registered in the join tree
+          for (const { k, v } of deferredCalcElements) {
+            linkCalculatedElement(
+              { ref: [k], $refLinks: [{ definition: v, target: targetDef }] },
+              $leafLink,
+            )
+          }
           elements = { ...elements, ...wildCardElements }
         } else {
           const nameParts = namePrefix ? [namePrefix] : []

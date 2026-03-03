@@ -1019,7 +1019,6 @@ describe('(nested projections) inline', () => {
       expectCqn(inlineTransformed).to.equal(expected)
     })
 
-    // revisit: why self2
     it('wildcard on assoc which target has a calculation', () => {
       const inlineWithBrackets = cds.ql`
         SELECT from nestedProjections.RetiredEmployee as Employee
@@ -1029,11 +1028,12 @@ describe('(nested projections) inline', () => {
 
       const expected = cds.ql`
         SELECT from nestedProjections.RetiredEmployee as Employee
-          left join nestedProjections.RetiredEmployee as self2 on self2.id = Employee.self_id
+          left join nestedProjections.RetiredEmployee as self on self.id = Employee.self_id
+          left join nestedProjections.Department as department on department.id = Employee.department_id
         {
           Employee.self_id,
           (department.name = 'Retired') as self_isRetired,
-          self2.self_id as self_self_id
+          self.self_id as self_self_id
         }`
 
       const inlineTransformed = cqn4sql(inlineWithBrackets)
