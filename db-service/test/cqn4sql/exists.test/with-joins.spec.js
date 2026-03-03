@@ -38,6 +38,29 @@ describe('(exist predicate) with joins', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
+    it('managed association (scoped query)', () => {
+      // equivalent to the above
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books[genre.name = 'Thriller']:author as Authors
+        {
+          ID
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as Authors
+        {
+          Authors.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $B
+            inner join bookshop.Genres as genre
+              on genre.ID = $B.genre_ID
+          WHERE $B.author_ID = Authors.ID
+            and genre.name = 'Thriller'
+        )`
+      expectCqn(transformed).to.equal(expected)
+    })
+
     it('managed association (2)', async () => {
       const transformed = cqn4sql(
         cds.ql`
@@ -92,6 +115,30 @@ describe('(exist predicate) with joins', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
+    it('unmanaged association (scoped query)', () => {
+      // equivalent to the above
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books[coAuthorUnmanaged.name = 'King']:author as Authors
+        {
+          ID
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as Authors
+        {
+          Authors.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $B
+            inner join bookshop.Authors as coAuthorUnmanaged
+              on coAuthorUnmanaged.ID = $B.coAuthor_ID_unmanaged
+          WHERE $B.author_ID = Authors.ID
+            and coAuthorUnmanaged.name = 'King'
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
     it('managed assoc within structure', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Authors
@@ -108,6 +155,27 @@ describe('(exist predicate) with joins', () => {
           SELECT 1 from bookshop.Books as $b
             inner join bookshop.Person as addressee on addressee.ID = $b.dedication_addressee_ID
           WHERE $b.author_ID = $A.ID
+            and addressee.name = 'Hasso'
+        )`
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('managed assoc within structure (scoped query)', () => {
+      // equivalent to the above
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books[dedication.addressee.name = 'Hasso']:author as Authors
+        {
+          ID
+        }`)
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as Authors
+        {
+          Authors.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $B
+            inner join bookshop.Person as addressee on addressee.ID = $B.dedication_addressee_ID
+          WHERE $B.author_ID = Authors.ID
             and addressee.name = 'Hasso'
         )`
       expectCqn(transformed).to.equal(expected)
@@ -165,6 +233,30 @@ describe('(exist predicate) with joins', () => {
             inner join bookshop.Genres as genre
               on genre.ID = $b.genre_ID
           WHERE $b.author_ID = Authors.ID
+            and toLower(genre.name) = 'thriller'
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('join relevant path is hidden in function (scoped query)', () => {
+      // equivalent to the above
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books[toLower(genre.name) = 'thriller']:author as Authors
+        {
+          ID
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as Authors
+        {
+          Authors.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $B
+            inner join bookshop.Genres as genre
+              on genre.ID = $B.genre_ID
+          WHERE $B.author_ID = Authors.ID
             and toLower(genre.name) = 'thriller'
         )`
 
@@ -229,6 +321,61 @@ describe('(exist predicate) with joins', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
+    it('navigate to key, but with infix filter', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors as Authors
+        {
+          ID
+        }
+        WHERE EXISTS books[genre[name = 'Drama'].ID is not null]`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as Authors
+        {
+          Authors.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $b
+            inner join bookshop.Genres as genre
+              on genre.ID = $b.genre_ID and
+                 genre.name = 'Drama'
+          WHERE $b.author_ID = Authors.ID
+            and genre.ID is not null
+        )`
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it.skip('navigate to key, but with infix filter - nested', () => {
+      // will work with path expression in infix filters feature
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors as Authors
+        {
+          ID
+        }
+        WHERE EXISTS books[genre[ parent[name = 'Drama'].ID is not null ].ID is not null]`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as Authors
+        {
+          Authors.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $b
+            inner join bookshop.Genres as genre
+              on genre.ID = $b.genre_ID and (
+                  
+              )
+            inner join bookshop.Genres as parent
+              on parent.ID = genre.parent_ID and
+                 parent.name = 'Drama'
+          WHERE $b.author_ID = Authors.ID
+            and parent.ID is not null
+            and genre.ID is not null
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
     it('join relevant path is hidden in nested function', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Authors as Authors
@@ -247,6 +394,29 @@ describe('(exist predicate) with joins', () => {
             inner join bookshop.Person as addressee
               on addressee.ID = $b.dedication_addressee_ID
           where $b.author_ID = Authors.ID AND toLower(toUpper(addressee.name)) = 'Hasso'
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('join relevant path is hidden in nested function (scoped query)', () => {
+      // equivalent to the above
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books[toLower(toUpper(dedication.addressee.name)) = 'Hasso']:author as Authors
+        {
+          ID
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as Authors
+        {
+          Authors.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $B
+            inner join bookshop.Person as addressee
+              on addressee.ID = $B.dedication_addressee_ID
+          where $B.author_ID = Authors.ID AND toLower(toUpper(addressee.name)) = 'Hasso'
         )`
 
       expectCqn(transformed).to.equal(expected)
@@ -273,6 +443,39 @@ describe('(exist predicate) with joins', () => {
                   on genre.ID = $b.genre_ID
               WHERE $b.author_ID = $A.ID
                 and genre.name LIKE '%Fiction'
+            )
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('multi-step navigation with filter (scoped query)', () => {
+      // TODO: solve the following edge-case:
+      //      1. `select from Genres[parent.name = 'FOO']:parent as parent { name }`
+      //      2. recursive transform subquery: `select from Genres where parent.name = 'FOO'`
+      //      --> if the outer query alias `parent` is available in the subquery,
+      //      not the association `parent` would be used for name resolution,
+      //      but the table alias `parent`
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books:genre[parent.name LIKE '%Fiction%'].parent
+        {
+          name
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Genres as $p
+        {
+          $p.name
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Genres as $g
+            inner join bookshop.Genres as parent
+              on parent.ID = $g.parent_ID
+          WHERE $g.parent_ID = $p.ID
+            and parent.name LIKE '%Fiction%'
+            and EXISTS (
+              SELECT 1 from bookshop.Books as $B
+              WHERE $B.genre_ID = $g.ID
             )
         )`
 
@@ -315,62 +518,6 @@ describe('(exist predicate) with joins', () => {
 
       expectCqn(transformed).to.equal(expected)
     })
-
-    it('navigate to key, but with infix filter', () => {
-      const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.Authors as Authors
-        {
-          ID
-        }
-        WHERE EXISTS books[genre[name = 'Drama'].ID is not null]`)
-
-      const expected = cds.ql`
-        SELECT from bookshop.Authors as Authors
-        {
-          Authors.ID
-        }
-        WHERE EXISTS (
-          SELECT 1 from bookshop.Books as $b
-            inner join bookshop.Genres as genre
-              on genre.ID = $b.genre_ID and
-                 genre.name = 'Drama'
-          WHERE $b.author_ID = Authors.ID
-            and genre.ID is not null
-        )`
-      
-      expectCqn(transformed).to.equal(expected)
-    })
-
-    it.skip('navigate to key, but with infix filter - nested', () => {
-      // will work with path expression in infix filters feature
-      const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.Authors as Authors
-        {
-          ID
-        }
-        WHERE EXISTS books[genre[ parent[name = 'Drama'].ID is not null ].ID is not null]`)
-
-      const expected = cds.ql`
-        SELECT from bookshop.Authors as Authors
-        {
-          Authors.ID
-        }
-        WHERE EXISTS (
-          SELECT 1 from bookshop.Books as $b
-            inner join bookshop.Genres as genre
-              on genre.ID = $b.genre_ID and (
-                  
-              )
-            inner join bookshop.Genres as parent
-              on parent.ID = genre.parent_ID and
-                 parent.name = 'Drama'
-          WHERE $b.author_ID = Authors.ID
-            and parent.ID is not null
-            and genre.ID is not null
-        )`
-
-      expectCqn(transformed).to.equal(expected)
-      })
   })
 
   describe('in where', () => {
