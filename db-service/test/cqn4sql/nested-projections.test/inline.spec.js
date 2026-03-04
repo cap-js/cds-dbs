@@ -1040,5 +1040,28 @@ describe('(nested projections) inline', () => {
 
       expectCqn(inlineTransformed).to.equal(expected)
     })
+
+    it('wildcard on assoc which target has a calculation + filter (no fk optimization)', () => {
+      const inlineWithBrackets = cds.ql`
+        SELECT from nestedProjections.RetiredEmployee as Employee
+        {
+          self[job = 'PO'].{*} excluding { office, department, name, job }
+        }`
+
+      const expected = cds.ql`
+        SELECT from nestedProjections.RetiredEmployee as Employee
+          left join nestedProjections.RetiredEmployee as self on self.id = Employee.self_id
+            and self.job = 'PO'
+          left join nestedProjections.Department as department on department.id = Employee.department_id
+        {
+          self.id,
+          (department.name = 'Retired') as self_isRetired,
+          self.self_id as self_self_id
+        }`
+
+      const inlineTransformed = cqn4sql(inlineWithBrackets)
+
+      expectCqn(inlineTransformed).to.equal(expected)
+    })
   })
 })
