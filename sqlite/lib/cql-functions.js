@@ -155,11 +155,19 @@ const HANAFunctions = {
   },
 
   /**
-		 * Computes the cosine similarity of two vectors
-		 * @param {*} v1 - Vector 1
-		 * @param {*} v2 - Vector 2
-		 * @returns {string} - SQL statement
-		 */
+   * Returns the length of the vector
+   * @param {*} v - Vector
+   * @returns {string} - SQL statement
+   */
+  cardinality(v) {
+    return `vec_length(${this.expr(v)})`
+  },
+  /**
+   * Computes the cosine similarity of two vectors
+   * @param {*} v1 - Vector 1
+   * @param {*} v2 - Vector 2
+   * @returns {string} - SQL statement
+   */
   cosine_similarity(v1, v2) {
     return `vec_distance_cosine(${this.expr(v1)},${this.expr(v2)})`
   },

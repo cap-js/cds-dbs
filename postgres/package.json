@@ -28,7 +28,8 @@
   },
   "dependencies": {
     "@cap-js/db-service": "^2.8.2",
-    "pg": "^8"
+    "pg": "^8",
+    "pgvector": "^0.2.1"
   },
   "peerDependencies": {
     "@sap/cds": ">=9",

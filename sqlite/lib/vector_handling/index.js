@@ -26,15 +26,6 @@ module.exports = async function addSQLiteVectorSupport(dbc) {
 		const result = generateVector(text, text_type, model_and_version);
 		return JSON.stringify(result);
 	});
-	dbc.function('CARDINALITY', { deterministic: true }, (vector) => {
-		if (vector instanceof Uint8Array) {
-			return vector.length / 4;
-		} else if (vector instanceof Float32Array) {
-			return vector.length;
-		} else if (typeof vector === 'string' && vector.startsWith('[') && vector.endsWith(']')) {
-			return vector.split(',')?.length;
-		}
-	});
 }
 
 function generateVector(text, _, model_and_version) {
