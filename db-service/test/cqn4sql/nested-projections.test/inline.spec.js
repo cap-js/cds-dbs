@@ -1062,6 +1062,5 @@ describe('(nested projections) inline', () => {
       const inlineTransformed = cqn4sql(inlineWithBrackets)
 
       expectCqn(inlineTransformed).to.equal(expected)
-    })
   })
 })
