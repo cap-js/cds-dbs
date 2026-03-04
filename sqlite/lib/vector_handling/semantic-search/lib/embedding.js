@@ -155,11 +155,6 @@ function processChunkedEmbeddings(chunks, session) {
 let session = null
 let vocab = null
 
-function resetSession() {
-  session = null
-  vocab = null
-}
-
 async function createSession() {
   await downloadModelIfNeeded(MODEL_DIR, FILES, MODEL_NAME)
   await initializeModelAndVocab()
@@ -186,5 +181,4 @@ function embedding(text) {
 }
 
 module.exports = embedding
-module.exports.resetSession = resetSession
 module.exports.createSession = createSession
