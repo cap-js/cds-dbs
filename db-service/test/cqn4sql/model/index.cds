@@ -5,6 +5,7 @@ using from './A2J/sharedFKIdentity';
 using from './A2J/TargetSideReferences';
 using from './cap_issue';
 using from './collaborations';
+using from './enums';
 using from './keyless';
 using from './nestedProjections';
 using from './update';
