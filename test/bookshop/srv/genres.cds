@@ -2,7 +2,7 @@ using { sap.capire.bookshop as my } from '../db/schema';
 
 @path: '/test'
 service TestService {
-  entity Genres as projection on my.Genres;
+  entity Genres as projection on my.Genres excluding {timesTwo};
   entity A as projection on my.A;
 }
 
