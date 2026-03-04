@@ -624,7 +624,7 @@ function cqn4sql(originalQuery, model) {
       let ret
       if (col !== null && typeof col === 'object' && '#' in col) {
         ret = resolveEnumToken(col, [], -1)
-        if (col.cast) ret.cast = col.cast
+        // cast is already resolved inside resolveEnumToken; do not overwrite it here
         return ret
       }
       if (col.func) {
@@ -639,7 +639,7 @@ function cqn4sql(originalQuery, model) {
         ret.xpr = getTransformedTokenStream(col.xpr)
       }
       if (ret) {
-        if (col.cast) ret.cast = col.cast
+        if (col.cast) ret.cast = resolveEnumCastType(col.cast)
         return ret
       }
       return copy(col)
@@ -1513,7 +1513,7 @@ function cqn4sql(originalQuery, model) {
     }
     const flatRef = tableAlias ? { ref: [tableAlias, baseName] } : { ref: [baseName] }
     if (column.cast) {
-      flatRef.cast = column.cast
+      flatRef.cast = resolveEnumCastType(column.cast)
       if (!columnAlias)
         // provide an explicit alias
         columnAlias = baseName
@@ -1745,6 +1745,7 @@ function cqn4sql(originalQuery, model) {
             }
           }
 
+          if (result.cast) result.cast = resolveEnumCastType(result.cast)
           transformedTokenStream.push(result)
         }
       }
@@ -2550,7 +2551,7 @@ function cqn4sql(originalQuery, model) {
   function resolveEnumToken(token, tokenStream, index, enumDef) {
     if ('val' in token) {
       const result = { val: token.val }
-      if (token.cast) result.cast = token.cast
+      if (token.cast) result.cast = resolveEnumCastType(token.cast)
       return result
     }
 
@@ -2571,8 +2572,32 @@ function cqn4sql(originalQuery, model) {
     }
 
     const result = { val: 'val' in entry ? entry.val : token['#'] }
-    if (token.cast) result.cast = token.cast
+    if (token.cast) result.cast = resolveEnumCastType(token.cast)
     return result
+  }
+
+  /**
+   * If `cast.type` refers to a user-defined enum type, resolves it to the
+   * underlying scalar CDS built-in type so that the SQL builder (`cqn2sql`)
+   * can render a valid SQL type name.
+   *
+   * Example: `{ type: 'enums.Priority' }` → `{ type: 'cds.Integer' }`
+   *
+   * Non-enum types (including CDS built-ins) are returned unchanged.
+   *
+   * @param {object} cast - The cast descriptor with a `type` property.
+   * @returns {object} The cast descriptor with the resolved type.
+   */
+  function resolveEnumCastType(cast) {
+    if (!cast?.type) return cast
+    let def = model.definitions[cast.type]
+    while (def?.enum) {
+      const baseType = def.type
+      if (!baseType) return cast // no base type declared – leave as-is
+      if (cds.builtin.types[baseType]) return { ...cast, type: baseType }
+      def = model.definitions[baseType]
+    }
+    return cast
   }
 
   /**

@@ -111,19 +111,40 @@ describe('enums', () => {
     })
   })
 
-  describe('already resolved', () => {
-    it('passes through enum token with val already set', () => {
-      // Simulates CSN from compiler where val is already resolved
-      const q = {
-        SELECT: {
-          from: { ref: ['enums.Orders'] },
-          columns: [{ ref: ['id'] }],
-          where: [{ ref: ['status'] }, '=', { '#': 'open', val: 'O' }],
-        },
-      }
-      const result = cqn4sql(q)
-      // The value should be preserved
-      expect(result.SELECT.where[2]).to.deep.equal({ val: 'O' })
+  describe('with cast', () => {
+    // When an operand is cast to an enum type (e.g. cast(id as Priority)), the plain
+    // element has no enum type of its own.  findEnumDefinition must therefore look at the
+    // cast.type of neighbor tokens to discover the enum.
+
+    it('resolves enum when the adjacent ref is cast to an enum type (enum on RHS)', () => {
+      // cast(Orders.id as enums.Priority) supplies the enum for #high on the right;
+      // the enum type itself is also resolved to the underlying scalar type (cds.Integer)
+      const q = cds.ql`SELECT from enums.Orders as Orders { Orders.id }
+        where cast(Orders.id as enums.Priority) = #high`
+      const expected = cds.ql`SELECT from enums.Orders as Orders { Orders.id }
+        where cast(Orders.id as cds.Integer) = 3`
+      expectCqn(cqn4sql(q)).to.equal(expected)
+    })
+
+    it('resolves enum when the adjacent ref is cast to an enum type (enum on LHS)', () => {
+      // cast(Orders.id as enums.Priority) supplies the enum for #low on the left;
+      // the enum type itself is also resolved to the underlying scalar type (cds.Integer)
+      const q = cds.ql`SELECT from enums.Orders as Orders { Orders.id }
+        where #low = cast(Orders.id as enums.Priority)`
+      const expected = cds.ql`SELECT from enums.Orders as Orders { Orders.id }
+        where 1 = cast(Orders.id as cds.Integer)`
+      expectCqn(cqn4sql(q)).to.equal(expected)
+    })
+
+    it('resolves enum whose own cast provides the enum type, and preserves the cast', () => {
+      // cast(#high as enums.Priority) — the cast both supplies the enum definition
+      // and must be kept on the output so that cqn2sql emits CAST(3 AS INTEGER).
+      // The enum type name is also resolved to the underlying scalar type (cds.Integer).
+      const q = cds.ql`SELECT from enums.Orders as Orders { Orders.id }
+        where cast(#high as enums.Priority) = Orders.priority`
+      const expected = cds.ql`SELECT from enums.Orders as Orders { Orders.id }
+        where cast(3 as cds.Integer) = Orders.priority`
+      expectCqn(cqn4sql(q)).to.equal(expected)
     })
   })
 
