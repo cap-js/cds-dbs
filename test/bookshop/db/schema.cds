@@ -6,6 +6,12 @@ using {
 
 namespace sap.capire.bookshop;
 
+type BookStatus : String enum {
+  available    = 'A';
+  out_of_stock = 'O';
+  discontinued = 'D';
+}
+
 entity Books : managed {
   key ID             : Integer;
       title          : localized String(111);
@@ -18,6 +24,7 @@ entity Books : managed {
       image          : LargeBinary @Core.MediaType: 'image/png';
       footnotes      : array of String;
       authorsAddress : String = author.address;
+      status         : BookStatus;
 }
 
 entity Authors : managed {
