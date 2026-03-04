@@ -6,10 +6,16 @@ using {
 
 namespace sap.capire.bookshop;
 
-type BookStatus : String enum {
+type StockStatus : String enum {
   available    = 'A';
   out_of_stock = 'O';
   discontinued = 'D';
+}
+
+type Priority : Integer enum {
+  low    = 1;
+  medium = 2;
+  high   = 3;
 }
 
 entity Books : managed {
@@ -24,7 +30,6 @@ entity Books : managed {
       image          : LargeBinary @Core.MediaType: 'image/png';
       footnotes      : array of String;
       authorsAddress : String = author.address;
-      status         : BookStatus;
 }
 
 entity Authors : managed {
@@ -88,3 +93,11 @@ entity Values {
 }
 
 entity BooksAnnotated as projection on Books;
+
+/** Inventory tracks the status and reorder priority of book stock entries */
+entity Inventory {
+  key ID       : Integer;
+      book_ID  : Integer;
+      status   : StockStatus;
+      priority : Priority;
+}
