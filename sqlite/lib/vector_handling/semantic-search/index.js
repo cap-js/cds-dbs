@@ -3,6 +3,11 @@ const {
   embedding,
 } = require('./lib/embeddings.js')
 
+const {
+  createSession
+} = require('./lib/embedding.js')
+
 module.exports = {
   embedding,
+  createSession
 }

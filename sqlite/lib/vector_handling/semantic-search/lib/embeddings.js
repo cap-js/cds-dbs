@@ -5,8 +5,8 @@ const embedding = require('./embedding.js')
  * @param {string} chunk
  * @returns {Promise<object>} Returns wrapper object { embeddings, id?, ...metadata }
  */
-async function embeddingWrapper(chunk) {
-  const embeddingVector = await embedding(chunk)
+function embeddingWrapper(chunk) {
+  const embeddingVector = embedding(chunk)
   const chunkObj = { content: chunk }
   return Object.defineProperty(chunkObj, 'embedding', {
     value: embeddingVector,

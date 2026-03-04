@@ -1,10 +1,7 @@
 const fs = require('fs/promises')
 const { constants } = require('fs')
 const path = require('path')
-const ort = require('onnxruntime-web')
-
-ort.env.debug = false
-ort.env.logLevel = 'error'
+const { InferenceSession } = require('./InferenceSession')
 
 // File operations
 async function saveFile(buffer, outputPath) {
@@ -67,7 +64,8 @@ async function loadModelAndVocab(modelDir) {
   const vocabPath = path.join(modelDir, 'tokenizer.json')
 
   const modelBuffer = await fs.readFile(modelPath)
-  const session = await ort.InferenceSession.create(modelBuffer)
+  
+  const session = await InferenceSession.create(modelBuffer)
 
   const tokenizerJson = JSON.parse(await fs.readFile(vocabPath, 'utf-8'))
 

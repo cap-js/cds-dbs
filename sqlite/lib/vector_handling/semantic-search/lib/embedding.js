@@ -1,5 +1,5 @@
 const path = require('path')
-const ort = require('onnxruntime-web')
+const ort = require('onnxruntime-node')
 const { getDataDir } = require('./utils.js')
 const {
   downloadModelIfNeeded,
@@ -94,7 +94,7 @@ function wordPieceTokenizer(text, vocab, maxLength = 512) {
 /**
  * Process embeddings for multiple chunks and combine them
  */
-async function processChunkedEmbeddings(chunks, session) {
+function processChunkedEmbeddings(chunks, session) {
   const embeddings = []
 
   for (const chunk of chunks) {
@@ -115,7 +115,7 @@ async function processChunkedEmbeddings(chunks, session) {
       token_type_ids: tokenTypeTensor
     }
 
-    const results = await session.run(feeds)
+    const results = session.run(feeds)
     const lastHiddenState = results['last_hidden_state']
     const [, sequenceLength, hiddenSize] = lastHiddenState.dims
     const embeddingData = lastHiddenState.data
@@ -154,35 +154,19 @@ async function processChunkedEmbeddings(chunks, session) {
 
 let session = null
 let vocab = null
-let modelInitPromise = null
 
 function resetSession() {
   session = null
   vocab = null
-  modelInitPromise = null
 }
 
-async function embedding(text) {
-  if (!modelInitPromise) {
-    modelInitPromise = (async () => {
-      try {
-        await downloadModelIfNeeded(MODEL_DIR, FILES, MODEL_NAME)
-        await initializeModelAndVocab()
-      } catch (error) {
-        modelInitPromise = null
-        throw error
-      }
-    })()
-  }
+async function createSession() {
+  await downloadModelIfNeeded(MODEL_DIR, FILES, MODEL_NAME)
+  await initializeModelAndVocab()
+}
 
-  await modelInitPromise
-
-  if (!session || !vocab) {
-    await initializeModelAndVocab()
-  }
-
+function embedding(text) {
   const chunks = wordPieceTokenizer(text, vocab)
-
   function normalizeEmbedding(embedding) {
     let norm = 0
     for (let i = 0; i < embedding.length; i++) {
@@ -197,18 +181,10 @@ async function embedding(text) {
     return normalized
   }
 
-  try {
-    const pooledEmbedding = await processChunkedEmbeddings(chunks, session)
-    return normalizeEmbedding(pooledEmbedding)
-  } catch {
-    await forceRedownloadModel(MODEL_DIR, FILES)
-    await downloadModelIfNeeded(MODEL_DIR, FILES, MODEL_NAME)
-    await initializeModelAndVocab()
-
-    const retryPooledEmbedding = await processChunkedEmbeddings(chunks, session)
-    return normalizeEmbedding(retryPooledEmbedding)
-  }
+  const pooledEmbedding = processChunkedEmbeddings(chunks, session)
+  return normalizeEmbedding(pooledEmbedding)
 }
 
 module.exports = embedding
 module.exports.resetSession = resetSession
+module.exports.createSession = createSession

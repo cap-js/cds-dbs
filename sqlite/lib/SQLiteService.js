@@ -6,7 +6,7 @@ const $session = Symbol('dbc.session')
 const sessionVariableMap = require('./session.json')  // Adjust the path as necessary for your project
 const convStrm = require('stream/consumers')
 const { Readable } = require('stream')
-const addSQLiteVectorSupport = require('./vector_handling/register-vector-functions')
+const addSQLiteVectorSupport = require('./vector_handling')
 
 const keywords = cds.compiler.to.sql.sqlite.keywords
 // keywords come as array
@@ -46,7 +46,7 @@ class SQLiteService extends SQLService {
         dbc.function('hour', deterministic, d => d === null ? null : toDate(d, true).getUTCHours())
         dbc.function('minute', deterministic, d => d === null ? null : toDate(d, true).getUTCMinutes())
         dbc.function('second', deterministic, d => d === null ? null : toDate(d, true).getUTCSeconds())
-        addSQLiteVectorSupport(dbc)
+        await addSQLiteVectorSupport(dbc)
         if (database !== ':memory:') dbc.pragma?.('journal_mode = WAL') || dbc.exec('PRAGMA journal_mode = WAL')
         return dbc
       },
