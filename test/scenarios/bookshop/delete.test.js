@@ -16,7 +16,7 @@ describe('Bookshop - Delete', () => {
       { ID: 998 },
       {
         ID: 1,
-        toB: {
+        toB: [{
           ID: 12,
           toA: [{ ID: 121 }],
           toC: [
@@ -35,11 +35,11 @@ describe('Bookshop - Delete', () => {
               ],
             },
           ],
-        },
-        toC: {
+        }],
+        toC: [{
           ID: 13,
           toA: [{ ID: 13 }],
-        },
+        }],
       },
     ])
     const del = DELETE.from('sap.capire.bookshop.A').where('ID = 1')
