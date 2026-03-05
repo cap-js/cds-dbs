@@ -14,9 +14,6 @@
     "requires": {
       "db": {
         "kind": "pg"
-      },
-      "features": {
-        "lean_draft": true
       }
     }
   }
