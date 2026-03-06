@@ -83,7 +83,7 @@ class DatabaseService extends cds.Service {
   async commit() {
     if (!this.dbc) return
     await this.send('COMMIT')
-    this.release() // only release on successful commit as otherwise released on rollback
+    await this.release() // only release on successful commit as otherwise released on rollback
   }
 
   /**
@@ -94,7 +94,7 @@ class DatabaseService extends cds.Service {
     try {
       await this.send('ROLLBACK')
     } finally {
-      this.release()
+      await this.release()
     }
   }
 
