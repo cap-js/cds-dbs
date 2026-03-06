@@ -11,7 +11,7 @@ const cdsTypes = cds.builtin.types
  * @param {import('@sap/cds/apis/csn').CSN} [model]
  * @returns {import('./cqn').Query} = q with .target and .elements
  */
-function infer(originalQuery, model) {
+function infer(originalQuery, model, useTechnicalAlias = true) {
   if (!model) throw new Error('Please specify a model')
   const inferred = originalQuery
 
@@ -34,7 +34,7 @@ function infer(originalQuery, model) {
 
   let $combinedElements
 
-  const sources = inferTarget(_.into || _.from || _.entity, {}) // IMPORTANT: _.into has to go before _.from for INSERT.into().from(SELECT)
+  const sources = inferTarget(_.into || _.from || _.entity, {}, useTechnicalAlias) // IMPORTANT: _.into has to go before _.from for INSERT.into().from(SELECT)
   const aliases = Object.keys(sources)
   const target = aliases.length === 1 ? getDefinitionFromSources(sources, aliases[0]) : originalQuery
   Object.defineProperties(inferred, {

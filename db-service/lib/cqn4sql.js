@@ -54,7 +54,7 @@ const { pseudos } = require('./infer/pseudos')
  * @param {object} model
  * @returns {object} transformedQuery the transformed query
  */
-function cqn4sql(originalQuery, model) {
+function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
   let inferred = typeof originalQuery === 'string' ? cds.parse.cql(originalQuery) : cds.ql.clone(originalQuery)
   const hasCustomJoins =
     originalQuery.SELECT?.from.args && (!originalQuery.joinTree || originalQuery.joinTree.isInitial)
@@ -81,7 +81,7 @@ function cqn4sql(originalQuery, model) {
   if (inferred.UPDATE?.entity.ref?.at(-1).id) {
     assignQueryModifiers(inferred.UPDATE, inferred.UPDATE.entity.ref.at(-1))
   }
-  inferred = infer(inferred, model)
+  inferred = infer(inferred, model, useTechnicalAlias)
   const { getLocalizedName, isLocalized, getDefinition } = getModelUtils(model, originalQuery) // TODO: pass model to getModelUtils
   // if the query has custom joins we don't want to transform it
   // TODO: move all the way to the top of this function once cds.infer supports joins as well
@@ -134,7 +134,7 @@ function cqn4sql(originalQuery, model) {
       // match primary keys of the target entity with the subquery
       primaryKey.list.forEach(k => subquery.SELECT.columns.push({ ref: k.ref.slice(1) }))
 
-      const transformedSubquery = cqn4sql(subquery, model)
+      const transformedSubquery = cqn4sql(subquery, model, useTechnicalAlias)
 
       // replace where condition of original query with the transformed subquery
       // correlate UPDATE / DELETE query with subquery by primary key matches
@@ -229,9 +229,9 @@ function cqn4sql(originalQuery, model) {
         }
       }
     }
-    const inferredDQ = infer(q, model)
+    const inferredDQ = infer(q, model, useTechnicalAlias)
     inferredDQ._with = transformedQuery._with
-    const transformedDQ = cqn4sql(inferredDQ, model)
+    const transformedDQ = cqn4sql(inferredDQ, model, useTechnicalAlias)
 
     if (q.SELECT?.from?.args) {
       for (const arg of q.SELECT.from.args) {
@@ -245,7 +245,7 @@ function cqn4sql(originalQuery, model) {
     const rootDefinitionName = rootDefinition.name
 
     defineProperty(transformedDQ, '_source', rootDefinition)
-    const alias = `RTV_${getImplicitAlias(rootDefinitionName)}`
+    const alias = `RTV_${getImplicitAlias(rootDefinitionName, useTechnicalAlias)}`
     transformedDQ.as = transformedDQ.joinTree.addNextAvailableTableAlias(alias, newWiths, rootDefinitionName)
 
     // update SELECT.from with runtime view alias
@@ -836,9 +836,11 @@ function cqn4sql(originalQuery, model) {
           return { ...token, xpr: augmentInlineXprRefs(token.xpr, parentCol) }
         }
         if (token.func && token.args) {
-          return { ...token, args: token.args.map(arg => 
-            arg.ref ? augmentInlineXprRefs([arg], parentCol)[0] : arg
-          )}
+          return {
+            ...token, args: token.args.map(arg =>
+              arg.ref ? augmentInlineXprRefs([arg], parentCol)[0] : arg
+            )
+          }
         }
         return token
       })
@@ -1091,7 +1093,7 @@ function cqn4sql(originalQuery, model) {
     // Alias in expand subquery is derived from but not equal to
     // the alias of the column because to account for potential ambiguities
     // the alias cannot be addressed anyways
-    const uniqueSubqueryAlias = getNextAvailableTableAlias(getImplicitAlias(columnAlias), inferred.outerQueries)
+    const uniqueSubqueryAlias = getNextAvailableTableAlias(getImplicitAlias(columnAlias, useTechnicalAlias), inferred.outerQueries)
 
     // `SELECT from Authors {  books.genre as genreOfBooks { name } } becomes `SELECT from Books:genre as genreOfBooks`
     const from = { ref: subqueryFromRef, as: uniqueSubqueryAlias }
@@ -1347,7 +1349,7 @@ function cqn4sql(originalQuery, model) {
     if (isLocalized(target)) q.SELECT.localized = true
     if (q.SELECT.from.ref && !q.SELECT.from.as) assignUniqueSubqueryAlias()
     if (cds.env.features.runtime_views) q._with = transformedQuery._with
-    const _q = cqn4sql(q, model)
+    const _q = cqn4sql(q, model, useTechnicalAlias)
     if (cds.env.features.runtime_views && _q._with) {
       if (!transformedQuery._with) transformedQuery._with = _q._with
       delete _q._with
@@ -1359,7 +1361,7 @@ function cqn4sql(originalQuery, model) {
       if (q.SELECT.from.uniqueSubqueryAlias) return
       const last = q.SELECT.from.ref.at(-1)
       const uniqueSubqueryAlias = inferred.joinTree.addNextAvailableTableAlias(
-        getImplicitAlias(last.id || last),
+        getImplicitAlias(last.id || last, useTechnicalAlias),
         inferred.outerQueries,
       )
       defineProperty(q.SELECT.from, 'uniqueSubqueryAlias', uniqueSubqueryAlias)
@@ -1701,7 +1703,7 @@ function cqn4sql(originalQuery, model) {
             j = nextAssocIndex
           }
 
-          const as = getNextAvailableTableAlias(getImplicitAlias(next.alias))
+          const as = getNextAvailableTableAlias(getImplicitAlias(next.alias, useTechnicalAlias))
           next.alias = as
           if (!next.definition.target) {
             let type = next.definition.type
@@ -2016,12 +2018,12 @@ function cqn4sql(originalQuery, model) {
     function _transformFrom() {
       if (typeof from === 'string') {
         // normalize to `ref`, i.e. for `UPDATE.entity('bookshop.Books')`
-        return { transformedFrom: { ref: [from], as: getImplicitAlias(from) } }
+        return { transformedFrom: { ref: [from], as: getImplicitAlias(from, useTechnicalAlias) } }
       }
       transformedFrom.as =
         from.uniqueSubqueryAlias ||
         from.as ||
-        getImplicitAlias(transformedFrom.$refLinks[transformedFrom.$refLinks.length - 1].definition.name)
+        getImplicitAlias(transformedFrom.$refLinks[transformedFrom.$refLinks.length - 1].definition.name, useTechnicalAlias)
       const whereExistsSubSelects = []
       const filterConditions = []
       const refReverse = [...from.ref].reverse()
@@ -2043,7 +2045,7 @@ function cqn4sql(originalQuery, model) {
                 .findIndex(rl => rl.definition.isAssociation || rl.definition.kind === 'entity')
             next = $refLinksReverse[nextStepIndex]
           }
-          let as = getImplicitAlias(next.alias)
+          let as = getImplicitAlias(next.alias, useTechnicalAlias)
           /**
            * for an `expand` subquery, we do not need to add
            * the table alias of the `expand` host to the join tree
@@ -2601,7 +2603,7 @@ function cqn4sql(originalQuery, model) {
         if (
           inferred.SELECT?.from.uniqueSubqueryAlias &&
           !inferred.SELECT?.from.as &&
-          getImplicitAlias(firstStep) === getImplicitAlias(transformedQuery.SELECT.from.ref[0])
+          getImplicitAlias(firstStep, useTechnicalAlias) === getImplicitAlias(transformedQuery.SELECT.from.ref[0], useTechnicalAlias)
         ) {
           return inferred.SELECT?.from.uniqueSubqueryAlias
         }
