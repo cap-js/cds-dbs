@@ -1,9 +1,11 @@
 const cds = require('@sap/cds'),
-  DEBUG = cds.debug('sql|db')
+  DEBUG = cds.log('sql|db'),
+  DEBUG_PQL = cds.log('pql')
 const { Readable, Transform } = require('stream')
 const { pipeline } = require('stream/promises')
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
+let cqn2pql
 const { resolveTable } = require('./utils')
 
 const BINARY_TYPES = {
@@ -17,7 +19,7 @@ const BINARY_TYPES = {
  * @param {*} obj 
  * @returns Boolean
  */
-const _hasProps = (obj) => { 
+const _hasProps = (obj) => {
   if (!obj) return false
   for (const p in obj) {
     return true
@@ -74,7 +76,7 @@ class SQLService extends DatabaseService {
   _changeToStreams(columns, rows, one) {
     if (!rows || !columns) return
     if (!Array.isArray(rows)) rows = [rows]
-    if (!rows.length || !Object.keys(rows[0]).length) return   
+    if (!rows.length || !Object.keys(rows[0]).length) return
 
     let changes = false
     for (let col of columns) {
@@ -149,7 +151,7 @@ class SQLService extends DatabaseService {
         if (expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
 
       if (!iterator) {
-         this._changeToStreams(cqn.SELECT.columns, rows, query.SELECT.one)
+        this._changeToStreams(cqn.SELECT.columns, rows, query.SELECT.one)
       } else if (objectMode) {
         const converter = (row) => this._changeToStreams(cqn.SELECT.columns, row, true)
         const changeToStreams = new Transform({
@@ -296,7 +298,7 @@ class SQLService extends DatabaseService {
    * @type {Handler}
    */
   async onEVENT({ event }) {
-    DEBUG?.(event) // in the other cases above DEBUG happens in cqn2sql
+    if(DEBUG._debug) DEBUG.debug(event) // in the other cases above DEBUG happens in cqn2sql
     return await this.exec(event)
   }
 
@@ -306,7 +308,7 @@ class SQLService extends DatabaseService {
    */
   async onPlainSQL({ query, data }, next) {
     if (typeof query === 'string') {
-      DEBUG?.(query, data)
+      if(DEBUG._debug) DEBUG.debug(query, data)
       const ps = await this.prepare(query)
       const exec = this.hasResults(query) ? d => ps.all(d) : d => ps.run(d)
       if (Array.isArray(data) && Array.isArray(data[0])) return await Promise.all(data.map(exec))
@@ -339,7 +341,7 @@ class SQLService extends DatabaseService {
     // Keep original query columns when potentially used insde conditions
     const { having, groupBy } = query.SELECT
     let columns = []
-    if((having?.length || groupBy?.length)) {
+    if ((having?.length || groupBy?.length)) {
       columns = query.SELECT.columns.filter(c => !c.expand)
     }
     if (columns.length === 0) columns.push({ val: 1 })
@@ -361,7 +363,7 @@ class SQLService extends DatabaseService {
    * @param {import('@sap/cds/apis/cqn').SELECT} query - SELECT CQN
    * @param {function} callback - Function to be invoked for each row
    */
-  foreach (query, callback) {
+  foreach(query, callback) {
     return query.foreach(callback)
   }
 
@@ -404,23 +406,31 @@ class SQLService extends DatabaseService {
    * @returns {typeof SQLService.CQN2SQL}
    */
   cqn2sql(query, values) {
-    let q = this.cqn4sql(query)
-    let cqn2sql = new this.class.CQN2SQL(this)
-    return cqn2sql.render(q, values)
+    const q = this.cqn4sql(query)
+    const cqn2sql = new this.class.CQN2SQL(this)
+    const sql = cqn2sql.render(q, values)
+
+    if (DEBUG_PQL._debug) {
+      cqn2pql ??= require('./cqn2pql')
+      const pql = new cqn2pql(this).render(this.cqn4sql(query, false), values)
+      DEBUG_PQL.debug(pql.sql, pql.values ?? '')
+    }
+
+    return sql
   }
 
   /**
    * @param {import('@sap/cds/apis/cqn').Query} q
    * @returns {import('./infer/cqn').Query}
    */
-  cqn4sql(q) {
+  cqn4sql(q, useTechnicalAlias=true) {
     if (
       !cds.env.features.db_strict &&
       !q.SELECT?.from?.join &&
       !q.SELECT?.from?.SELECT &&
       !this.model?.definitions[_target_name4(q)]
     ) return q
-    else return cqn4sql(q, this.model)
+    else return cqn4sql(q, this.model, useTechnicalAlias)
   }
 
   /**
