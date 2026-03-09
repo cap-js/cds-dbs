@@ -1,3 +1,5 @@
+const cds = require('@sap/cds')
+
 const CQN2SQL = require('./cqn2sql.js').class
 
 class CQN2PQLRenderer extends CQN2SQL {
