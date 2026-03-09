@@ -463,7 +463,7 @@ function infer(originalQuery, model) {
               if (isNonForeignKeyNavigation(element, nextStep) || arg.ref[0]?.where) {
                 if (inExists) {
                   defineProperty($baseLink, 'pathExpressionInsideFilter', true)
-                } else {
+                } else if (!inFrom) {
                   rejectNonFkNavigation(element, element.on ? $baseLink.definition.name : nextStep)
                 }
               }
@@ -527,7 +527,7 @@ function infer(originalQuery, model) {
             if (isNonForeignKeyNavigation(element, nextStep) || arg.ref[i-1]?.where) {
               if (inExists) {
                 defineProperty($baseLink, 'pathExpressionInsideFilter', true)
-              } else {
+              } else if (!inFrom) {
                 rejectNonFkNavigation(element, element.on ? $baseLink.definition.name : nextStep)
               }
             }
@@ -566,7 +566,7 @@ function infer(originalQuery, model) {
       if (step.where) {
         const danglingFilter = !(arg.ref[i + 1] || arg.expand || arg.inline || inExists)
         const definition = arg.$refLinks[i].definition
-        if ((!definition.target && definition.kind !== 'entity') || (!inFrom && danglingFilter))
+        if ((!definition.target && definition.kind !== 'entity') || (!inFrom && !inCalcElement && danglingFilter))
           throw new Error('A filter can only be provided when navigating along associations')
         if (!inFrom && !arg.expand)defineProperty(arg, 'isJoinRelevant', true)
         let skipJoinsForFilter = false
@@ -575,9 +575,11 @@ function infer(originalQuery, model) {
             // books[exists genre[code='A']].title --> column is join relevant but inner exists filter is not
             skipJoinsForFilter = true
           } else if (token.ref || token.xpr || token.list) {
+            // For scoped queries (non-dangling filters in FROM), treat filter contents as EXISTS context
+            // because they will become part of an EXISTS subquery
             inferArg(token, false, arg.$refLinks[i], {
               ...context,
-              inExists: skipJoinsForFilter || inExists,
+              inExists: skipJoinsForFilter || inExists || (inFrom && !danglingFilter),
               inXpr: !!token.xpr,
               inInfixFilter: true,
               inFrom,
@@ -587,7 +589,7 @@ function infer(originalQuery, model) {
               applyToFunctionArgs(token.args, inferArg, [
                 false,
                 arg.$refLinks[i],
-                { inExists: skipJoinsForFilter || inExists, inXpr: true, inInfixFilter: true, inFrom },
+                { inExists: skipJoinsForFilter || inExists || (inFrom && !danglingFilter), inXpr: true, inInfixFilter: true, inFrom },
               ])
             }
           }
@@ -722,14 +724,52 @@ function infer(originalQuery, model) {
           seenWildcard = true
           const wildCardElements = {}
           // either the `.elements´ of the struct or the `.elements` of the assoc target
-          const leafLinkElements = getDefinition($leafLink.definition.target)?.elements || $leafLink.definition.elements
+          const targetDef = getDefinition($leafLink.definition.target)
+          const leafLinkElements = targetDef?.elements || $leafLink.definition.elements
+          const isAssociation = !!$leafLink.definition.target
+
+          const deferredCalcElements = []
           Object.entries(leafLinkElements).forEach(([k, v]) => {
             const name = namePrefix ? `${namePrefix}_${k}` : k
             // if overwritten/excluded omit from wildcard elements
             // in elements the names are already flat so consider the prefix
             // in excluding, the elements are addressed without the prefix
-            if (!(name in elements || col.excluding?.includes(k))) wildCardElements[name] = v
+            if (!(name in elements || col.excluding?.includes(k))) {
+              wildCardElements[name] = v
+
+              if(v.value) {
+                // defer linkCalculatedElement calls until after all association joins are registered
+                // so that the join tree order is correct
+                deferredCalcElements.push({ k, v })
+              }
+              else if (isAssociation && !v.virtual && v.type !== 'cds.LargeBinary' && !(v.on && !v.keys)) {
+                // Check if this element is a foreign key (FK elements don't need join)
+                const isFK = $leafLink.definition.keys?.some(key => key.ref[0] === k)
+                if (!isFK) {
+                  // Create a fake column with ref [<inlined assoc>, <element name>] and proper $refLinks
+                  const fakeCol = {
+                    ref: [...col.ref, k],
+                  }
+                  // Copy $refLinks and add new link for the target element with proper alias
+                  const fakeRefLinks = [
+                    ...$refLinks,
+                    { definition: v, target: targetDef, alias: k }
+                  ]
+                  defineProperty(fakeCol, '$refLinks', fakeRefLinks)
+                  defineProperty(fakeCol, 'isJoinRelevant', true)
+                  // Merge into join tree
+                  inferred.joinTree.mergeColumn(fakeCol, originalQuery.outerQueries)
+                }
+              }
+            }
           })
+          // link calculated elements after association joins are registered in the join tree
+          for (const { k, v } of deferredCalcElements) {
+            linkCalculatedElement(
+              { ref: [k], $refLinks: [{ definition: v, target: targetDef }] },
+              $leafLink,
+            )
+          }
           elements = { ...elements, ...wildCardElements }
         } else {
           const nameParts = namePrefix ? [namePrefix] : []
