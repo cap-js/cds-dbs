@@ -4,6 +4,7 @@ const { Readable, Transform } = require('stream')
 const { pipeline } = require('stream/promises')
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
+const { resolveTable } = require('./utils')
 
 const BINARY_TYPES = {
   'cds.Binary': 1,
@@ -230,7 +231,7 @@ class SQLService extends DatabaseService {
     return (super.onDELETE = /* cds.env.features.assert_integrity === 'db' ? this.onSIMPLE : */ deep_delete)
     async function deep_delete(/** @type {Request} */ req) {
       const resolve = this.resolve
-      const transitions = resolve.transitions4db(req.query, false)
+      const transitions = resolve.transitions(req.query)
       if (transitions.target !== transitions.queryTarget) {
         const keys = []
         const transitionsTarget = transitions.queryTarget.keys || transitions.queryTarget.elements
@@ -253,7 +254,7 @@ class SQLService extends DatabaseService {
         })
         return this.onDELETE({ query, target: transitions.target })
       }
-      const table = resolve.table(req.target)
+      const table = resolveTable(req.target)
       const { compositions } = table
       if (compositions) {
         // Transform CQL`DELETE from Foo[p1] WHERE p2` into CQL`DELETE from Foo[p1 and p2]`

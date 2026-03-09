@@ -900,6 +900,9 @@ function cqn4sql(originalQuery, model) {
 
     if (baseRefLinks.at(-1).definition.kind === 'entity') {
       res.push(...getColumnsForWildcard(exclude, replace, col.as))
+    } else if (baseRefLinks.at(-1).definition.target) {
+      // Wildcard on association - need to include FK columns and join-relevant target columns
+      res.push(...expandAssociationWildcard(col, baseRef, baseRefLinks, exclude, replace))
     } else
       res.push(
         ...getFlatColumnsFor(col, { columnAlias: col.as, tableAlias: getTableAlias(col) }, [], {
@@ -907,6 +910,117 @@ function cqn4sql(originalQuery, model) {
           replace,
         }),
       )
+    return res
+  }
+
+  /**
+   * Expands a wildcard on an association into:
+   * 1. FK columns from the source table
+   * 2. Non-FK columns from the target via join
+   */
+  function expandAssociationWildcard(col, baseRef, baseRefLinks, exclude, replace) {
+    const res = []
+    const assocDef = baseRefLinks.at(-1).definition
+    const targetDef = getDefinition(assocDef.target)
+    const columnAlias = col.as || baseRef.map(idOnly).join('_')
+    const sourceTableAlias = getTableAlias(col)
+
+    // Get the join alias for this association (set during join tree merge)
+    const joinAlias = baseRefLinks.at(-1).alias
+
+    // Collect FK element names
+    const fkNames = new Set()
+    if (assocDef.keys) {
+      for (const k of assocDef.keys) {
+        fkNames.add(k.ref[0])
+      }
+    }
+
+    // First, add FK columns from source table
+    // These are accessed via the source table alias, not the join
+    const fkColumns = getFlatColumnsFor(col, { tableAlias: sourceTableAlias }, [], {
+      exclude,
+      replace,
+    })
+    res.push(...fkColumns.filter(fk => !col.excluding?.some(e => targetDef.elements[e] === fk.element)))
+
+    // Then, add non-FK columns from target via join
+    if (targetDef?.elements) {
+      for (const [elemName, elemDef] of Object.entries(targetDef.elements)) {
+        // Skip FK elements (already included above), virtual, blobs, and unmanaged assocs
+        if (fkNames.has(elemName)) continue
+        if (elemDef.virtual) continue
+        if (elemDef.type === 'cds.LargeBinary') continue
+        if (elemDef.on && !elemDef.keys) continue // unmanaged association
+
+        // Check exclusions
+        const fullName = `${columnAlias}_${elemName}`
+        if (exclude.some(e => (e.ref?.at(-1) || e.as || e) === elemName)) continue
+        if (exclude.some(e => (e.ref?.at(-1) || e.as || e) === fullName)) continue
+
+        // Check for replacement
+        const replacement = replace.find(r => (r.ref?.at(-1) || r.as) === elemName)
+        if (replacement) {
+          // Handle replacement - create augmented column
+          const augmented = { ...replacement }
+          augmented.as = fullName
+          res.push(...getTransformedColumns([augmented]))
+          continue
+        }
+
+        // Create column referencing the join alias
+        if (elemDef.elements) {
+          // Structured element - need to flatten it
+          const structCols = getFlatColumnsFor(
+            elemDef,
+            { baseName: elemName, columnAlias: fullName, tableAlias: joinAlias },
+            [],
+            { exclude, replace },
+            true,
+          )
+          res.push(...structCols)
+        } else if (elemDef.keys) {
+          // Association element - flatten its foreign keys
+          // The FK column name is: assocName_keyName (e.g., 'head_id')
+          for (const k of elemDef.keys) {
+            const keyName = k.as || k.ref.join('_')
+            const fkName = `${elemName}_${keyName}`  // e.g., 'head_id'
+            const fkFullName = `${columnAlias}_${fkName}`  // e.g., 'department_head_id'
+            
+            // Check if this FK is excluded
+            if (exclude.some(e => (e.ref?.at(-1) || e.as || e) === fkName)) continue
+            if (exclude.some(e => (e.ref?.at(-1) || e.as || e) === fkFullName)) continue
+            
+            const flatColumn = {
+              ref: [joinAlias, fkName],
+              as: fkFullName,
+            }
+            const fkElement = getElementForRef(k.ref, getDefinition(elemDef.target))
+            setElementOnColumns(flatColumn, fkElement)
+            res.push(flatColumn)
+          }
+        } else if (elemDef.value) {
+          // Calculated element - resolve it
+          const calcElement = resolveCalculatedElement({ $refLinks: [{ definition: elemDef }] }, true)
+          if (calcElement.as) {
+            calcElement.as = fullName
+          } else {
+            calcElement.as = fullName
+          }
+          res.push(calcElement)
+        }        
+        else {
+          // Scalar element
+          const flatColumn = {
+            ref: [joinAlias, elemName],
+            as: fullName,
+          }
+          setElementOnColumns(flatColumn, elemDef)
+          res.push(flatColumn)
+        }
+      }
+    }
+
     return res
   }
 
