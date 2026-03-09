@@ -13,6 +13,7 @@ const {
   defineProperty,
   getModelUtils,
   hasOwnSkip,
+  isRuntimeView,
 } = require('./utils')
 
 /**
@@ -173,7 +174,113 @@ function cqn4sql(originalQuery, model) {
     }
   }
 
+  if (cds.env.features.runtime_views) processRuntimeViews(transformedQuery, model)
+
   return transformedQuery
+
+  /**
+   * If the target entity is annotated with persistence skip and has an underlying db entity,
+   * we treat it as a runtime view and transform it into a CTE.
+   * 
+   * @param {object} transformedQuery - The query object to be transformed.
+   * @param {string} model - The data model used for inference and transformation.
+   */
+  function processRuntimeViews(transformedQuery, model) {
+    const currentDef = transformedQuery._target
+
+    if (hasOwnSkip(currentDef)) {
+      if (!isRuntimeView(currentDef)) throw new Error(`${currentDef.name} is not a runtime view`)
+
+      addWith(currentDef, transformedQuery, model)
+      updateRefsWithRTVAlias(transformedQuery._with, transformedQuery)
+    }
+  }
+
+  /**
+   * Recursively call cqn4sql for all nested runtime views to calculate cte and 
+   * add it as a with clause to the transformed query.
+   * Alias the runtime view with a unique alias and update all references to the runtime view to point to the alias.
+   * 
+   * @param {object} rootDefinition - The root definition of the query. This is used to recursively process nested runtime views.
+   * @param {object} transformedQuery - The query object to be transformed.
+   * @param {string} model - The data model used for infer and cqn4sql.
+   */
+  function addWith(rootDefinition, transformedQuery, model) {
+    if (!rootDefinition?.query) return
+
+    // early exit if already processed
+    if (transformedQuery._with?.some(w => w._source === rootDefinition)) return
+
+    const q = cds.ql.clone(rootDefinition.query)
+    if (q.SELECT) {
+      if (!q.SELECT.columns) q.SELECT.columns = ['*']
+      if (q.SELECT.columns.includes('*')) {
+        // cache element names for faster lookup
+        const existingColumns = new Set(
+          q.SELECT.columns
+            .map(col => col.as || col.ref?.at(-1))
+            .filter(Boolean)
+        )
+
+        for (let el of rootDefinition.elements) {
+          if (el.type === 'cds.LargeBinary' && !existingColumns.has(el.name)) {
+            q.SELECT.columns.push({ ref: [el.name] })
+          }
+        }
+      }
+    }
+    const inferredDQ = infer(q, model)
+    inferredDQ._with = transformedQuery._with
+    const transformedDQ = cqn4sql(inferredDQ, model)
+
+    if (q.SELECT?.from?.args) {
+      for (const arg of q.SELECT.from.args) {
+        addWith(arg.$refLinks.at(-1).definition, inferredDQ, model)
+        arg.as ??= arg.ref.at(-1).split('.').at(-1) // apply @sap/cds-compiler default alias
+        updateRefsWithRTVAlias(inferredDQ._with, transformedDQ, arg.ref)
+      }
+    }
+
+    const newWiths = transformedDQ._with || []
+    const rootDefinitionName = rootDefinition.name
+
+    defineProperty(transformedDQ, '_source', rootDefinition)
+    const alias = `RTV_${getImplicitAlias(rootDefinitionName)}`
+    transformedDQ.as = transformedDQ.joinTree.addNextAvailableTableAlias(alias, newWiths, rootDefinitionName)
+
+    // update SELECT.from with runtime view alias
+    if (hasOwnSkip(transformedDQ._target)) updateRefsWithRTVAlias(transformedDQ._with, transformedDQ)
+
+    if (transformedDQ._with) delete transformedDQ._with
+    newWiths.push(transformedDQ)
+
+    // propagate with clauses
+    if (!transformedQuery._with) transformedQuery._with = newWiths
+  }
+
+  function updateRefsWithRTVAlias(_with, query, ref) {
+    if (!_with?.length) return
+
+    const _updateRef = (ref) => {
+      const refAlias = ref[0]
+      if (/RTV_$/.test(refAlias)) return
+      for (const w of _with) {
+        const aliasValue = w.joinTree._queryAliases.get(refAlias)
+        if (aliasValue) {
+          ref[0] = aliasValue
+          if (query.joinTree?._queryAliases) {
+            query.joinTree._queryAliases.set(refAlias, aliasValue)
+          }
+          break
+        }
+      }
+    }
+
+    if (ref) return _updateRef(ref)
+
+    if (query.SELECT.from.args) for (const arg of query.SELECT.from.args) _updateRef(arg.ref)
+    else if (query.SELECT.from.ref) _updateRef(query.SELECT.from.ref)
+  }
 
   function transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery) {
     const { columns, having, groupBy, orderBy, limit } = queryProp
@@ -314,7 +421,9 @@ function cqn4sql(originalQuery, model) {
         ),
       )
 
-      const id = getDefinition(nextAssoc.$refLink.definition.target).name
+      const def = getDefinition(nextAssoc.$refLink.definition.target)
+      const id = def.name
+      if (hasOwnSkip(def) && isRuntimeView(def)) addWith(model.definitions[id], transformedQuery, model)
       const { args } = nextAssoc
       const arg = {
         ref: [args ? { id, args } : id],
@@ -352,7 +461,7 @@ function cqn4sql(originalQuery, model) {
     for (let i = 0; i < columns.length; i++) {
       const col = columns[i]
 
-      if (isCalculatedOnRead(col.$refLinks?.[col.$refLinks.length - 1].definition)) {
+      if (isCalculatedOnRead(col.$refLinks?.at(-1).definition) && !col.$refLinks?.at(-1).target?.SELECT) {
         const name = getName(col)
         if (!transformedColumns.some(inserted => getName(inserted) === name)) {
           const calcElement = resolveCalculatedElement(col)
@@ -473,7 +582,13 @@ function cqn4sql(originalQuery, model) {
       const refNavigation = col.ref.slice(col.$refLinks[0].definition.kind !== 'element' ? 1 : 0).join('_')
       if (!columnAlias && col.flatName && col.flatName !== refNavigation) columnAlias = refNavigation
 
-      if (col.$refLinks.some(link => hasOwnSkip(getDefinition(link.definition.target)))) return
+      if (
+        col.$refLinks.some(link => {
+          const def = getDefinition(link.definition.target)
+          return hasOwnSkip(def) && !isRuntimeView(def)
+        })
+      )
+        return
 
       const flatColumns = getFlatColumnsFor(col, { baseName, columnAlias, tableAlias })
       flatColumns.forEach(flatColumn => {
@@ -560,6 +675,7 @@ function cqn4sql(originalQuery, model) {
       res = { args: getTransformedFunctionArgs(value.args, $baseLink), func: value.func }
     }
     if (!omitAlias) res.as = column.as || column.name || column.flatName
+    setElementOnColumns(res, column.element || column)
     return res
   }
 
@@ -643,8 +759,7 @@ function cqn4sql(originalQuery, model) {
         nameParts.push(nestedProjection.as ? nestedProjection.as : nestedProjection.ref.map(idOnly).join('_'))
         const name = nameParts.join('_')
         if (nestedProjection.ref) {
-          const augmentedInlineCol = { ...nestedProjection }
-          augmentedInlineCol.ref = col.ref ? [...col.ref, ...nestedProjection.ref] : nestedProjection.ref
+          const augmentedInlineCol = augmentInlineRefWithParent(nestedProjection, col)
           if (
             col.as ||
             nestedProjection.as ||
@@ -652,19 +767,6 @@ function cqn4sql(originalQuery, model) {
             nestedProjection.isJoinRelevant
           ) {
             augmentedInlineCol.as = nameParts.join('_')
-          }
-          Object.defineProperties(augmentedInlineCol, {
-            $refLinks: { value: [...nestedProjection.$refLinks], writable: true },
-            isJoinRelevant: {
-              value: nestedProjection.isJoinRelevant,
-              writable: true,
-            },
-          })
-          // if the expand is not anonymous, we must prepend the expand columns path
-          // to make sure the full path is resolvable
-          if (col.ref) {
-            augmentedInlineCol.$refLinks.unshift(...col.$refLinks)
-            augmentedInlineCol.isJoinRelevant = augmentedInlineCol.isJoinRelevant || col.isJoinRelevant
           }
           const flatColumns = getTransformedColumns([augmentedInlineCol])
           flatColumns.forEach(flatColumn => {
@@ -682,6 +784,10 @@ function cqn4sql(originalQuery, model) {
           if (!res.some(c => (c.as || c.ref.slice(1).map(idOnly).join('_')) === name)) {
             const rewrittenColumn = { ...nestedProjection }
             rewrittenColumn.as = name
+            // For xpr, we need to transform refs inside to include the struct prefix
+            if (nestedProjection.xpr && col.ref) {
+              rewrittenColumn.xpr = augmentInlineXprRefs(nestedProjection.xpr, col)
+            }
             rewrittenColumns.push(rewrittenColumn)
           }
         }
@@ -690,6 +796,53 @@ function cqn4sql(originalQuery, model) {
     })
 
     return res
+
+    /**
+     * Augment a ref column with the parent column's path and $refLinks.
+     */
+    function augmentInlineRefWithParent(refCol, parentCol) {
+      const augmented = { ...refCol }
+      augmented.ref = parentCol.ref ? [...parentCol.ref, ...refCol.ref] : refCol.ref
+      Object.defineProperties(augmented, {
+        $refLinks: { value: [...refCol.$refLinks], writable: true },
+        isJoinRelevant: { value: refCol.isJoinRelevant, writable: true },
+      })
+      if (parentCol.ref) {
+        augmented.$refLinks.unshift(...parentCol.$refLinks)
+        augmented.isJoinRelevant = augmented.isJoinRelevant || parentCol.isJoinRelevant
+      }
+      return augmented
+    }
+
+    /**
+     * Augment refs inside an xpr with the parent column's path and $refLinks,
+     * then transform them to flat refs.
+     */
+    function augmentInlineXprRefs(xpr, parentCol) {
+      return xpr.map(token => {
+        if (typeof token === 'string' || token.val !== undefined) {
+          return token
+        }
+        if (token.ref && token.$refLinks) {
+          const augmented = augmentInlineRefWithParent(token, parentCol)
+          // Transform this single ref column to get the flat version
+          const transformed = getTransformedColumns([augmented])
+          if (transformed.length === 1) {
+            return transformed[0]
+          }
+          return augmented
+        }
+        if (token.xpr) {
+          return { ...token, xpr: augmentInlineXprRefs(token.xpr, parentCol) }
+        }
+        if (token.func && token.args) {
+          return { ...token, args: token.args.map(arg => 
+            arg.ref ? augmentInlineXprRefs([arg], parentCol)[0] : arg
+          )}
+        }
+        return token
+      })
+    }
   }
 
   /**
@@ -747,6 +900,9 @@ function cqn4sql(originalQuery, model) {
 
     if (baseRefLinks.at(-1).definition.kind === 'entity') {
       res.push(...getColumnsForWildcard(exclude, replace, col.as))
+    } else if (baseRefLinks.at(-1).definition.target) {
+      // Wildcard on association - need to include FK columns and join-relevant target columns
+      res.push(...expandAssociationWildcard(col, baseRef, baseRefLinks, exclude, replace))
     } else
       res.push(
         ...getFlatColumnsFor(col, { columnAlias: col.as, tableAlias: getTableAlias(col) }, [], {
@@ -754,6 +910,117 @@ function cqn4sql(originalQuery, model) {
           replace,
         }),
       )
+    return res
+  }
+
+  /**
+   * Expands a wildcard on an association into:
+   * 1. FK columns from the source table
+   * 2. Non-FK columns from the target via join
+   */
+  function expandAssociationWildcard(col, baseRef, baseRefLinks, exclude, replace) {
+    const res = []
+    const assocDef = baseRefLinks.at(-1).definition
+    const targetDef = getDefinition(assocDef.target)
+    const columnAlias = col.as || baseRef.map(idOnly).join('_')
+    const sourceTableAlias = getTableAlias(col)
+
+    // Get the join alias for this association (set during join tree merge)
+    const joinAlias = baseRefLinks.at(-1).alias
+
+    // Collect FK element names
+    const fkNames = new Set()
+    if (assocDef.keys) {
+      for (const k of assocDef.keys) {
+        fkNames.add(k.ref[0])
+      }
+    }
+
+    // First, add FK columns from source table
+    // These are accessed via the source table alias, not the join
+    const fkColumns = getFlatColumnsFor(col, { tableAlias: sourceTableAlias }, [], {
+      exclude,
+      replace,
+    })
+    res.push(...fkColumns.filter(fk => !col.excluding?.some(e => targetDef.elements[e] === fk.element)))
+
+    // Then, add non-FK columns from target via join
+    if (targetDef?.elements) {
+      for (const [elemName, elemDef] of Object.entries(targetDef.elements)) {
+        // Skip FK elements (already included above), virtual, blobs, and unmanaged assocs
+        if (fkNames.has(elemName)) continue
+        if (elemDef.virtual) continue
+        if (elemDef.type === 'cds.LargeBinary') continue
+        if (elemDef.on && !elemDef.keys) continue // unmanaged association
+
+        // Check exclusions
+        const fullName = `${columnAlias}_${elemName}`
+        if (exclude.some(e => (e.ref?.at(-1) || e.as || e) === elemName)) continue
+        if (exclude.some(e => (e.ref?.at(-1) || e.as || e) === fullName)) continue
+
+        // Check for replacement
+        const replacement = replace.find(r => (r.ref?.at(-1) || r.as) === elemName)
+        if (replacement) {
+          // Handle replacement - create augmented column
+          const augmented = { ...replacement }
+          augmented.as = fullName
+          res.push(...getTransformedColumns([augmented]))
+          continue
+        }
+
+        // Create column referencing the join alias
+        if (elemDef.elements) {
+          // Structured element - need to flatten it
+          const structCols = getFlatColumnsFor(
+            elemDef,
+            { baseName: elemName, columnAlias: fullName, tableAlias: joinAlias },
+            [],
+            { exclude, replace },
+            true,
+          )
+          res.push(...structCols)
+        } else if (elemDef.keys) {
+          // Association element - flatten its foreign keys
+          // The FK column name is: assocName_keyName (e.g., 'head_id')
+          for (const k of elemDef.keys) {
+            const keyName = k.as || k.ref.join('_')
+            const fkName = `${elemName}_${keyName}`  // e.g., 'head_id'
+            const fkFullName = `${columnAlias}_${fkName}`  // e.g., 'department_head_id'
+            
+            // Check if this FK is excluded
+            if (exclude.some(e => (e.ref?.at(-1) || e.as || e) === fkName)) continue
+            if (exclude.some(e => (e.ref?.at(-1) || e.as || e) === fkFullName)) continue
+            
+            const flatColumn = {
+              ref: [joinAlias, fkName],
+              as: fkFullName,
+            }
+            const fkElement = getElementForRef(k.ref, getDefinition(elemDef.target))
+            setElementOnColumns(flatColumn, fkElement)
+            res.push(flatColumn)
+          }
+        } else if (elemDef.value) {
+          // Calculated element - resolve it
+          const calcElement = resolveCalculatedElement({ $refLinks: [{ definition: elemDef }] }, true)
+          if (calcElement.as) {
+            calcElement.as = fullName
+          } else {
+            calcElement.as = fullName
+          }
+          res.push(calcElement)
+        }        
+        else {
+          // Scalar element
+          const flatColumn = {
+            ref: [joinAlias, elemName],
+            as: fullName,
+          }
+          setElementOnColumns(flatColumn, elemDef)
+          res.push(flatColumn)
+        }
+      }
+    }
+
     return res
   }
 
@@ -972,7 +1239,12 @@ function cqn4sql(originalQuery, model) {
       } else if (pseudos.elements[col.ref?.[0]]) {
         res.push({ ...col })
       } else if (col.ref) {
-        if (col.$refLinks.some(link => hasOwnSkip(getDefinition(link.definition.target))))
+        if (
+          col.$refLinks.some(link => {
+            const def = getDefinition(link.definition.target)
+            return hasOwnSkip(def) && !isRuntimeView(def)
+          })
+        )
           continue
         if (col.ref.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
           const dollarSelfReplacement = calculateDollarSelfColumn(col)
@@ -1070,10 +1342,18 @@ function cqn4sql(originalQuery, model) {
       outerQueries.push(inferred)
       defineProperty(q, 'outerQueries', outerQueries)
     }
+
     const target = cds.infer.target(inferred) // REVISIT: we should reliably use inferred._target instead
     if (isLocalized(target)) q.SELECT.localized = true
     if (q.SELECT.from.ref && !q.SELECT.from.as) assignUniqueSubqueryAlias()
-    return cqn4sql(q, model)
+    if (cds.env.features.runtime_views) q._with = transformedQuery._with
+    const _q = cqn4sql(q, model)
+    if (cds.env.features.runtime_views && _q._with) {
+      if (!transformedQuery._with) transformedQuery._with = _q._with
+      delete _q._with
+    }
+    return _q
+
 
     function assignUniqueSubqueryAlias() {
       if (q.SELECT.from.uniqueSubqueryAlias) return
@@ -1213,7 +1493,7 @@ function cqn4sql(originalQuery, model) {
         columnAlias = column.as || column.ref.slice(0, -1).map(idOnly).join('_')
       } else baseName = getFullName(column.$refLinks[column.$refLinks.length - 1].definition)
 
-      if(column.element && !isAssocOrStruct(column.element)) {
+      if (column.element && !isAssocOrStruct(column.element)) {
         columnAlias = column.as || leafAssocIndex === -1 ? columnAlias : column.ref.slice(leafAssocIndex - 1).map(idOnly).join('_')
         const res = { ref: [tableAlias, calculateElementName(column)], as: columnAlias }
         setElementOnColumns(res, column.element)
@@ -1503,7 +1783,7 @@ function cqn4sql(originalQuery, model) {
             throw new Error(`The operator "${next}" can only be used with scalar operands`)
 
           const newTokens = expandComparison(token, ops, rhs, $baseLink)
-          if(newTokens.length === 0)
+          if (newTokens.length === 0)
             throw new Error(`Can't compare two empty structures`)
 
           const needXpr = Boolean(tokenStream[i - 1] || tokenStream[indexRhs + 1])
@@ -1538,9 +1818,9 @@ function cqn4sql(originalQuery, model) {
             const lastAssoc =
               token.isJoinRelevant && [...token.$refLinks].reverse().find(l => l.definition.isAssociation)
             const tableAlias = getTableAlias(token, (!lastAssoc?.onlyForeignKeyAccess && lastAssoc) || $baseLink)
-            if(isAssocOrStruct(definition)) {
-              const flat =  getFlatColumnsFor(token, { tableAlias: $baseLink?.alias || tableAlias })
-              if(flat.length === 0)
+            if (isAssocOrStruct(definition)) {
+              const flat = getFlatColumnsFor(token, { tableAlias: $baseLink?.alias || tableAlias })
+              if (flat.length === 0)
                 throw new Error(`Structured element “${getFullName(definition)}” expands to nothing and can't be used in expressions`)
               else if (flat.length > 1 && context.prop !== 'list') // only acceptable in `list`
                 throw new Error(`Structured element “${getFullName(definition)}” expands to multiple fields and can't be used in expressions`)
@@ -1673,7 +1953,7 @@ function cqn4sql(originalQuery, model) {
 
   function assertNoStructInXpr(token, context) {
     const definition = token.$refLinks?.at(-1).definition
-    if(!definition) return
+    if (!definition) return
     const rejectStructs = context && (context.prop in { where: 1, having: 1 })
     // unmanaged is always forbidden
     // expanding a ref in a `where`/`having` context
@@ -1785,7 +2065,7 @@ function cqn4sql(originalQuery, model) {
 
       // OData variant w/o mentioning key
       if (refReverse[0].where?.length === 1 && refReverse[0].where[0].val) {
-        filterConditions.push(getTransformedTokenStream(refReverse[0].where,{ $baseLink: $refLinksReverse[0] }))
+        filterConditions.push(getTransformedTokenStream(refReverse[0].where, { $baseLink: $refLinksReverse[0] }))
       }
 
       if (existingWhere.length > 0) filterConditions.push(existingWhere)
@@ -2231,7 +2511,7 @@ function cqn4sql(originalQuery, model) {
     return SELECT
   }
 
-/**
+  /**
    * For a given search term calculate a search expression which can be used in a where clause.
    * The search function is pushed to a subquery and the primary key(s) of the entity is/are used to match
    * the search results of the subquery.
@@ -2259,13 +2539,13 @@ function cqn4sql(originalQuery, model) {
     // for aggregated queries / search on subqueries we do not do a subquery search
     if (inferred.SELECT.groupBy || entity.SELECT)
       return searchFunc
-    
+
     const matchColumns = getPrimaryKey(entity)
     if (matchColumns.length === 0 || searchIn.every(r => r.ref.length === 1)) // keyless or not deep, fallback to old behavior
       return searchFunc
-    
-      const subquery = SELECT.from(entity).columns(...matchColumns).where(searchFunc)
-    return { xpr: [ matchColumns.length === 1 ? matchColumns[0] : {list: matchColumns}, 'in', subquery] }
+
+    const subquery = SELECT.from(entity).columns(...matchColumns).where(searchFunc)
+    return { xpr: [matchColumns.length === 1 ? matchColumns[0] : { list: matchColumns }, 'in', subquery] }
   }
 
   /**
@@ -2282,7 +2562,7 @@ function cqn4sql(originalQuery, model) {
     if (!node || !node.$refLinks || !node.ref) {
       throw new Error('Invalid node')
     }
-    if(node.$refLinks[0].$main) {
+    if (node.$refLinks[0].$main) {
       if (node.isJoinRelevant) {
         return getJoinRelevantAlias(node)
       }
@@ -2425,7 +2705,7 @@ function assignQueryModifiers(SELECT, modifiers) {
       else SELECT.having.push('and', ...val)
     } else if (key === 'where') {
       // ignore OData shortcut variant: `… bookshop.Orders:items[2]`
-      if(!val || val.length === 1 && val[0].val) continue
+      if (!val || val.length === 1 && val[0].val) continue
       if (!SELECT.where) SELECT.where = val
       // infix filter comes first in resulting where
       else SELECT.where = [...(hasLogicalOr(val) ? [asXpr(val)] : val), 'and', ...(hasLogicalOr(SELECT.where) ? [asXpr(SELECT.where)] : SELECT.where)]
