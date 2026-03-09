@@ -30,7 +30,7 @@
     "@cap-js/db-service": "^2.8.2"
   },
   "peerDependencies": {
-    "@sap/cds": ">=9",
+    "@sap/cds": ">=9.8",
     "sql.js": "^1.13.0"
   },
   "peerDependenciesMeta": {
