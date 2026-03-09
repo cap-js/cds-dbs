@@ -24,9 +24,14 @@ class CQN2PQLRenderer extends CQN2SQL {
 
   INSERT_entries(q) {
     super.INSERT_entries(q)
-    debugger
-    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))
-      }) SELECT ${extractions.slice(0, columns.length).map(c => c.insert)} FROM json_each(?)`)
+    this.sql = this.sql
+      .replaceAll(/AS (.*?)([, ])(?=[^\n])/ig, (a, b, c) => `AS ${b}${c}\n${c === ',' ? ' ' : ''}`)
+      .replaceAll(/ *= */ig, ' = ')
+      .replaceAll('value AS "$$value$$"', 'value')
+      .replaceAll(' WHERE ', '\nWHERE ')
+      .replaceAll(' SELECT ', '\nSELECT')
+      .replaceAll('(SELECT ', '(SELECT\n  ')
+      .replaceAll('))', ')\n)')
   }
 
   INSERT_rows(q) {
