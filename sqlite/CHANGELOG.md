@@ -4,6 +4,26 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.2.0](https://github.com/cap-js/cds-dbs/compare/sqlite-v2.1.3...sqlite-v2.2.0) (2026-03-09)
+
+
+### Added
+
+* support for `node:sqlite` and `sql.js` ([#614](https://github.com/cap-js/cds-dbs/issues/614)) ([887d1bb](https://github.com/cap-js/cds-dbs/commit/887d1bba82347857364bc133983b9e16e054d6cd))
+
+
+### Fixed
+
+* hana groupby with path expressions ([#1493](https://github.com/cap-js/cds-dbs/issues/1493)) ([920acde](https://github.com/cap-js/cds-dbs/commit/920acdee0edb538b74d6e5cb0a82a086556df85e))
+* the combination of `iterator` and `SELECT.one` ([#1514](https://github.com/cap-js/cds-dbs/issues/1514)) ([4b28579](https://github.com/cap-js/cds-dbs/commit/4b2857920a7a57bcfc09a9b5fb765283cf8bd70b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.8.2 to ^2.9.0
+
 ## [2.1.3](https://github.com/cap-js/cds-dbs/compare/sqlite-v2.1.2...sqlite-v2.1.3) (2026-02-03)
 
 
