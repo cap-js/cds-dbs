@@ -105,7 +105,15 @@ const _wrapped = (client, credentials, tenant) => {
 
 module.exports = {
   wrap_client: (client, credentials, tenant) => {
-    if (client.isDynatraceSupported) return client //> client will wrap itself
+    // @sap/hana-client ships its own OpenTelemetry extension (extension/OpenTelemetry.js) that
+    // wraps connections natively at connect time. isOpenTelemetrySupported is set on the module
+    // object (not on the connection) when that extension loaded successfully.
+    // The original guard checked client.isDynatraceSupported (always undefined on connections),
+    // so it never fired. Fix: check the module-level flag instead, and prefer the native
+    // extension — it covers more methods and follows current OTel semantic conventions.
+    try {
+      if (require('@sap/hana-client').isOpenTelemetrySupported) return client //> client will wrap itself natively
+    } catch { /* hdb driver — @sap/hana-client not available, continue */ }
     if (!_shall_wrap()) return client
     return _wrapped(client, credentials, tenant)
   }
