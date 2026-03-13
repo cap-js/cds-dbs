@@ -37,6 +37,7 @@ class HANAService extends SQLService {
     this.on(['COMMIT'], this.onCOMMIT)
     this.on(['ROLLBACK'], this.onROLLBACK)
     this.on(['SELECT', 'INSERT', 'UPSERT', 'UPDATE', 'DELETE'], this.onNOTFOUND)
+    this.on(['INSERT', 'UPSERT', 'UPDATE', 'DELETE'], require('./deep-queries').onDeep)
     return super.init()
   }
 
@@ -1173,6 +1174,22 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
       return super.list(list)
     }
 
+    json(arg) {
+      const { props, elements, json } = arg
+      const { _convertInput } = this.class
+      let val = typeof json === 'string' ? json : (arg.json = JSON.stringify(json))
+      if (val[val.length - 1] === ',') val = arg.json = val.slice(0, -1) + ']'
+      if (val[val.length - 1] === '[') val = arg.json = val + ']'
+      this.values.push(val)
+      const extractions = props.map(p => {
+        const element = elements?.[p]
+        return this.managed_extract(p, element, a => element[_convertInput]?.(a, element) || a)
+      })
+      const converter = extractions.map(e => e.sql)
+      const extraction = extractions.map(e => e.extract)
+      return `(SELECT ${converter} FROM JSON_TABLE(?, '$' COLUMNS(${extraction}) ERROR ON ERROR) as NEW)`
+    }
+
     quote(s) {
       // REVISIT: casing in quotes when reading from entities it uppercase
       // When returning columns from a query they should be case sensitive
@@ -1200,6 +1217,13 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
         extract: `${this.quote(name)} ${this.insertType4(element)} PATH ${path}, ${this.quote('$.' + name)} NVARCHAR(2147483647) FORMAT JSON PATH ${path}`,
         sql: converter(`NEW.${this.quote(name)}`),
       }
+    }
+
+    managed_changed(cols/*, comps*/) {
+      return `CASE WHEN ${[
+        ...cols.map(({ name }) => `${this.quote('$.' + name)} IS NOT NULL AND OLD.${this.quote(name)} ${this.is_distinct_from_} NEW.${this.quote(name)}`),
+        // ...comps.map(({ name }) => `json_type(value,${this.managed_extract(name).extract.slice(8)}) IS NOT NULL`)
+      ].join(' OR ')} THEN TRUE ELSE FALSE END`
     }
 
     managed_default(name, managed, src) {
@@ -1242,6 +1266,8 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
       LargeBinary: () => `NVARCHAR(2147483647)`,
       Binary: () => `NVARCHAR(2147483647)`,
       array: () => `NVARCHAR(2147483647) FORMAT JSON`,
+      Association: () => `NVARCHAR(2147483647) FORMAT JSON`,
+      Composition: () => `NVARCHAR(2147483647) FORMAT JSON`,
       Map: () => `NVARCHAR(2147483647) FORMAT JSON`,
       Vector: () => `NVARCHAR(2147483647)`,
       Decimal: () => `DECIMAL`,
