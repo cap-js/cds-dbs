@@ -146,7 +146,7 @@ const HANAFunctions = {
    * @param {string} y - End timestamp
    * @returns {string} - SQL statement
    */
-  nano100_between: (x, y) => `EXTRACT(EPOCH FROM ${y} - ${x}) * 10000000`,
+  nano100_between: (x, y) => `EXTRACT(EPOCH FROM ${y}::TIMESTAMP - ${x}::TIMESTAMP) * 10000000`,
 
   /**
    * Generates SQL statement for the difference in seconds between two timestamps
@@ -154,7 +154,7 @@ const HANAFunctions = {
    * @param {string} y - End timestamp
    * @returns {string} - SQL statement
    */
-  seconds_between: (x, y) => `EXTRACT(EPOCH FROM ${y} - ${x})`,
+  seconds_between: (x, y) => `EXTRACT(EPOCH FROM ${y}::TIMESTAMP - ${x}::TIMESTAMP )`,
 
   /**
    * Generates SQL statement for the difference in days between two timestamps
@@ -171,14 +171,14 @@ const HANAFunctions = {
    * @returns {string} - SQL statement
    */
   months_between: (x, y) => `((
-        (EXTRACT(YEAR FROM ${y}) - EXTRACT(YEAR FROM ${x})) * 12
+        (EXTRACT(YEAR FROM ${castVal(y)}) - EXTRACT(YEAR FROM ${castVal(x)})) * 12
     )+(
-        EXTRACT(MONTH FROM ${y}) - EXTRACT(MONTH FROM ${x})
+        EXTRACT(MONTH FROM ${castVal(y)}) - EXTRACT(MONTH FROM ${castVal(x)})
     )+(
-        case when ( cast( to_char(${y},'YYYYMM') as Integer ) < cast( to_char(${x},'YYYYMM') as Integer ) ) then
-            cast((cast( to_char(${y},'DDHH24MISSFF3') as bigint ) > cast( to_char(${x},'DDHH24MISSFF3') as bigint )) as Integer)
+        case when ( cast( to_char(${castVal(y)},'YYYYMM') as Integer ) < cast( to_char(${castVal(x)},'YYYYMM') as Integer ) ) then
+            cast((cast( to_char(${castVal(y)},'DDHH24MISSFF3') as bigint ) > cast( to_char(${castVal(x)},'DDHH24MISSFF3') as bigint )) as Integer)
         else
-            cast((cast( to_char(${y},'DDHH24MISSFF3') as bigint ) < cast( to_char(${x},'DDHH24MISSFF3') as bigint )) as Integer) * -1
+            cast((cast( to_char(${castVal(y)},'DDHH24MISSFF3') as bigint ) < cast( to_char(${castVal(x)},'DDHH24MISSFF3') as bigint )) as Integer) * -1
         end
     ))`,
 
