@@ -152,6 +152,7 @@ constructor (factory, options = {}) {
     pooledResource.idle()
     this._available.add(pooledResource)
     this.#dispense()
+    this.#resolveDrain()
   }
 
   async destroy(resource) {
@@ -161,14 +162,22 @@ constructor (factory, options = {}) {
     const pooledResource = loan.pooledResource
     await this.#destroy(pooledResource)
     this.#dispense()
+    this.#resolveDrain()
   }
 
   async drain() {
+    if (this._drainPromise) return this._drainPromise
     this._draining = true
     for (const request of this._queue.splice(0)) {
       if (request.state === RequestState.PENDING) request.reject(new Error('Pool is draining and cannot fulfil request'))
     }
     clearTimeout(this._scheduledEviction)
+
+    this._drainPromise = new Promise(resolve => {
+      this._drainResolve = resolve
+    })
+    this.#resolveDrain()
+    return this._drainPromise
   }
 
   async clear() {
@@ -267,6 +276,15 @@ constructor (factory, options = {}) {
        /* Root cause in hdb needs to be fixed */
     } finally {
       if (!this._draining && this.size < this.options.min) this.#createResource()
+    }
+  }
+
+  #resolveDrain() {
+    if (this._draining && this._drainResolve && this.borrowed === 0) {
+      const resolve = this._drainResolve
+      this._drainResolve = null
+      this._drainPromise = null
+      resolve()
     }
   }
 
