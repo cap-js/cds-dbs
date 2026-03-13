@@ -156,6 +156,7 @@ class HANAService extends SQLService {
     const { cqn, sql, temporary, blobs, withclause, values } = this.cqn2sql(query, data)
     delete query.SELECT.expand
 
+    const explain = query.SELECT.explain
     const isSimple = temporary.length + blobs.length + withclause.length === 0
     const isOne = cqn.SELECT.one || query.SELECT.from.ref?.[0].cardinality?.max === 1
     const isStream = iterator && !isLockQuery
@@ -166,10 +167,10 @@ class HANAService extends SQLService {
     if (hints) sqlScript += ` WITH HINT (${hints.join(',')})`
     let rows
     if (values?.length || blobs.length > 0 || isStream) {
-      const ps = await this.prepare(sqlScript, blobs.length)
+      const ps = await this[explain ? 'prepare_planviz' : 'prepare'](sqlScript, blobs.length, explain)
       rows = this.ensureDBC() && await ps[isStream ? 'stream' : 'all'](values || [], isOne, objectMode)
     } else {
-      rows = await this.exec(sqlScript)
+      rows = await this[explain ? 'exec_planviz' : 'exec'](sqlScript, explain)
     }
 
     if (isLockQuery) {
@@ -247,7 +248,7 @@ class HANAService extends SQLService {
         : 'SELECT * FROM ' + values.map(v => `(${v})`).join(' UNION ALL ') + pathOrder
     )
     DEBUG?.(ret)
-    return ret
+    return ret + ' WITH HINT( USE_HEX_PLAN )'
   }
 
   // Structure flat rows into expands and include raw blobs as raw buffers
@@ -318,6 +319,73 @@ class HANAService extends SQLService {
 
   exec(sql) {
     return this.ensureDBC().exec(sql)
+  }
+
+  // Execute sql statement inside execution plan visualization API
+  async prepare_planviz(sql, hasBlobs, dir) {
+    const stmt = await this.ensureDBC().prepare('CALL PLANVIZ_ACTION(?, ?)')
+    await stmt.run([110, null]) // Enable planviz
+
+    const getProp = (res, prop) => res[prop] || res[0][prop] || res[1][0][prop]
+    const ID = getProp(await stmt.all([201, sql]), 'DATA')
+    const prep = await this.ensureDBC().prepare(`EXECUTE PLANVIZ STATEMENT ID '${ID}'`, hasBlobs)
+
+    const proxy = async function (action, params) {
+      const stmtID = this._stmtID ??= 0
+      this._stmtID++
+      const ret = await prep[action](params)
+      if (dir) {
+        const save = async () => {
+          // write to disk
+          await fs.promises.mkdir(dir, { recursive: true })
+          await fs.promises.writeFile(
+            path.resolve(dir, `${ID}|${stmtID}.plv`),
+            getProp(await stmt.all([402, `${ID}|${stmtID}`]), 'XML_PLAN'),
+          )
+        }
+        if (ret instanceof Readable) {
+          ret.once('end', save)
+        } else {
+          await save()
+        }
+      }
+      return ret
+    }
+
+    return {
+      run(params) { return proxy.call(this, 'run', params) },
+      runBatch(params) { return proxy.call(this, 'runBatch', params) },
+      get(params) { return proxy.call(this, 'get', params) },
+      all(params) { return proxy.call(this, 'all', params) },
+      stream(params) { return proxy.call(this, 'stream', params) },
+    }
+  }
+
+  async exec_planviz(sql, dir) {
+    return (await this.prepare_planviz(sql, false, dir)).all([])
+  }
+
+  async save_planviz(folder) {
+    const traces = await this.dbc.exec(`SELECT HOST, FILE_NAME FROM SYS.M_TRACEFILES WHERE FILE_NAME LIKE '%.plv'`)
+    if (traces.length) {
+      const download = await this.dbc.prepare(
+        `SELECT
+STRING_AGG ( CONTENT, '' ORDER BY OFFSET) AS CONTENT
+FROM SYS.M_TRACEFILE_CONTENTS
+WHERE HOST = ? AND  FILE_NAME = ?
+GROUP BY FILE_NAME`
+      )
+
+      await fs.promises.mkdir(folder, { recursive: true })
+      for (const trace of traces) {
+        const [{ CONTENT }] = await download.all([trace.HOST, trace.FILE_NAME])
+        fs.promises.writeFile(path.resolve(folder, trace.FILE_NAME), CONTENT)
+      }
+
+      // Remove trace files from host
+      await this.dbc.exec(`ALTER SYSTEM REMOVE TRACES ('${traces[0].HOST}', ${traces.map(t => `'${t.FILE_NAME.replace(/'/g, "''")}'`)})`)
+    }
+    return traces.length
   }
 
   /**
@@ -904,6 +972,10 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
 
     DROP(q) {
       return (this.sql = super.DROP(q).replace('IF EXISTS', ''))
+    }
+
+    explain() {
+      return ''
     }
 
     from_args(args) {
