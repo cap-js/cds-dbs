@@ -1002,7 +1002,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
               const compare = [left, x, right]
 
               const expression = {
-                xpr: ['CASE', 'WHEN', ...compare, 'THEN', { val: true }, 'WHEN', 'NOT', ...compare, 'THEN', { val: false }],
+                xpr: ['CASE', 'WHEN', ...compare, 'THEN', { val: true, param: false }, 'WHEN', 'NOT', ...compare, 'THEN', { val: false, param: false }],
                 _internal: true,
               }
 
@@ -1016,9 +1016,9 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
                     // coalesce is used to match the left and right hand types in case one is a placeholder
                     ...[{ func: 'COALESCE', args: [left, right] }, 'IS', 'NULL'],
                     'THEN',
-                    { val: ifNull },
+                    { val: ifNull, param: false },
                     'ELSE',
-                    { val: !ifNull },
+                    { val: !ifNull, param: false },
                     'END',
                   ],
                   _internal: true,
