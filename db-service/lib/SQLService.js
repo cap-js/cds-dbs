@@ -544,10 +544,10 @@ cds.extend(cds.ql.Query).with(
     }
     toPQL() {
       cqn2pql ??= require('./cqn2pql')
-      const { sql, values } = cqn2pql(cds.db || sqls).render(this.cqn4sql(query, false), values)
+      const { sql, values } = cqn2pql(cds.db || sqls).render(this.cqn4sql(this, false), values)
       return { sql, values } // skipping .cqn property
     }
-    toSql() {
+    toPql() {
       return this.toPQL().sql
     }
   },
