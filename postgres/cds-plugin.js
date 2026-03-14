@@ -1,10 +1,6 @@
 const cds = require('@sap/cds')
 const { fs, path } = cds.utils
 
-if (!cds.env.fiori.lean_draft) {
-  throw new Error('"@cap-js/postgres" only works if cds.fiori.lean_draft is enabled. Please adapt your configuration.')
-}
-
 // copy over build relevant cds options to the package.json of the deployer app
 const CDS_BUILD_OPTIONS = ['assert_integrity']
 
