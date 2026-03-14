@@ -37,6 +37,20 @@ class HANAService extends SQLService {
     this.on(['COMMIT'], this.onCOMMIT)
     this.on(['ROLLBACK'], this.onROLLBACK)
     this.on(['SELECT', 'INSERT', 'UPSERT', 'UPDATE', 'DELETE'], this.onNOTFOUND)
+
+    // TODO: remove
+    this.options._max_statement_count = 10
+
+    // destroy connections that have exceeded the max statement count
+    const { _max_statement_count } = this.options
+    if (_max_statement_count) {
+      const { release, destroy } = this
+      this.release = function () {
+        if (this.dbc?._native?._statement_count > _max_statement_count) return destroy.call(this)
+        return release.call(this)
+      }
+    }
+
     return super.init()
   }
 
@@ -1367,19 +1381,15 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
 
   onCOMMIT() {
     DEBUG?.('COMMIT')
-    this.dbc?.statements?.forEach(stmt => stmt
-      .then(stmt => stmt.drop())
-      .catch(() => { })
-    )
+    if (!this.options._max_statement_count)
+      this.dbc?.statements?.forEach(stmt => stmt.then(stmt => stmt.drop()).catch(() => {}))
     return this.dbc?.commit()
   }
 
   onROLLBACK() {
     DEBUG?.('ROLLBACK')
-    this.dbc?.statements?.forEach(stmt => stmt
-      .then(stmt => stmt.drop())
-      .catch(() => { })
-    )
+    if (!this.options._max_statement_count)
+      this.dbc?.statements?.forEach(stmt => stmt.then(stmt => stmt.drop()).catch(() => {}))
     return this.dbc?.rollback()
   }
 
