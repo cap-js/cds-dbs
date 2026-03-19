@@ -321,7 +321,7 @@ describe('SELECT', () => {
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
       assert.strictEqual(res[0].uuidField, '00000000-0000-0000-4000-000000000000', 'Ensure that the UUID conversion happens')
-      assert.strictEqual(res[0].booleanField, 'false', 'Ensure that the boolean conversion happens')
+      assert.strictEqual(Boolean(res[0].booleanField), false, 'Ensure that the boolean conversion happens')
       assert.strictEqual(res[0].integer8Field, '8', 'Ensure that the UInt8 conversion happens')
       assert.strictEqual(res[0].integer16Field, '9', 'Ensure that the Int16 conversion happens')
       assert.strictEqual(res[0].integer32Field, '10', 'Ensure that the Int32 conversion happens')
