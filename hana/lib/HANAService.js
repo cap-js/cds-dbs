@@ -1291,6 +1291,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
       // Reading int64 as string to not loose precision
       Int64: expr => `TO_NVARCHAR(${expr})`,
       // Reading decimal as string to not loose precision
+      // Conversion to decimal so strings like 1.111 are not interpreted as timestamps
       Decimal: (expr, elem) => elem?.scale
         ? `TO_NVARCHAR(TO_DECIMAL(${expr}), '0.${''.padEnd(elem.scale, '0')}')`
         : `TO_NVARCHAR(TO_DECIMAL(${expr}))`,
