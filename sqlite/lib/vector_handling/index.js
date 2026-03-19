@@ -37,7 +37,7 @@ function generateVector(text, _, model_and_version) {
 	switch (model_and_version) {
 		case 'SAP_GXY.20250407':
 		case 'SAP_GXY.20240715':
-			dimensions = 768;
+			dimensions = 384; //768 is the actual dimension but with the local model only vectors with a dimension of 384 can be generated
 			break;
 		default:
 			dimensions = 384;
