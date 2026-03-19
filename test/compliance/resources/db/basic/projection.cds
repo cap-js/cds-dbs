@@ -286,7 +286,7 @@ entity ![all]   as
     // NULL as vector : Vector,
     };
 
-entity allStatic as select from common.default {
+entity allStatic as select from literals.string {
   '00000000-0000-0000-4000-000000000000' as uuidField: UUID,
   'false' as booleanField: Boolean,
   '8' as integer8Field: UInt8,
