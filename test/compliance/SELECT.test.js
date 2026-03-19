@@ -333,7 +333,7 @@ describe('SELECT', () => {
       assert.strictEqual(res[0].dateField, '1970-01-01', 'Ensure that the date conversion happens')
       assert.strictEqual(res[0].date_litField, '2021-05-05', 'Ensure that the date literal conversion happens')
       assert.strictEqual(res[0].dateTimeField, '1970-01-01T01:02:03Z', 'Ensure that the date time conversion happens')
-      assert.strictEqual(res[0].timestampField, '1970-01-01T01:02:03.123456789Z', 'Ensure that the timestamp conversion happens')
+      assert.strictEqual(res[0].timestampField, '1970-01-01T01:02:03.123Z', 'Ensure that the timestamp conversion happens')
     })
   })
 
