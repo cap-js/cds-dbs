@@ -1292,8 +1292,8 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
       Int64: expr => `TO_NVARCHAR(${expr})`,
       // Reading decimal as string to not loose precision
       Decimal: (expr, elem) => elem?.scale
-        ? `TO_NVARCHAR(${expr}, '0.${''.padEnd(elem.scale, '0')}')`
-        : `TO_NVARCHAR(${expr})`,
+        ? `TO_NVARCHAR(TO_DECIMAL(${expr}), '0.${''.padEnd(elem.scale, '0')}')`
+        : `TO_NVARCHAR(TO_DECIMAL(${expr}))`,
 
       // HANA types
       'cds.hana.ST_POINT': e => `TO_NVARCHAR(${e})`,

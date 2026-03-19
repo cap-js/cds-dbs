@@ -319,6 +319,7 @@ describe('SELECT', () => {
       const { allStatic } = cds.entities('basic.projection')
       const cqn = cds.ql`SELECT * FROM ${allStatic}`
       const res = await cds.run(cqn)
+      assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
       assert.strictEqual(res[0].uuidField, '00000000-0000-0000-4000-000000000000', 'Ensure that the UUID conversion happens')
       assert.strictEqual(res[0].booleanField, false, 'Ensure that the boolean conversion happens')
       assert.strictEqual(Number(res[0].integer8Field), 8, 'Ensure that the UInt8 conversion happens')
@@ -327,7 +328,7 @@ describe('SELECT', () => {
       assert.strictEqual(String(res[0].integer64Field), '11', 'Ensure that the Int64 conversion happens')
       assert.strictEqual(Number(res[0].doubleField), 1.1, 'Ensure that the double conversion happens')
       assert.strictEqual(Number(res[0].floatField), 1.1, 'Ensure that the decimal conversion happens')
-      assert.strictEqual(Number(res[0].decimalField), 1.1111, 'Ensure that the decimal(5,4) conversion happens')
+      assert.strictEqual(Number(res[0].decimalField), '1.1111', 'Ensure that the decimal(5,4) conversion happens')
       assert.strictEqual(res[0].timeField, '01:02:03', 'Ensure that the time conversion happens')
       assert.strictEqual(res[0].dateField, '1970-01-01', 'Ensure that the date conversion happens')
       assert.strictEqual(res[0].date_litField, '2021-05-05', 'Ensure that the date literal conversion happens')
