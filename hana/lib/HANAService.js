@@ -1283,7 +1283,8 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
       // REVISIT: binaries should use BASE64_ENCODE, but this results in BASE64_ENCODE(BINTONHEX(${e}))
       Binary: e => `BINTONHEX(${e})`,
       Date: e => `to_char(${e}, 'YYYY-MM-DD')`,
-      Time: e => `to_char(${e}, 'HH24:MI:SS')`,
+      // Without to_time a time is implicitly converted to a timestamp causing an SQL crash
+      Time: e => `to_char(to_time(${e}), 'HH24:MI:SS')`,
       DateTime: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`,
       Timestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')`,
       Vector: e => `TO_NVARCHAR(${e})`,
