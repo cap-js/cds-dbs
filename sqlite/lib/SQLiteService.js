@@ -262,10 +262,7 @@ class SQLiteService extends SQLService {
           : expr => `CASE TO_BOOLEAN(${expr}) when 1 then 'true' when 0 then 'false' END ->'$'`,
       // DateTimes are returned without ms added by InputConverters
       DateTime: e => `substr(${e},0,20)||'Z'`,
-      // Timestamps are returned with ms, as written by InputConverters.
-      // And as cds.builtin.classes.Timestamp inherits from DateTime we need
-      // to override the DateTime converter above
-      Timestamp: undefined,
+      Timestamp: e => `strftime('%Y-%m-%dT%H:%M:%fZ',${e})`,
       // int64 is stored as native int64 for best comparison
       // Reading int64 as string to not loose precision
       Int64: cds.env.features.ieee754compatible ? expr => `CAST(${expr} as TEXT)` : undefined,
