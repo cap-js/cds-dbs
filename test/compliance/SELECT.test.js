@@ -314,6 +314,17 @@ describe('SELECT', () => {
       expect(res1.now).to.eq(ts.toISOString())
       expect(res1.now).to.eq(res2.now)
     })
+
+    test('strings fields can be converted to date and time types', async () => {
+      const { timeAndDateConversion } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT dateField, timeField, dateTimeField, timestampField FROM ${timeAndDateConversion}`
+      const res = await cds.run(cqn)
+      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+      assert.strictEqual(res[0].timeField, '20:02:20', 'Ensure that the time conversion happens')
+      assert.strictEqual(res[0].dateField, '2020-02-02', 'Ensure that the date conversion happens')
+      assert.strictEqual(res[0].dateTimeField, '2020-02-02T20:02:20Z', 'Ensure that the date time conversion happens')
+      assert.strictEqual(res[0].timestampField, '2020-02-02T20:02:20.000Z', 'Ensure that the timestamp conversion happens')
+    })
   })
 
   describe('excluding', () => {

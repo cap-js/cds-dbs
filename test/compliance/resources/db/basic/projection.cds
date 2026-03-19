@@ -285,3 +285,10 @@ entity ![all]   as
       largebinary,
     // NULL as vector : Vector,
     };
+
+entity timeAndDateConversion as select from literals.string {
+  '20:02:20' as timeField: Time,
+  '2020-02-02' as dateField: Date,
+  '2020-02-02T20:02:20' as dateTimeField : DateTime,
+  '2020-02-02T20:02:20' as timestampField : Timestamp,
+}
