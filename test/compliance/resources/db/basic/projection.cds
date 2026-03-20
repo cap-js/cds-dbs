@@ -288,6 +288,23 @@ entity ![all]   as
 
 entity allStatic as select from literals.string {
   '00000000-0000-0000-4000-000000000000' as uuidField: UUID,
+  false as booleanField: Boolean,
+  8 as integer8Field: UInt8,
+  9 as integer16Field: Int16,
+  10 as integer32Field: Int32,
+  11 as integer64Field: Int64,
+  1.1 as doubleField: cds.Double,
+  1.1 as floatField: cds.Decimal,
+  1.11111 as decimalField: cds.Decimal(5, 4),
+  time'01:02:03' as timeField: Time,
+  date'1970-01-01' as dateField: Date,
+  datetime'1970-01-01T01:02:03Z' as dateTimeField : DateTime,
+  timestamp'1970-01-01T01:02:03.123456789Z' as timestampField : Timestamp,
+}
+
+
+entity allString as select from literals.string {
+  '00000000-0000-0000-4000-000000000000' as uuidField: UUID,
   'false' as booleanField: Boolean,
   '8' as integer8Field: UInt8,
   '9' as integer16Field: Int16,
