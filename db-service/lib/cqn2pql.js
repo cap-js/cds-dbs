@@ -70,7 +70,7 @@ class CQN2PQLRenderer extends CQN2SQL {
   quote(s) { return s }
 
   managed(columns, elements) {
-    const keys = Object.keys(elements).filter(e => elements[e].key && !elements[e].isAssociation)
+    const keys = ObjectKeys(elements).filter(e => elements[e].key && !elements[e].isAssociation)
     const keyZero = keys[0]
 
     const ret = super.managed(columns, elements)
@@ -110,5 +110,7 @@ class CQN2PQLRenderer extends CQN2SQL {
     return { extract, sql }
   }
 }
+
+const ObjectKeys = o => (o && [...ObjectKeys(o.__proto__), ...Object.keys(o)]) || []
 
 module.exports = CQN2PQLRenderer
