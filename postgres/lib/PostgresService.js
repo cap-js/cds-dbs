@@ -4,6 +4,7 @@ const cds = require('@sap/cds')
 const crypto = require('crypto')
 const { Writable, Readable } = require('stream')
 const sessionVariableMap = require('./session.json')
+const pgvector = require('pgvector/pg');
 
 class PostgresService extends SQLService {
   init() {
@@ -44,6 +45,10 @@ class PostgresService extends SQLService {
         }
         const dbc = new Client({ ...credentials, ...clientOptions })
         await dbc.connect()
+        // cds.Vector support for PG
+        await dbc.query('CREATE EXTENSION IF NOT EXISTS vector');
+        await pgvector.registerTypes(dbc);
+
         dbc.open = true
         dbc.on('end', () => { dbc.open = false })
         return dbc
