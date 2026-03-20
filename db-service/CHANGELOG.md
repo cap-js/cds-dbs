@@ -4,6 +4,18 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.10.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.9.0...db-service-v2.10.0) (2026-03-20)
+
+
+### Added
+
+* pql ([#1532](https://github.com/cap-js/cds-dbs/issues/1532)) ([943f76a](https://github.com/cap-js/cds-dbs/commit/943f76a3e4405eb91f0f4b929590212500c49c30))
+
+
+### Fixed
+
+* **pql:** avoid type error on bad query ([#1544](https://github.com/cap-js/cds-dbs/issues/1544)) ([aa4948c](https://github.com/cap-js/cds-dbs/commit/aa4948c5aaf76a93e778c8a36d2f9a3aa5532ef1))
+
 ## [2.9.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.8.2...db-service-v2.9.0) (2026-03-09)
 
 
