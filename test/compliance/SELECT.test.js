@@ -314,6 +314,26 @@ describe('SELECT', () => {
       expect(res1.now).to.eq(ts.toISOString())
       expect(res1.now).to.eq(res2.now)
     })
+
+    test('static fields can be converted to data types', async () => {
+      const { allStatic } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT * FROM ${allStatic}`
+      const res = await cds.run(cqn)
+      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+      assert.strictEqual(res[0].uuidField, '00000000-0000-0000-4000-000000000000', 'Ensure that the UUID conversion happens')
+      assert.strictEqual(res[0].booleanField, false, 'Ensure that the boolean conversion happens')
+      assert.strictEqual(res[0].integer8Field, 8, 'Ensure that the UInt8 conversion happens')
+      assert.strictEqual(res[0].integer16Field, 9, 'Ensure that the Int16 conversion happens')
+      assert.strictEqual(res[0].integer32Field, 10, 'Ensure that the Int32 conversion happens')
+      assert.strictEqual(res[0].integer64Field, '11', 'Ensure that the Int64 conversion happens')
+      assert.strictEqual(res[0].doubleField, 1.1, 'Ensure that the double conversion happens')
+      assert.strictEqual(res[0].floatField, '1.1', 'Ensure that the decimal conversion happens')
+      assert.strictEqual(res[0].decimalField, '1.1111', 'Ensure that the decimal(5,4) conversion happens')
+      assert.strictEqual(res[0].timeField, '01:02:03', 'Ensure that the time conversion happens')
+      assert.strictEqual(res[0].dateField, '1970-01-01', 'Ensure that the date conversion happens')
+      assert.strictEqual(res[0].dateTimeField, '1970-01-01T01:02:03Z', 'Ensure that the date time conversion happens')
+      assert.strictEqual(res[0].timestampField, '1970-01-01T01:02:03.123Z', 'Ensure that the timestamp conversion happens')
+    })
   })
 
   describe('excluding', () => {
