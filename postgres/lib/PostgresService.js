@@ -546,10 +546,10 @@ GROUP BY k
       Decimal: e => e[0] === '$' ? e : `CAST(${e} as decimal)`,
       Integer: e => e[0] === '$' ? e : `CAST(${e} as integer)`,
       Int64: e => e[0] === '$' ? e : `CAST(${e} as bigint)`,
-      Date: e => e[0] === '$' ? e : `CAST(${e} as DATE)`,
-      Time: e => e[0] === '$' ? e : `CAST(${e} as TIME)`,
-      DateTime: e => e[0] === '$' ? e : `CAST(${e} as TIMESTAMP)`,
-      Timestamp: e => e[0] === '$' ? e : `CAST(${e} as TIMESTAMP)`,
+      Date: e => `to_char(${e}, 'YYYY-MM-DD')`,
+      Time: e => `to_char(${e}, 'HH24:MI:SS')`,
+      DateTime: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`,
+      Timestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')`,
       // REVISIT: Remove that with upcomming fixes in cds.linked
       Double: (e, t) => e[0] === '$' ? e : `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
       DecimalFloat: (e, t) => e[0] === '$' ? e : `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
@@ -583,7 +583,7 @@ GROUP BY k
       // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
       Decimal: cds.env.features.ieee754compatible ? (expr, elem) => elem?.scale
-        ? `to_char(cast(${expr} as decimal),'FM${'0'.padStart(elem.precision, '9')}${'D'.padEnd(elem.scale + 1, '0')}')`
+        ? `to_char(${expr},'FM${'0'.padStart(elem.precision, '9')}${'D'.padEnd(elem.scale + 1, '0')}')`
         : `cast(${expr} as varchar)`
         : undefined,
 

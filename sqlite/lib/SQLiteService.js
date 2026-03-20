@@ -46,7 +46,6 @@ class SQLiteService extends SQLService {
           dbc.function('hour', deterministic, d => d === null ? null : toDate(d, true).getUTCHours())
           dbc.function('minute', deterministic, d => d === null ? null : toDate(d, true).getUTCMinutes())
           dbc.function('second', deterministic, d => d === null ? null : toDate(d, true).getUTCSeconds())
-          dbc.function('TO_BOOLEAN', deterministic, d => d === null ? null : (d && d !== 'false' ? 1 : 0))
           if (database !== ':memory:') dbc.pragma?.('journal_mode = WAL') || dbc.exec('PRAGMA journal_mode = WAL')
           return dbc
         } catch (err) {
@@ -215,7 +214,7 @@ class SQLiteService extends SQLService {
     }
 
     val(v) {
-      if (typeof v.val === 'boolean') v.val = v.val && v.val !== 'false' ? 1 : 0
+      if (typeof v.val === 'boolean') v.val = v.val ? 1 : 0
       else if (Buffer.isBuffer(v.val)) v.val = v.val.toString('base64')
       // intercept DateTime values and convert to Date objects to compare ISO Strings
       else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(.\d{1,9})?(Z|[+-]\d{2}(:?\d{2})?)$/.test(v.val)) {
@@ -259,7 +258,7 @@ class SQLiteService extends SQLService {
       boolean:
         cds.env.features.sql_simple_queries === 2
           ? undefined
-          : expr => `CASE TO_BOOLEAN(${expr}) when 1 then 'true' when 0 then 'false' END ->'$'`,
+          : expr => `CASE ${expr} when 1 then 'true' when 0 then 'false' END ->'$'`,
       // DateTimes are returned without ms added by InputConverters
       DateTime: e => `substr(${e},0,20)||'Z'`,
       Timestamp: e => `strftime('%Y-%m-%dT%H:%M:%fZ',${e})`,

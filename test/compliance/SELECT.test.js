@@ -325,7 +325,7 @@ describe('SELECT', () => {
       assert.strictEqual(res[0].integer8Field, 8, 'Ensure that the UInt8 conversion happens')
       assert.strictEqual(res[0].integer16Field, 9, 'Ensure that the Int16 conversion happens')
       assert.strictEqual(res[0].integer32Field, 10, 'Ensure that the Int32 conversion happens')
-      assert.strictEqual(res[0].integer64Field, 11, 'Ensure that the Int64 conversion happens')
+      assert.strictEqual(res[0].integer64Field, '11', 'Ensure that the Int64 conversion happens')
       assert.strictEqual(res[0].doubleField, 1.1, 'Ensure that the double conversion happens')
       assert.strictEqual(res[0].floatField, '1.1', 'Ensure that the decimal conversion happens')
       assert.strictEqual(res[0].decimalField, '1.1111', 'Ensure that the decimal(5,4) conversion happens')

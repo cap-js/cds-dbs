@@ -296,10 +296,11 @@ entity allStatic as select from literals.string {
   1.1 as doubleField: cds.Double,
   1.1 as floatField: cds.Decimal,
   1.11111 as decimalField: cds.Decimal(5, 4),
-  time'01:02:03' as timeField: Time,
-  date'1970-01-01' as dateField: Date,
-  datetime'1970-01-01T01:02:03Z' as dateTimeField : DateTime,
-  timestamp'1970-01-01T01:02:03.123456789Z' as timestampField : Timestamp,
+  cast('01:02:03' as Time) as timeField: Time,
+  cast('1970-01-01' as Date) as dateField: Date,
+  cast(date'2021-05-05' as Date) as date_litField: Date,
+  cast('1970-01-01T01:02:03Z' as DateTime) as dateTimeField : DateTime,
+  cast('1970-01-01T01:02:03.123456789Z' as Timestamp) as timestampField : Timestamp,
 }
 
 
