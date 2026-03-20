@@ -77,7 +77,8 @@ class CQN2PQLRenderer extends CQN2SQL {
 
     ret.forEach(c => {
       const { name, insert, update, onInsert, onUpdate } = c
-      const element = elements[name]
+      const element = elements?.[name] || {}
+
       c.upsert = keyZero && (
         // upsert requires the keys to be provided for the existance join (default values optional)
         element.key
