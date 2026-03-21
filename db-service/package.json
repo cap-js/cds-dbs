@@ -23,11 +23,14 @@
   "scripts": {
     "test": "cds-test"
   },
-  "dependencies": {
+  "peerDependencies": {
+    "@sap/cds": ">=9.8",
     "generic-pool": "^3.9.0"
   },
-  "peerDependencies": {
-    "@sap/cds": ">=9.8"
-  },
+  "peerDependenciesMeta": {
+    "generic-pool": {
+      "optional": true
+    }
+  }
   "license": "Apache-2.0"
 }
