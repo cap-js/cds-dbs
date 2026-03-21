@@ -80,13 +80,14 @@ function isCalculatedElement(def) {
  * @param {string} str - The input string.
  * @returns {string}
  */
-function getImplicitAlias(str, useTechnicalAlias = true) {
+function getImplicitAlias(str, useTechnicalAlias = process.env.USE_TECHNICAL_ALIAS !== 'false') {
   const index = str.lastIndexOf('.')
   if (useTechnicalAlias) {
-    const postfix = (index != -1 ? str.substring(index + 1) : str).replace(/^\$/, '')[0] || /* str === '$' */ '$'
+    const last = index !== -1 ? str.substring(index + 1) : str
+    const postfix = last.replace(/^\$/, '')[0] || '$'
     return '$' + postfix
   }
-  return index != -1 ? str.substring(index + 1) : str
+  return index !== -1 ? str.substring(index + 1) : str
 }
 
 function defineProperty(obj, prop, value) {
