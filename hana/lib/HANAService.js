@@ -870,7 +870,7 @@ class HANAService extends SQLService {
       // temporal data
       keys.push(...ObjectKeys(q._target.elements).filter(e => q._target.elements[e]['@cds.valid.from']))
 
-      const managed = this.managed(
+      const managed = this._managed || this.managed(
         this.columns.map(c => ({ name: c })),
         elements
       )
@@ -890,10 +890,21 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
       } else {
         const src = this.cqn4sql(UPSERT.from || UPSERT.as)
         if (this.values) this.values = []
+        const missingKeys = this._managed.slice(src.SELECT.columns.length)
+          .filter(c => keys.includes(c.name))
+          .map(c => ({
+            __proto__: this.managed_session_context(elements[c.name]['@cds.on.insert']?.['='])
+              || this.managed_session_context(elements[c.name].default?.ref?.[0])
+              || (elements[c.name].default && { __proto__: elements[c.name].default, param: false })
+              || { val: null, param: false },
+            as: c.name,
+          }))
         const aliasedQuery = cds.ql.SELECT
-          .columns(src.SELECT.columns
-            .map((c, i) => ({ ref: [this.column_name(c)], as: this.columns[i] }))
-          )
+          .columns([
+            ...src.SELECT.columns
+              .map((c, i) => ({ ref: [this.column_name(c)], as: this.columns[i] })),
+            ...missingKeys,
+          ])
           .from(src)
         sql = `SELECT ${mixing} FROM (${this.SELECT(aliasedQuery)}) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
         this.entries = [this.values]
