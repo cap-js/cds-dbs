@@ -1392,7 +1392,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
         const { index, tableAlias } = inferred.$combinedElements[k][0]
         const element = tableAlias.elements[k]
         // ignore FK for odata csn / ignore blobs from wildcard expansion
-        if (isManagedAssocInFlatMode(element) || element.type === 'cds.LargeBinary') continue
+        if (isManagedAssocInFlatMode(element) || (!originalQuery._view_ && element.type === 'cds.LargeBinary')) continue
         // for wildcard on subquery in from, just reference the elements
         if (tableAlias.SELECT && !element.elements && !element.target) {
           wildcardColumns.push(index ? { ref: [index, k] } : { ref: [k] })
@@ -1404,7 +1404,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
             { tableAlias: index, baseName },
             [],
             { exclude, replace },
-            true,
+            !originalQuery._view_,
           )
           wildcardColumns.push(...flatColumns)
         }
@@ -2102,6 +2102,15 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
         getDefinition(transformedFrom.$refLinks[0].definition.target) || transformedFrom.$refLinks[0].target
       const id = getLocalizedName(subquerySource)
       transformedFrom.ref = [subquerySource.params ? { id, args: from.ref.at(-1).args || {} } : id]
+
+      const firstRefLink = transformedFrom.$refLinks[0].definition._target || transformedFrom.$refLinks[0].definition
+      const isRuntime = e => e && e.query && (e['@runtime'] || e._service?.['@runtime'] || isRuntime(e.query._target))
+      if (isRuntime(firstRefLink)) {
+        const alias = transformedFrom.as
+        firstRefLink.query._view_ = true
+        transformedFrom = cqn4sql(firstRefLink.query, model)
+        transformedFrom.as = alias
+      }
 
       return { transformedWhere, transformedFrom }
     }
