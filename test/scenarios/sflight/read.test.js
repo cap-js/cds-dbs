@@ -2,12 +2,6 @@ process.env.cds_requires_db_kind = 'better-sqlite'
 const cds = require('../../cds.js'), { path } = cds.utils
 const sflight = path.resolve(__dirname,'../../../test/sflight')
 
-// IMPORTANT: Wrapping that in beforeAll to avoid loading cds.env before cds.test()
-beforeAll(() => {
-  if (cds.env.fiori) cds.env.fiori.lean_draft = true
-  else cds.env.features.lean_draft = true
-})
-
 describe('SFlight - Read', () => {
   const { expect, GET, axios } = cds.test(sflight)
   axios.defaults.auth = { username: 'alice', password: 'admin' }
