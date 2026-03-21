@@ -1115,6 +1115,30 @@ describe('table alias access', () => {
       )
     })
 
+    it('nested subqueries propagate FK columns through wildcard expansion', () => {
+      let query = cqn4sql(
+        cds.ql`SELECT from (
+          SELECT from (
+            SELECT from bookshop.Books as Books { Books.author }
+          ) as mid
+        ) as outer`,
+        model,
+      )
+      expect(query).to.deep.equal(
+        cds.ql`SELECT from (
+          SELECT from (
+            SELECT from bookshop.Books as Books {
+              Books.author_ID
+            }
+          ) as mid {
+            mid.author_ID
+          }
+        ) as outer {
+          outer.author_ID
+        }`,
+      )
+    })
+
     it('cannot access table name of FROM subquery in outer query', () => {
       expect(() =>
         cqn4sql(cds.ql`SELECT from (SELECT from bookshop.Books as Books { ID, Books.stock }) as B { ID, Books.stock }`, model),
