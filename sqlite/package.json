@@ -53,7 +53,8 @@
           "impl": "@cap-js/sqlite",
           "pool": {
             "max": 1
-          }
+          },
+          "decimal_affinity": "numeric"
         }
       },
       "db": "sql"
