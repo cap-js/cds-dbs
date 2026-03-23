@@ -9,7 +9,7 @@ const {
   prettyPrintRef,
   isCalculatedOnRead,
   isCalculatedElement,
-  getImplicitAlias,
+  getImplicitAlias: _getImplicitAlias,
   defineProperty,
   getModelUtils,
   hasOwnSkip,
@@ -54,7 +54,8 @@ const { pseudos } = require('./infer/pseudos')
  * @param {object} model
  * @returns {object} transformedQuery the transformed query
  */
-function cqn4sql(originalQuery, model) {
+function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
+  const getImplicitAlias = str => _getImplicitAlias(str, useTechnicalAlias)
   let inferred = typeof originalQuery === 'string' ? cds.parse.cql(originalQuery) : cds.ql.clone(originalQuery)
   const hasCustomJoins =
     originalQuery.SELECT?.from.args && (!originalQuery.joinTree || originalQuery.joinTree.isInitial)
@@ -81,7 +82,7 @@ function cqn4sql(originalQuery, model) {
   if (inferred.UPDATE?.entity.ref?.at(-1).id) {
     assignQueryModifiers(inferred.UPDATE, inferred.UPDATE.entity.ref.at(-1))
   }
-  inferred = infer(inferred, model)
+  inferred = infer(inferred, model, useTechnicalAlias)
   const { getLocalizedName, isLocalized, getDefinition } = getModelUtils(model, originalQuery) // TODO: pass model to getModelUtils
   // if the query has custom joins we don't want to transform it
   // TODO: move all the way to the top of this function once cds.infer supports joins as well
@@ -134,7 +135,7 @@ function cqn4sql(originalQuery, model) {
       // match primary keys of the target entity with the subquery
       primaryKey.list.forEach(k => subquery.SELECT.columns.push({ ref: k.ref.slice(1) }))
 
-      const transformedSubquery = cqn4sql(subquery, model)
+      const transformedSubquery = cqn4sql(subquery, model, useTechnicalAlias)
 
       // replace where condition of original query with the transformed subquery
       // correlate UPDATE / DELETE query with subquery by primary key matches
@@ -229,9 +230,9 @@ function cqn4sql(originalQuery, model) {
         }
       }
     }
-    const inferredDQ = infer(q, model)
+    const inferredDQ = infer(q, model, useTechnicalAlias)
     inferredDQ._with = transformedQuery._with
-    const transformedDQ = cqn4sql(inferredDQ, model)
+    const transformedDQ = cqn4sql(inferredDQ, model, useTechnicalAlias)
 
     if (q.SELECT?.from?.args) {
       for (const arg of q.SELECT.from.args) {
@@ -836,9 +837,11 @@ function cqn4sql(originalQuery, model) {
           return { ...token, xpr: augmentInlineXprRefs(token.xpr, parentCol) }
         }
         if (token.func && token.args) {
-          return { ...token, args: token.args.map(arg => 
-            arg.ref ? augmentInlineXprRefs([arg], parentCol)[0] : arg
-          )}
+          return {
+            ...token, args: token.args.map(arg =>
+              arg.ref ? augmentInlineXprRefs([arg], parentCol)[0] : arg
+            )
+          }
         }
         return token
       })
@@ -1347,7 +1350,7 @@ function cqn4sql(originalQuery, model) {
     if (isLocalized(target)) q.SELECT.localized = true
     if (q.SELECT.from.ref && !q.SELECT.from.as) assignUniqueSubqueryAlias()
     if (cds.env.features.runtime_views) q._with = transformedQuery._with
-    const _q = cqn4sql(q, model)
+    const _q = cqn4sql(q, model, useTechnicalAlias)
     if (cds.env.features.runtime_views && _q._with) {
       if (!transformedQuery._with) transformedQuery._with = _q._with
       delete _q._with
