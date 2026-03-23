@@ -1,5 +1,35 @@
 {
   "dependencies": {
     "@cap-js/sqlite": "*"
+  },
+  "cds": {
+    "[real]": {
+      "requires": {
+        "db": {
+          "kind": "sqlite",
+          "decimal_affinity": "real"
+        }
+      },
+      "features": {
+        "ieee754compatible": true
+      },
+      "cdsc": {
+        "sqliteRealAffinityForDecimal": true
+      }
+    },
+    "[numeric]": {
+      "requires": {
+        "db": {
+          "kind": "sqlite",
+          "decimal_affinity": "numeric"
+        }
+      },
+      "features": {
+        "ieee754compatible": true
+      },
+      "cdsc": {
+        "sqliteRealAffinityForDecimal": false
+      }
+    }
   }
 }
