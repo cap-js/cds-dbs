@@ -2,7 +2,7 @@ const cds = require('../../../test/cds.js')
 
 describe('SQLite decimal affinity real', () => {
   process.env.CDS_ENV = 'real'
-  const { expect, data } = cds.test(__dirname)
+  const { expect, data } = cds.test(__dirname, '--profile', 'real')
 
   beforeEach(data.reset)
 
