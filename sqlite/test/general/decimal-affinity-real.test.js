@@ -6,6 +6,12 @@ describe('SQLite decimal affinity real', () => {
 
   beforeEach(data.reset)
 
+  test('check pipeline sqlite version', async () => {
+    const db = await cds.connect.to('db')
+    const [{ v }] = db.run('SELECT sqlite_version() as v')
+    expect(v).to.equal('THE RIGHT VERSION')
+  })
+
   test('profile "real" should be active', async () => {
     const db = await cds.connect.to('db')
     const CQN2SQL = db.constructor.CQN2SQL
