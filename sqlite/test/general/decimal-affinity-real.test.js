@@ -6,6 +6,21 @@ describe('SQLite decimal affinity real', () => {
 
   beforeEach(data.reset)
 
+  test('profile "real" should be active', async () => {
+    const db = await cds.connect.to('db')
+    const CQN2SQL = db.constructor.CQN2SQL
+
+    // cds.env config
+    expect(cds.env.features.ieee754compatible).to.equal(true)
+    expect(cds.env.requires.db.decimal_affinity).to.equal('real')
+    expect(cds.env.cdsc.sqliteRealAffinityForDecimal).to.equal(true)
+
+    // CQN2SQL static properties (evaluated at class load time)
+    expect(typeof CQN2SQL.OutputConverters.Decimal).to.equal('function')
+    expect(typeof CQN2SQL.TypeMap.Decimal).to.equal('function')
+    expect(CQN2SQL.TypeMap.Decimal()).to.equal('DECIMAL_REAL')
+  })
+
   describe('when inserting data into a plain decimal field', () => {
     test('should allow to store a plain decimal value', async () => {
       const { EntityWithDecimalFields } = cds.entities('cap.dbs.test.sqlite.general.schema')
