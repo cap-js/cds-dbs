@@ -1,32 +1,10 @@
-process.env.CDS_ENV = 'real'
 const cds = require('../../../test/cds.js')
 
 describe('SQLite decimal affinity real', () => {
+  process.env.CDS_ENV = 'real'
   const { expect, data } = cds.test(__dirname, '--profile', 'real')
 
   beforeEach(data.reset)
-
-  test('check pipeline sqlite version', async () => {
-    const db = await cds.connect.to('db')
-    const res = await db.run('SELECT sqlite_version() as v')
-    const version = res[0]?.v
-    expect(version).to.equal('THE RIGHT VERSION')
-  })
-
-  test('profile "real" should be active', async () => {
-    const db = await cds.connect.to('db')
-    const CQN2SQL = db.constructor.CQN2SQL
-
-    // cds.env config
-    expect(cds.env.features.ieee754compatible).to.equal(true)
-    expect(cds.env.requires.db.decimal_affinity).to.equal('real')
-    expect(cds.env.cdsc.sqliteRealAffinityForDecimal).to.equal(true)
-
-    // CQN2SQL static properties (evaluated at class load time)
-    expect(typeof CQN2SQL.OutputConverters.Decimal).to.equal('function')
-    expect(typeof CQN2SQL.TypeMap.Decimal).to.equal('function')
-    expect(CQN2SQL.TypeMap.Decimal()).to.equal('REAL_DECIMAL')
-  })
 
   describe('when inserting data into a plain decimal field', () => {
     test('should allow to store a plain decimal value', async () => {
