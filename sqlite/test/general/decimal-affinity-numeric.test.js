@@ -1,7 +1,7 @@
+process.env.CDS_ENV = 'numeric'
 const cds = require('../../../test/cds.js')
 
 describe('SQLite decimal affinity numeric', () => {
-  process.env.CDS_ENV = 'numeric'
   const { expect, data } = cds.test(__dirname, '--profile', 'numeric')
 
   beforeEach(data.reset)

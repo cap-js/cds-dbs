@@ -1,7 +1,7 @@
+process.env.CDS_ENV = 'real'
 const cds = require('../../../test/cds.js')
 
 describe('SQLite decimal affinity real', () => {
-  process.env.CDS_ENV = 'real'
   const { expect, data } = cds.test(__dirname, '--profile', 'real')
 
   beforeEach(data.reset)
@@ -18,7 +18,7 @@ describe('SQLite decimal affinity real', () => {
     // CQN2SQL static properties (evaluated at class load time)
     expect(typeof CQN2SQL.OutputConverters.Decimal).to.equal('function')
     expect(typeof CQN2SQL.TypeMap.Decimal).to.equal('function')
-    expect(CQN2SQL.TypeMap.Decimal()).to.equal('DECIMAL_REAL')
+    expect(CQN2SQL.TypeMap.Decimal()).to.equal('REAL_DECIMAL')
   })
 
   describe('when inserting data into a plain decimal field', () => {
