@@ -8,8 +8,9 @@ describe('SQLite decimal affinity real', () => {
 
   test('check pipeline sqlite version', async () => {
     const db = await cds.connect.to('db')
-    const [{ v }] = db.run('SELECT sqlite_version() as v')
-    expect(v).to.equal('THE RIGHT VERSION')
+    const res = await db.run('SELECT sqlite_version() as v')
+    const version = res[0]?.v
+    expect(version).to.equal('THE RIGHT VERSION')
   })
 
   test('profile "real" should be active', async () => {
