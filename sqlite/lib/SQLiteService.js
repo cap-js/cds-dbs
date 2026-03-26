@@ -291,7 +291,7 @@ class SQLiteService extends SQLService {
       DateTime: () => 'DATETIME_TEXT',
       Timestamp: () => 'TIMESTAMP_TEXT',
       Map: () => 'JSON_TEXT',
-      Decimal: cds.env.requires.db?.decimal_affinity?.match(/^real$/i) ? () => 'DECIMAL_REAL' : () => 'DECIMAL'
+      Decimal: cds.env.requires.db?.decimal_affinity?.match(/^real$/i) ? () => 'REAL_DECIMAL' : () => 'DECIMAL'
     }
 
     get is_distinct_from_() {
