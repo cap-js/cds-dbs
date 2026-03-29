@@ -156,7 +156,7 @@ constructor (factory, options = {}) {
 
   async destroy(resource) {
     const loan = this._loans.get(resource)
-    if (!loan) throw new Error('Resource not currently part of this pool')
+    if (!loan) return // connection already released (e.g. hdb onclose after release)
     this._loans.delete(resource)
     const pooledResource = loan.pooledResource
     await this.#destroy(pooledResource)
