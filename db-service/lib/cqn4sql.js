@@ -1780,7 +1780,6 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
             ops.push(rhs)
             rhs = tokenStream[i + 3]
             indexRhs += 1
-            rhsDef = rhs?.$refLinks?.at(-1)?.definition
           }
 
           if (notSupportedOps.some(([firstOp]) => firstOp === next))
