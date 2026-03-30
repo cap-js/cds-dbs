@@ -23,14 +23,14 @@ describe('Bookshop - Read', () => {
     const res = await GET('/browse/ListOfBooks?$count=true&$top=0')
     expect(res.status).to.be.eq(200)
     expect(res.data.value.length).to.be.eq(0)
-    expect(res.data['@odata.count']).to.be.eq(totalBooks)
+    expect(res.data['@odata.count']).to.be.eq(`${totalBooks}`)
   })
 
   test('Books $count with $top=2', async () => {
     const res = await GET('/browse/ListOfBooks?$count=true&$top=2')
     expect(res.status).to.be.eq(200)
     expect(res.data.value.length).to.be.eq(2)
-    expect(res.data['@odata.count']).to.be.eq(totalBooks)
+    expect(res.data['@odata.count']).to.be.eq(`${totalBooks}`)
   })
 
   test('Books $count with $top=1 and groupby', async () => {
@@ -39,7 +39,7 @@ describe('Bookshop - Read', () => {
     )
     expect(res.status).to.be.eq(200)
     expect(res.data.value.length).to.be.eq(1)
-    expect(res.data['@odata.count']).to.be.eq(totalBooks)
+    expect(res.data['@odata.count']).to.be.eq(`${totalBooks}`)
   })
 
   test('Books $count in expand', async () => {
@@ -426,7 +426,7 @@ describe('Bookshop - Read', () => {
   test('Books $count with $top=0 and group by', async () => {
     // top=0 to force count subquery
     const res = await GET(`/admin/Books?$apply=groupby((author/name))&$top=0&$count=true`, admin)
-    expect(res.data['@odata.count']).to.be.eq(4)
+    expect(res.data['@odata.count']).to.be.eq('4')
   })
 
   it('joins as subselect are executable', async () => {
