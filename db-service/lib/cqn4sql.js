@@ -727,10 +727,11 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
           },
         })
       } else {
-        // target column is `val` or `xpr`, destructure and throw away the ref with the $self
+        // target column is `val`, `xpr`, or `func` — destructure and throw away the ref with the $self
         // eslint-disable-next-line no-unused-vars
-        const { xpr, val, ref, as: _as, ...rest } = referencedColumn
+        const { xpr, val, func, args, ref, as: _as, ...rest } = referencedColumn
         if (xpr) rest.xpr = xpr
+        else if (func) { rest.func = func; rest.args = args }
         else rest.val = val
         dollarSelfColumn = { ...rest } // reassign dummyColumn without 'ref'
         if (!omitAlias) dollarSelfColumn.as = as
@@ -1779,7 +1780,6 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
             ops.push(rhs)
             rhs = tokenStream[i + 3]
             indexRhs += 1
-            rhsDef = rhs?.$refLinks?.at(-1)?.definition
           }
 
           if (notSupportedOps.some(([firstOp]) => firstOp === next))
