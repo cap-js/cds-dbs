@@ -512,6 +512,29 @@ describe('table alias access', () => {
        `,
       )
     })
+    it('in having with func', () => {
+      let query = cqn4sql(
+        cds.ql`SELECT from bookshop.Books {
+            author.name as author,
+            count(*) as numberOfBooks,
+          }
+          group by author.name
+          having $self.numberOfBooks > 1
+         `,
+        model,
+      )
+      expect(query).to.deep.equal(
+        cds.ql`SELECT from bookshop.Books as $B
+          left join bookshop.Authors as author on author.ID = $B.author_ID
+         {
+          author.name as author,
+          count(*) as numberOfBooks,
+        }
+        group by author.name
+        having count(*) > 1
+       `,
+      )
+    })
     it('in where', () => {
       let query = cqn4sql(
         cds.ql`SELECT from bookshop.Authors {
