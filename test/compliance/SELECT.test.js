@@ -302,6 +302,20 @@ describe('SELECT', () => {
         .rejected
     })
 
+    test('select cast literal integer to decimal', async () => {
+      const { globals } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT CAST(1 AS Decimal) / CAST(2 AS Decimal) AS res FROM ${globals}`
+      const res = await cds.run(cqn)
+      assert.strictEqual(res[0].res, '0.5')
+    })
+
+    test('select cast literal integer to decimal with scale', async () => {
+      const { globals } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT CAST(0.5 AS Decimal(4, 2)) AS res FROM ${globals}`
+      const res = await cds.run(cqn)
+      assert.strictEqual(res[0].res, '0.50')
+    })
+
     test('$now in view refers to tx timestamp', async () => {
       let ts, res1, res2
       await cds.tx(async tx => {
