@@ -271,11 +271,10 @@ class SQLiteService extends SQLService {
       // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
       Decimal: cds.env.features.ieee754compatible
-        ? (expr, elem) => elem?.scale
-          ? `CASE WHEN ${expr} IS NULL THEN NULL ELSE format('%.${elem.scale}f', ${expr}) END`
-          : cds.env.requires.db?.decimal_affinity?.match(/^real$/i) 
-            ? `CASE WHEN ${expr} IS NULL THEN NULL ELSE format('%!f', ${expr}) END`
-            : `CAST(${expr} AS TEXT)`
+        ? (expr, elem) =>
+            elem?.scale
+              ? `CASE WHEN ${expr} IS NULL THEN NULL ELSE format('%.${elem.scale}f', ${expr}) END`
+              : `CAST(${expr} AS TEXT)`
         : undefined,
       // Binary is not allowed in json objects
       Binary: expr => `${expr} || ''`,
@@ -293,7 +292,7 @@ class SQLiteService extends SQLService {
       DateTime: () => 'DATETIME_TEXT',
       Timestamp: () => 'TIMESTAMP_TEXT',
       Map: () => 'JSON_TEXT',
-      Decimal: cds.env.requires.db?.decimal_affinity?.match(/^real$/i) ? () => 'REAL_DECIMAL' : () => 'DECIMAL'
+      Decimal: cds.env.requires.db?.decimal_affinity?.match(/^real$/i) ? () => 'REAL_DECIMAL' : undefined,
     }
 
     get is_distinct_from_() {
