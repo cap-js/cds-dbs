@@ -35,16 +35,17 @@ let isolateCounter = 0
 cds.test = Object.setPrototypeOf(function () {
 
   global.beforeAll(async () => {
+    const path = cds.utils.path
+    const sep = path.sep
+
     // Inject the provided plugins for cds.env resolving
-    process.env.CDS_PLUGINS = JSON.stringify({
-      '@cap-js/sqlite': { impl: require.resolve('@cap-js/sqlite') },
-      '@cap-js/hana': { impl: require.resolve('@cap-js/hana') },
-      '@cap-js/postgres': { impl: require.resolve('@cap-js/postgres') },
-    })
+    const plugins = {}
+    try { plugins['@cap-js/sqlite'] = { impl: require.resolve('@cap-js/sqlite') } } catch {/* ignore */ }
+    try { plugins['@cap-js/hana'] = { impl: require.resolve('@cap-js/hana') } } catch {/* ignore */ }
+    try { plugins['@cap-js/postgres'] = { impl: require.resolve('@cap-js/postgres') } } catch {/* ignore */ }
+    process.env.CDS_PLUGINS = JSON.stringify(plugins)
 
     try {
-      const path = cds.utils.path
-      const sep = path.sep
       const testSource = process.argv[1].split(`${sep}test${sep}`)[0]
       const serviceDefinitionPath = `${testSource}/test/service`
 
