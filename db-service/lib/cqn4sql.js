@@ -9,7 +9,7 @@ const {
   prettyPrintRef,
   isCalculatedOnRead,
   isCalculatedElement,
-  getImplicitAlias,
+  getImplicitAlias: _getImplicitAlias,
   defineProperty,
   getModelUtils,
   hasOwnSkip,
@@ -54,7 +54,8 @@ const { pseudos } = require('./infer/pseudos')
  * @param {object} model
  * @returns {object} transformedQuery the transformed query
  */
-function cqn4sql(originalQuery, model) {
+function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
+  const getImplicitAlias = str => _getImplicitAlias(str, useTechnicalAlias)
   let inferred = typeof originalQuery === 'string' ? cds.parse.cql(originalQuery) : cds.ql.clone(originalQuery)
   const hasCustomJoins =
     originalQuery.SELECT?.from.args && (!originalQuery.joinTree || originalQuery.joinTree.isInitial)
@@ -81,7 +82,7 @@ function cqn4sql(originalQuery, model) {
   if (inferred.UPDATE?.entity.ref?.at(-1).id) {
     assignQueryModifiers(inferred.UPDATE, inferred.UPDATE.entity.ref.at(-1))
   }
-  inferred = infer(inferred, model)
+  inferred = infer(inferred, model, useTechnicalAlias)
   const { getLocalizedName, isLocalized, getDefinition } = getModelUtils(model, originalQuery) // TODO: pass model to getModelUtils
   // if the query has custom joins we don't want to transform it
   // TODO: move all the way to the top of this function once cds.infer supports joins as well
@@ -134,7 +135,7 @@ function cqn4sql(originalQuery, model) {
       // match primary keys of the target entity with the subquery
       primaryKey.list.forEach(k => subquery.SELECT.columns.push({ ref: k.ref.slice(1) }))
 
-      const transformedSubquery = cqn4sql(subquery, model)
+      const transformedSubquery = cqn4sql(subquery, model, useTechnicalAlias)
 
       // replace where condition of original query with the transformed subquery
       // correlate UPDATE / DELETE query with subquery by primary key matches
@@ -229,9 +230,9 @@ function cqn4sql(originalQuery, model) {
         }
       }
     }
-    const inferredDQ = infer(q, model)
+    const inferredDQ = infer(q, model, useTechnicalAlias)
     inferredDQ._with = transformedQuery._with
-    const transformedDQ = cqn4sql(inferredDQ, model)
+    const transformedDQ = cqn4sql(inferredDQ, model, useTechnicalAlias)
 
     if (q.SELECT?.from?.args) {
       for (const arg of q.SELECT.from.args) {
@@ -731,10 +732,11 @@ function cqn4sql(originalQuery, model) {
           },
         })
       } else {
-        // target column is `val` or `xpr`, destructure and throw away the ref with the $self
+        // target column is `val`, `xpr`, or `func` — destructure and throw away the ref with the $self
         // eslint-disable-next-line no-unused-vars
-        const { xpr, val, ref, as: _as, ...rest } = referencedColumn
+        const { xpr, val, func, args, ref, as: _as, ...rest } = referencedColumn
         if (xpr) rest.xpr = xpr
+        else if (func) { rest.func = func; rest.args = args }
         else rest.val = val
         dollarSelfColumn = { ...rest } // reassign dummyColumn without 'ref'
         if (!omitAlias) dollarSelfColumn.as = as
@@ -841,9 +843,11 @@ function cqn4sql(originalQuery, model) {
           return { ...token, xpr: augmentInlineXprRefs(token.xpr, parentCol) }
         }
         if (token.func && token.args) {
-          return { ...token, args: token.args.map(arg => 
-            arg.ref ? augmentInlineXprRefs([arg], parentCol)[0] : arg
-          )}
+          return {
+            ...token, args: token.args.map(arg =>
+              arg.ref ? augmentInlineXprRefs([arg], parentCol)[0] : arg
+            )
+          }
         }
         return token
       })
@@ -905,6 +909,9 @@ function cqn4sql(originalQuery, model) {
 
     if (baseRefLinks.at(-1).definition.kind === 'entity') {
       res.push(...getColumnsForWildcard(exclude, replace, col.as))
+    } else if (baseRefLinks.at(-1).definition.target) {
+      // Wildcard on association - need to include FK columns and join-relevant target columns
+      res.push(...expandAssociationWildcard(col, baseRef, baseRefLinks, exclude, replace))
     } else
       res.push(
         ...getFlatColumnsFor(col, { columnAlias: col.as, tableAlias: getTableAlias(col) }, [], {
@@ -912,6 +919,117 @@ function cqn4sql(originalQuery, model) {
           replace,
         }),
       )
+    return res
+  }
+
+  /**
+   * Expands a wildcard on an association into:
+   * 1. FK columns from the source table
+   * 2. Non-FK columns from the target via join
+   */
+  function expandAssociationWildcard(col, baseRef, baseRefLinks, exclude, replace) {
+    const res = []
+    const assocDef = baseRefLinks.at(-1).definition
+    const targetDef = getDefinition(assocDef.target)
+    const columnAlias = col.as || baseRef.map(idOnly).join('_')
+    const sourceTableAlias = getTableAlias(col)
+
+    // Get the join alias for this association (set during join tree merge)
+    const joinAlias = baseRefLinks.at(-1).alias
+
+    // Collect FK element names
+    const fkNames = new Set()
+    if (assocDef.keys) {
+      for (const k of assocDef.keys) {
+        fkNames.add(k.ref[0])
+      }
+    }
+
+    // First, add FK columns from source table
+    // These are accessed via the source table alias, not the join
+    const fkColumns = getFlatColumnsFor(col, { tableAlias: sourceTableAlias }, [], {
+      exclude,
+      replace,
+    })
+    res.push(...fkColumns.filter(fk => !col.excluding?.some(e => targetDef.elements[e] === fk.element)))
+
+    // Then, add non-FK columns from target via join
+    if (targetDef?.elements) {
+      for (const [elemName, elemDef] of Object.entries(targetDef.elements)) {
+        // Skip FK elements (already included above), virtual, blobs, and unmanaged assocs
+        if (fkNames.has(elemName)) continue
+        if (elemDef.virtual) continue
+        if (elemDef.type === 'cds.LargeBinary') continue
+        if (elemDef.on && !elemDef.keys) continue // unmanaged association
+
+        // Check exclusions
+        const fullName = `${columnAlias}_${elemName}`
+        if (exclude.some(e => (e.ref?.at(-1) || e.as || e) === elemName)) continue
+        if (exclude.some(e => (e.ref?.at(-1) || e.as || e) === fullName)) continue
+
+        // Check for replacement
+        const replacement = replace.find(r => (r.ref?.at(-1) || r.as) === elemName)
+        if (replacement) {
+          // Handle replacement - create augmented column
+          const augmented = { ...replacement }
+          augmented.as = fullName
+          res.push(...getTransformedColumns([augmented]))
+          continue
+        }
+
+        // Create column referencing the join alias
+        if (elemDef.elements) {
+          // Structured element - need to flatten it
+          const structCols = getFlatColumnsFor(
+            elemDef,
+            { baseName: elemName, columnAlias: fullName, tableAlias: joinAlias },
+            [],
+            { exclude, replace },
+            true,
+          )
+          res.push(...structCols)
+        } else if (elemDef.keys) {
+          // Association element - flatten its foreign keys
+          // The FK column name is: assocName_keyName (e.g., 'head_id')
+          for (const k of elemDef.keys) {
+            const keyName = k.as || k.ref.join('_')
+            const fkName = `${elemName}_${keyName}`  // e.g., 'head_id'
+            const fkFullName = `${columnAlias}_${fkName}`  // e.g., 'department_head_id'
+            
+            // Check if this FK is excluded
+            if (exclude.some(e => (e.ref?.at(-1) || e.as || e) === fkName)) continue
+            if (exclude.some(e => (e.ref?.at(-1) || e.as || e) === fkFullName)) continue
+            
+            const flatColumn = {
+              ref: [joinAlias, fkName],
+              as: fkFullName,
+            }
+            const fkElement = getElementForRef(k.ref, getDefinition(elemDef.target))
+            setElementOnColumns(flatColumn, fkElement)
+            res.push(flatColumn)
+          }
+        } else if (elemDef.value) {
+          // Calculated element - resolve it
+          const calcElement = resolveCalculatedElement({ $refLinks: [{ definition: elemDef }] }, true)
+          if (calcElement.as) {
+            calcElement.as = fullName
+          } else {
+            calcElement.as = fullName
+          }
+          res.push(calcElement)
+        }        
+        else {
+          // Scalar element
+          const flatColumn = {
+            ref: [joinAlias, elemName],
+            as: fullName,
+          }
+          setElementOnColumns(flatColumn, elemDef)
+          res.push(flatColumn)
+        }
+      }
+    }
+
     return res
   }
 
@@ -1238,7 +1356,7 @@ function cqn4sql(originalQuery, model) {
     if (isLocalized(target)) q.SELECT.localized = true
     if (q.SELECT.from.ref && !q.SELECT.from.as) assignUniqueSubqueryAlias()
     if (cds.env.features.runtime_views) q._with = transformedQuery._with
-    const _q = cqn4sql(q, model)
+    const _q = cqn4sql(q, model, useTechnicalAlias)
     if (cds.env.features.runtime_views && _q._with) {
       if (!transformedQuery._with) transformedQuery._with = _q._with
       delete _q._with
@@ -1279,8 +1397,8 @@ function cqn4sql(originalQuery, model) {
       if (!exclude.includes(k)) {
         const { index, tableAlias } = inferred.$combinedElements[k][0]
         const element = tableAlias.elements[k]
-        // ignore FK for odata csn / ignore blobs from wildcard expansion
-        if (isManagedAssocInFlatMode(element) || element.type === 'cds.LargeBinary') continue
+        // ignore FK for odata csn (but not for subquery sources where FK is not a separate element) / ignore blobs from wildcard expansion
+        if ((!tableAlias.SELECT && isManagedAssocInFlatMode(element)) || element.type === 'cds.LargeBinary') continue
         // for wildcard on subquery in from, just reference the elements
         if (tableAlias.SELECT && !element.elements && !element.target) {
           wildcardColumns.push(index ? { ref: [index, k] } : { ref: [k] })
@@ -1675,7 +1793,6 @@ function cqn4sql(originalQuery, model) {
             ops.push(rhs)
             rhs = tokenStream[i + 3]
             indexRhs += 1
-            rhsDef = rhs?.$refLinks?.at(-1)?.definition
           }
 
           if (notSupportedOps.some(([firstOp]) => firstOp === next))
