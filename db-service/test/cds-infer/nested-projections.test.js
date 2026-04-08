@@ -1,7 +1,7 @@
 'use strict'
 
 const cds = require('@sap/cds')
-const { expect } = cds.test
+const expect = require('@cap-js/cds-test/lib/expect.js') // REVISIT: contain({_type}) doesn't work with jest
 const inferred = require('../../lib/infer')
 function _inferred(q, m = cds.model) {
   return inferred(q, m)
@@ -428,10 +428,10 @@ describe('nested projections', () => {
       let { EmployeeNoUnmanaged } = model.entities
       expect(inferredInline.elements)
         .to.deep.equal(inferredAbsolute.elements)
-        .to.deep.equal({
-          office_building: { type: 'cds.String' },
+        .to.deep.contain({
+          office_building: { _type: 'cds.String' },
           office_furniture: EmployeeNoUnmanaged.elements.office.elements.furniture.elements.chairs,
-          office_floor: { type: 'cds.String' },
+          office_floor: { _type: 'cds.String' },
           office_room: EmployeeNoUnmanaged.elements.office.elements.room,
           office_address: {
             elements: EmployeeNoUnmanaged.elements.office.elements.address.elements,
