@@ -303,22 +303,22 @@ class SQLiteService extends SQLService {
   }
 }
 
-function loadSQLite(driver) {
+function loadSQLite(driver = 'better-sqlite3') {
   const drivers = {
     node: './node-sqlite.js',
     'better-sqlite3': 'better-sqlite3',
     'sql.js': './sql.js.js',
   }
 
-  if (driver) {
+  try {
     sqlite = require(drivers[driver])
-    return
-  }
-
-  try { sqlite = require(drivers['better-sqlite3']) }
-  catch {
-    try { sqlite = require(drivers.node) }
-    catch { sqlite = require(drivers['sql.js']) }
+    // test that it works
+    const test = new sqlite(':memory:')
+    test.close()
+  } catch (e) {
+    if (driver === 'node') throw e
+    console.warn(`Failed to load sqlite driver "${driver}", falling back to "node:sqlite" driver.`, e)
+    return loadSQLite('node')
   }
 }
 
