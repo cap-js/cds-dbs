@@ -30,23 +30,28 @@ class SQLiteService extends SQLService {
     return {
       options: this.options.pool || {},
       create: async tenant => {
-        if (!sqlite) loadSQLite(this.options.driver || this.options.credentials?.driver)
-        const database = this.url4(tenant)
-        const dbc = new sqlite(database, this.options.client || {})
-        await dbc.ready
+        try {
+          if (!sqlite) loadSQLite(this.options.driver || this.options.credentials?.driver)
+          const database = this.url4(tenant)
+          const dbc = new sqlite(database, this.options.client || {})
+          await dbc.ready
 
-        const deterministic = { deterministic: true }
-        dbc.function('session_context', key => dbc[$session][key])
-        dbc.function('regexp', deterministic, (re, x) => (RegExp(re).test(x) ? 1 : 0))
-        dbc.function('ISO', deterministic, d => d && new Date(d).toISOString())
-        dbc.function('year', deterministic, d => d === null ? null : toDate(d).getUTCFullYear())
-        dbc.function('month', deterministic, d => d === null ? null : toDate(d).getUTCMonth() + 1)
-        dbc.function('day', deterministic, d => d === null ? null : toDate(d).getUTCDate())
-        dbc.function('hour', deterministic, d => d === null ? null : toDate(d, true).getUTCHours())
-        dbc.function('minute', deterministic, d => d === null ? null : toDate(d, true).getUTCMinutes())
-        dbc.function('second', deterministic, d => d === null ? null : toDate(d, true).getUTCSeconds())
-        if (database !== ':memory:') dbc.pragma?.('journal_mode = WAL') || dbc.exec('PRAGMA journal_mode = WAL')
-        return dbc
+          const deterministic = { deterministic: true }
+          dbc.function('session_context', key => dbc[$session][key])
+          dbc.function('regexp', deterministic, (re, x) => (RegExp(re).test(x) ? 1 : 0))
+          dbc.function('ISO', deterministic, d => d && new Date(d).toISOString())
+          dbc.function('year', deterministic, d => d === null ? null : toDate(d).getUTCFullYear())
+          dbc.function('month', deterministic, d => d === null ? null : toDate(d).getUTCMonth() + 1)
+          dbc.function('day', deterministic, d => d === null ? null : toDate(d).getUTCDate())
+          dbc.function('hour', deterministic, d => d === null ? null : toDate(d, true).getUTCHours())
+          dbc.function('minute', deterministic, d => d === null ? null : toDate(d, true).getUTCMinutes())
+          dbc.function('second', deterministic, d => d === null ? null : toDate(d, true).getUTCSeconds())
+          if (database !== ':memory:') dbc.pragma?.('journal_mode = WAL') || dbc.exec('PRAGMA journal_mode = WAL')
+          return dbc
+        } catch (err) {
+          Promise.reject(err)
+          await new Promise(() => { })
+        }
       },
       destroy: dbc => dbc.close(),
       validate: dbc => dbc.open,
@@ -310,15 +315,10 @@ function loadSQLite(driver) {
     return
   }
 
-  try {
-    sqlite = require(drivers['better-sqlite3'])
-  } catch {
-    try {
-      sqlite = require(drivers.node)
-    } catch {
-      // When failing to load better-sqlite3 it fallsback to sql.js (wasm version of sqlite)
-      sqlite = require(drivers['sql.js'])
-    }
+  try { sqlite = require(drivers['better-sqlite3']) }
+  catch {
+    try { sqlite = require(drivers.node) }
+    catch { sqlite = require(drivers['sql.js']) }
   }
 }
 
