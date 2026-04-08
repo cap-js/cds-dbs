@@ -200,9 +200,9 @@ describe('Bookshop - Read', () => {
 
   test('reuse already executed select as subselect', async () => {
     let s = SELECT.columns('ID').from('sap.capire.bookshop.Books')
-    let res = await s
+    await s
 
-    res = await SELECT.one.from('sap.capire.bookshop.Books as b')
+    const res = await SELECT.one.from('sap.capire.bookshop.Books as b')
       .join('sap.capire.bookshop.Authors as a')
       .on('a.ID = b.author_ID')
       .columns('a.name', 'b.title')

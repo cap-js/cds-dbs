@@ -3,7 +3,7 @@ const bookshop = require('path').resolve(__dirname, '../../bookshop')
 
 describe('Bookshop - Genres', () => {
   if (cds.version < '9') return test.todo('Tests are skipped until release of cds9')
-  const { expect, GET, perf } = cds.test(bookshop)
+  const { expect, GET, perf } = cds.test(bookshop, '--service', 'TreeService')
   const { report } = perf || {}
 
   beforeAll(async () => {
@@ -25,6 +25,29 @@ describe('Bookshop - Genres', () => {
         name: 'Non-Fiction',
         DrillState: 'collapsed',
       },
+    ])
+  })
+
+  test('TopLevels with calculated element', async () => {
+    const res = await GET(`/tree/Genres?$select=DrillState,ID,name,timesTwo&$apply=${topLevels}(HierarchyNodes=$root/GenreHierarchy,HierarchyQualifier='GenreHierarchy',NodeProperty='ID',Levels=2)`)
+    expect(res).property('data').property('value').deep.eq([
+      { DrillState: 'expanded', ID: 10, name: 'Fiction', timesTwo: null },
+      { DrillState: 'leaf', ID: 11, name: 'Drama', timesTwo: 42 },
+      { DrillState: 'leaf', ID: 12, name: 'Poetry', timesTwo: 44 },
+      { DrillState: 'leaf', ID: 13, name: 'Fantasy', timesTwo: 46 },
+      { DrillState: 'leaf', ID: 14, name: 'Science Fiction', timesTwo: 48 },
+      { DrillState: 'leaf', ID: 15, name: 'Romance', timesTwo: 50 },
+      { DrillState: 'leaf', ID: 16, name: 'Mystery', timesTwo: 52 },
+      { DrillState: 'leaf', ID: 17, name: 'Thriller', timesTwo: 54 },
+      { DrillState: 'leaf', ID: 18, name: 'Dystopia', timesTwo: 56 },
+      { DrillState: 'leaf', ID: 19, name: 'Fairy Tale', timesTwo: 58 },
+      { DrillState: 'expanded', ID: 20, name: 'Non-Fiction', timesTwo: null },
+      { DrillState: 'collapsed', ID: 21, name: 'Biography', timesTwo: 82 },
+      { DrillState: 'leaf', ID: 23, name: 'Essay', timesTwo: 86 },
+      { DrillState: 'leaf', ID: 24, name: 'Speech', timesTwo: 88 },
+      { DrillState: 'expanded', ID: 52, name: 'Historical', timesTwo: null },
+      { DrillState: 'collapsed', ID: 51, name: 'Medieval', timesTwo: 206 },
+      { DrillState: 'leaf', ID: 53, name: 'Contemporary', timesTwo: null }
     ])
   })
 
