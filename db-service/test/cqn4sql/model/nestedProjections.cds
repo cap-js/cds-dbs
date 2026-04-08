@@ -56,6 +56,7 @@ entity Building {
 }
 entity Country {
   key code : String;
+  population : Integer;
 }
 entity Assets {
   key id : String;
@@ -65,6 +66,11 @@ entity Assets {
     start : String;
     end : String;
   }
+}
+
+entity RetiredEmployee : Employee {
+  isRetired = department.name = 'Retired';
+  self: Association to RetiredEmployee;
 }
 
 entity foo as  select from Employee {
