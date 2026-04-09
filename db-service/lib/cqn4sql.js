@@ -82,6 +82,7 @@ function _cqn4sql(originalQuery, model, useTechnicalAlias = true) {
       const { where, having } = transformSearch(searchTerm)
       if (where) inferred.SELECT.where = where
       else if (having) inferred.SELECT.having = having
+      if (where || having) (inferred.SELECT.orderBy ??= []).unshift(...(where || having).map(fn => ({ __proto__: fn, sort: 'desc' })))
     }
   }
   // query modifiers can also be defined in from ref leaf infix filter
