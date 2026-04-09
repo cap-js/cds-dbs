@@ -1515,6 +1515,7 @@ class CQN2SQLRenderer {
 
     return [...columns, ...requiredColumns].map(({ name, sql }) => {
       const element = elements?.[name] || {}
+      const notInSelect = this.cqn.INSERT?.from && sql === 'NULL'
 
       const converter = a => element[_convertInput]?.(a, element) || a
       let extract
@@ -1535,8 +1536,8 @@ class CQN2SQLRenderer {
 
       const qname = this.quote(name)
 
-      const insert = onInsert ? this.managed_default(name, converter(onInsert), sql) : sql
-      const update = onUpdate ? this.managed_default(name, converter(onUpdate), sql) : sql
+      const insert = onInsert ? (notInSelect ? converter(onInsert) : this.managed_default(name, converter(onInsert), sql)) : sql
+      const update = onUpdate ? (notInSelect ? converter(onUpdate) : this.managed_default(name, converter(onUpdate), sql)) : sql
       const upsert = keyZero && (
         // upsert requires the keys to be provided for the existance join (default values optional)
         element.key
@@ -1584,8 +1585,6 @@ class CQN2SQLRenderer {
   }
 
   managed_default(name, managed, src) {
-    if (this.cqn.INSERT?.from)
-      return `(CASE WHEN ${src} IS NULL THEN ${managed} ELSE ${src} END)`
     return `(CASE WHEN json_type(value,${this.managed_extract(name).extract.slice(8)}) IS NULL THEN ${managed} ELSE ${src} END)`
   }
 }
