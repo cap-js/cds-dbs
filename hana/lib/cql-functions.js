@@ -114,7 +114,7 @@ const StandardFunctions = {
    * @param {string} arg - Argument object containing search values
    * @returns {string} - SQL statement
    */
-  search: function (ref, arg) {
+  search: function (ref, arg, numeric) {
     if (cds.env.hana.fuzzy === false) {
       // Handle non-fuzzy search
       arg = arg.xpr ? arg.xpr : arg
@@ -207,7 +207,7 @@ const StandardFunctions = {
       }
     }
 
-    return `(CASE WHEN SCORE(${arg} IN ${ref}) > 0 THEN TRUE ELSE FALSE END)`
+    return numeric ? `SCORE(${arg} IN ${ref})` : `(CASE WHEN SCORE(${arg} IN ${ref}) > 0 THEN TRUE ELSE FALSE END)`
   },
 
   // ==============================
