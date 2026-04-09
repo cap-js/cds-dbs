@@ -1584,6 +1584,8 @@ class CQN2SQLRenderer {
   }
 
   managed_default(name, managed, src) {
+    if (this.cqn.INSERT?.from)
+      return `(CASE WHEN ${src} IS NULL THEN ${managed} ELSE ${src} END)`
     return `(CASE WHEN json_type(value,${this.managed_extract(name).extract.slice(8)}) IS NULL THEN ${managed} ELSE ${src} END)`
   }
 }
