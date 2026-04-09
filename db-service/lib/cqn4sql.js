@@ -69,6 +69,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
       const { where, having } = transformSearch(searchTerm)
       if (where) inferred.SELECT.where = where
       else if (having) inferred.SELECT.having = having
+      if (where || having) (inferred.SELECT.orderBy ??= []).unshift(...(where || having).map(fn => ({ __proto__: fn, sort: 'desc' })))
     }
   }
   // query modifiers can also be defined in from ref leaf infix filter
@@ -995,11 +996,11 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
             const keyName = k.as || k.ref.join('_')
             const fkName = `${elemName}_${keyName}`  // e.g., 'head_id'
             const fkFullName = `${columnAlias}_${fkName}`  // e.g., 'department_head_id'
-            
+
             // Check if this FK is excluded
             if (exclude.some(e => (e.ref?.at(-1) || e.as || e) === fkName)) continue
             if (exclude.some(e => (e.ref?.at(-1) || e.as || e) === fkFullName)) continue
-            
+
             const flatColumn = {
               ref: [joinAlias, fkName],
               as: fkFullName,
@@ -1017,7 +1018,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
             calcElement.as = fullName
           }
           res.push(calcElement)
-        }        
+        }
         else {
           // Scalar element
           const flatColumn = {
