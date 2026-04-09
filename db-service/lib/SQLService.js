@@ -200,7 +200,7 @@ class SQLService extends DatabaseService {
     const ps = await this.prepare(sql)
     const results = entries ? await Promise.all(entries.map(e => ps.run(e))) : await ps.run()
     // REVISIT: results isn't an array, when no entries -> how could that work? when do we have no entries?
-    return results.reduce((total, affectedRows) => (total += affectedRows.changes), 0)
+    return results.reduce((total, affectedRows) => total + affectedRows.changes, 0)
   }
 
   /**
