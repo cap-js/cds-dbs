@@ -97,8 +97,8 @@ describe('UPSERT', () => {
       await cds.run(UPSERT([{ ID }]).into(cuid))
 
       // default key column
-      await UPSERT.into(keys).from(cds.ql`SELECT ID as id FROM ${cuid} WHERE ID = ${ID}`)
-      await UPSERT.into(keys).from(cds.ql`SELECT ID as id, 'overwritten' as default FROM ${cuid} WHERE ID = ${ID}`)
+      await UPSERT.into(keys).from(cds.ql`SELECT cast(ID as Integer) as id FROM ${cuid} WHERE ID = ${ID}`)
+      await UPSERT.into(keys).from(cds.ql`SELECT cast(ID as Integer) as id, 'overwritten' as default FROM ${cuid} WHERE ID = ${ID}`)
 
       const keysAfter = await SELECT.from(keys).where`id = ${ID}`.orderBy('default')
       expect(keysAfter).deep.eq([

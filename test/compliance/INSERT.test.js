@@ -201,8 +201,8 @@ describe('INSERT', () => {
       // fill other table first
       const ID = '1234'
       await cds.run(INSERT([{ ID }]).into(cuid))
-      await INSERT.into(keys).from(cds.ql`SELECT ID as id FROM ${cuid} WHERE ID = ${ID}`)
-      await INSERT.into(keys).from(cds.ql`SELECT ID as id, 'overwritten' as default FROM ${cuid} WHERE ID = ${ID}`)
+      await INSERT.into(keys).from(cds.ql`SELECT cast(ID as Integer) as id FROM ${cuid} WHERE ID = ${ID}`)
+      await INSERT.into(keys).from(cds.ql`SELECT cast(ID as Integer) as id, 'overwritten' as default FROM ${cuid} WHERE ID = ${ID}`)
 
       // default key column
       const select = await SELECT.from(keys).where`id = ${ID}`.orderBy('default')
