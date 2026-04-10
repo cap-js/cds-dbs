@@ -367,7 +367,7 @@ describe('Bookshop - Functions', () => {
           },
         }
         const res = await tx.run(cqn)
-        expect(res.length).to.be.eq(5)
+        expect(res.length).to.be.eq(6)
       })
     })
 

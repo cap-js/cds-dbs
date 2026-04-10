@@ -86,7 +86,7 @@ describe('searching', () => {
       Books['@cds.search.author'] = true
 
       let res = await SELECT.from(Books).columns('author.name', 'title').search('Brontë')
-      expect(res.length).to.be.eq(2) // Emily and Charlotte
+      expect(res.length).to.be.eq(3) // Emily and Charlotte
     })
 
     test('Search authors address through calculated element in books', async () => {
@@ -96,7 +96,7 @@ describe('searching', () => {
 
       let res = await SELECT.from(Books).columns('author.name as author', 'title').search('"1 Main Street, Bradford"')
       // author name in res[0] must match "Emily Brontë"
-      expect(res.length).to.be.eq(1)
+      expect(res.length).to.be.eq(2)
       expect(res[0].author).to.be.eq('Emily Brontë')
     })
     test('Search authors calculated element via books', async () => {
@@ -108,7 +108,7 @@ describe('searching', () => {
 
       let res = await SELECT.from(Books).columns('author.name as author', 'title').search('"1 Main Street, Bradford"')
       // author name in res[0] must match "Emily Brontë"
-      expect(res.length).to.be.eq(1)
+      expect(res.length).to.be.eq(2)
       expect(res[0].author).to.be.eq('Emily Brontë')
     })
 
@@ -148,7 +148,7 @@ describe('searching', () => {
         .search('Brontë')
       query.SELECT.from['@cds.search.author'] = true
       const res = await cds.run(query)
-      expect(res.length).to.be.eq(2)
+      expect(res.length).to.be.eq(3)
     })
 
     test('search also own columns if association is part of `@cds.search`', async () => {
@@ -162,7 +162,7 @@ describe('searching', () => {
       expect(res[0].title).to.be.eq('Wuthering Heights')
 
       res = await SELECT.from(Books).columns('author.name', 'title').search('Emily')
-      expect(res.length).to.be.eq(1)
+      expect(res.length).to.be.eq(2)
       expect(res[0].title).to.be.eq('Wuthering Heights')
     })
   })

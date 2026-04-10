@@ -1,10 +1,10 @@
-const cds = require('@sap/cds'),
-  DEBUG = cds.debug('sql|db')
+const cds = require('@sap/cds')
+const DEBUG = cds.log('sql|db')
 const { Readable, Transform } = require('stream')
 const { pipeline } = require('stream/promises')
-const { resolveView, getDBTable, getTransition } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
+const { resolveTable } = require('./utils')
 
 const BINARY_TYPES = {
   'cds.Binary': 1,
@@ -17,7 +17,7 @@ const BINARY_TYPES = {
  * @param {*} obj 
  * @returns Boolean
  */
-const _hasProps = (obj) => { 
+const _hasProps = (obj) => {
   if (!obj) return false
   for (const p in obj) {
     return true
@@ -74,7 +74,7 @@ class SQLService extends DatabaseService {
   _changeToStreams(columns, rows, one) {
     if (!rows || !columns) return
     if (!Array.isArray(rows)) rows = [rows]
-    if (!rows.length || !Object.keys(rows[0]).length) return   
+    if (!rows.length || !Object.keys(rows[0]).length) return
 
     let changes = false
     for (let col of columns) {
@@ -149,7 +149,7 @@ class SQLService extends DatabaseService {
         if (expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
 
       if (!iterator) {
-         this._changeToStreams(cqn.SELECT.columns, rows, query.SELECT.one)
+        this._changeToStreams(cqn.SELECT.columns, rows, query.SELECT.one)
       } else if (objectMode) {
         const converter = (row) => this._changeToStreams(cqn.SELECT.columns, row, true)
         const changeToStreams = new Transform({
@@ -168,7 +168,7 @@ class SQLService extends DatabaseService {
         return SQLService._arrayWithCount(rows, await this.count(query, rows))
       }
 
-      return iterator !== false && isOne ? rows[0] : rows
+      return !iterator && isOne ? rows[0] : rows
     } catch (err) {
       // Ensure that iterators receive pre stream errors
       if (iterator) rows.emit('error', err)
@@ -198,7 +198,7 @@ class SQLService extends DatabaseService {
     const ps = await this.prepare(sql)
     const results = entries ? await Promise.all(entries.map(e => ps.run(e))) : await ps.run()
     // REVISIT: results isn't an array, when no entries -> how could that work? when do we have no entries?
-    return results.reduce((total, affectedRows) => (total += affectedRows.changes), 0)
+    return results.reduce((total, affectedRows) => total + affectedRows.changes, 0)
   }
 
   /**
@@ -230,7 +230,8 @@ class SQLService extends DatabaseService {
     // REVISIT: It's not yet 100 % clear under which circumstances we can rely on db constraints
     return (super.onDELETE = /* cds.env.features.assert_integrity === 'db' ? this.onSIMPLE : */ deep_delete)
     async function deep_delete(/** @type {Request} */ req) {
-      const transitions = getTransition(req.target, this, false, req.query.cmd || 'DELETE')
+      const resolve = this.resolve
+      const transitions = resolve.transitions(req.query)
       if (transitions.target !== transitions.queryTarget) {
         const keys = []
         const transitionsTarget = transitions.queryTarget.keys || transitions.queryTarget.elements
@@ -253,7 +254,7 @@ class SQLService extends DatabaseService {
         })
         return this.onDELETE({ query, target: transitions.target })
       }
-      const table = getDBTable(req.target)
+      const table = resolveTable(req.target)
       const { compositions } = table
       if (compositions) {
         // Transform CQL`DELETE from Foo[p1] WHERE p2` into CQL`DELETE from Foo[p1 and p2]`
@@ -295,7 +296,7 @@ class SQLService extends DatabaseService {
    * @type {Handler}
    */
   async onEVENT({ event }) {
-    DEBUG?.(event) // in the other cases above DEBUG happens in cqn2sql
+    if(DEBUG._debug) DEBUG.debug(event) // in the other cases above DEBUG happens in cqn2sql
     return await this.exec(event)
   }
 
@@ -305,7 +306,7 @@ class SQLService extends DatabaseService {
    */
   async onPlainSQL({ query, data }, next) {
     if (typeof query === 'string') {
-      DEBUG?.(query, data)
+      if(DEBUG._debug) DEBUG.debug(query, data)
       const ps = await this.prepare(query)
       const exec = this.hasResults(query) ? d => ps.all(d) : d => ps.run(d)
       if (Array.isArray(data) && Array.isArray(data[0])) return await Promise.all(data.map(exec))
@@ -338,7 +339,7 @@ class SQLService extends DatabaseService {
     // Keep original query columns when potentially used insde conditions
     const { having, groupBy } = query.SELECT
     let columns = []
-    if((having?.length || groupBy?.length)) {
+    if ((having?.length || groupBy?.length)) {
       columns = query.SELECT.columns.filter(c => !c.expand)
     }
     if (columns.length === 0) columns.push({ val: 1 })
@@ -360,7 +361,7 @@ class SQLService extends DatabaseService {
    * @param {import('@sap/cds/apis/cqn').SELECT} query - SELECT CQN
    * @param {function} callback - Function to be invoked for each row
    */
-  foreach (query, callback) {
+  foreach(query, callback) {
     return query.foreach(callback)
   }
 
@@ -390,40 +391,34 @@ class SQLService extends DatabaseService {
     })
   }
 
-  /** @param {unknown[]} args */
   constructor(...args) {
     super(...args)
-    /** @type {unknown} */
     this.class = new.target // for IntelliSense
   }
 
   /**
    * @param {import('@sap/cds/apis/cqn').Query} query
-   * @param {unknown} values
    * @returns {typeof SQLService.CQN2SQL}
    */
   cqn2sql(query, values) {
-    let q = this.cqn4sql(query)
-    let kind = q.kind || Object.keys(q)[0]
-    if (kind in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 }) {
-      q = resolveView(q, this.model, this) // REVISIT: before resolveView was called on flat cqn obtained from cqn4sql -> is it correct to call on original q instead?
-    }
-    let cqn2sql = new this.class.CQN2SQL(this)
-    return cqn2sql.render(q, values)
+    const cqn2sql = new this.class.CQN2SQL(this)
+    const q = this.cqn4sql(query)
+    const sql = cqn2sql.render(q, values)
+    return sql
   }
 
   /**
    * @param {import('@sap/cds/apis/cqn').Query} q
    * @returns {import('./infer/cqn').Query}
    */
-  cqn4sql(q) {
+  cqn4sql(q, useTechnicalAlias=true) {
     if (
       !cds.env.features.db_strict &&
       !q.SELECT?.from?.join &&
       !q.SELECT?.from?.SELECT &&
       !this.model?.definitions[_target_name4(q)]
     ) return q
-    else return cqn4sql(q, this.model)
+    else return cqn4sql(q, this.model, useTechnicalAlias)
   }
 
   /**
@@ -512,31 +507,69 @@ const _target_name4 = q => {
   return first.id || first
 }
 
-const sqls = new (class extends SQLService {
-  get factory() {
-    return null
+
+// Add support for cqn2pql if debug logging for pql is enabled, or if running in the REPL.
+const DEBUG_PQL = cds.log('pql')
+if (DEBUG_PQL._debug || cds.repl) {
+
+  // Add helper method to convert CQN to PQL, used below...
+  SQLService.prototype.cqn2pql = function cqn2pql (query, values) {
+    const CQN2PQL = cqn2pql.renderer ??= require('./cqn2pql')
+    return new CQN2PQL(this).render(query, values)
   }
 
-  get model() {
-    return cds.model
+  // Add support for logging generated PQL if debug logging for pql is enabled.
+  if (DEBUG_PQL._debug) {
+    const $super = SQLService.prototype.cqn2sql
+    SQLService.prototype.cqn2sql = function (query, values) {
+      const q2 = this.cqn4sql(query, false) // FIXME: calling cqn4sql twice per query is utterly expensive, isn't it ?!?
+      const pql = this.cqn2pql(q2, values)
+      DEBUG_PQL.debug(pql.sql, pql.values ?? '')
+      return $super.call(this, query, values)
+    }
   }
-})()
-cds.extend(cds.ql.Query).with(
-  class {
-    forSQL() {
-      let cqn = (cds.db || sqls).cqn4sql(this)
-      return this.flat(cqn)
+
+  // If running in the REPL, extend cds.ql.Query with helpers to inspect queries. 
+  if (cds.repl) {
+
+    cds.extend(cds.ql.Query).with(
+      class {
+        forSQL() {
+          const cqn = db.srv.cqn4sql(this)
+          return this.flat(cqn)
+        }
+        toSQL() {
+          if (this.SELECT) this.SELECT.expand = 'root' // Enforces using json functions always for top-level SELECTS
+          const { sql, values } = db.srv.cqn2sql(this)
+          return { sql, values } // skipping .cqn property
+        }
+        toSql() {
+          const { sql } = this.toSQL()
+          return sql
+        }
+        toPQL() {
+          const { sql, values } = db.srv.cqn2pql(this)
+          return { sql, values } // skipping .cqn property
+        }
+        toPql() {
+          const { sql } = this.toPQL()
+          return sql
+        }
+      }
+    )
+
+    /** 
+     * Dummy SQL service used in extensions to cds.ql above, 
+     * if no real SQL service is available yet through cds.db. 
+     */
+    class db extends SQLService {
+      /** @returns {SQLService} */ 
+      static get srv() { return cds.db || (this.singleton ??= new this) }
+      get factory() { return null }
+      get model() { return cds.model }
     }
-    toSQL() {
-      if (this.SELECT) this.SELECT.expand = 'root' // Enforces using json functions always for top-level SELECTS
-      let { sql, values } = (cds.db || sqls).cqn2sql(this)
-      return { sql, values } // skipping .cqn property
-    }
-    toSql() {
-      return this.toSQL().sql
-    }
-  },
-)
+  }
+}
 
 Object.assign(SQLService, { _target_name4 })
 module.exports = SQLService

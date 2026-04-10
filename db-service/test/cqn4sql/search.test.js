@@ -170,6 +170,20 @@ describe('Replace attribute search by search predicate', () => {
     expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(expected)
   })
 
+  it('Search with aggregated column and groupby must be put into having', () => {
+    const { Books } = cds.entities
+    let query = SELECT.from(Books)
+      .alias('Books')
+      .columns({ args: [{ ref: ['title'] }], as: 'firstInAlphabet', func: 'min' })
+      .groupBy('title')
+      .search('Cat')
+    const expected = cds.ql`
+    SELECT from bookshop.Books as Books {
+      min(Books.title) as firstInAlphabet
+    } group by Books.title having search(min(Books.title), 'Cat')`
+    expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(expected)
+  })
+
   it('Ignore non string aggregates from being searched', () => {
     const query = cds.ql`
       SELECT from bookshop.Books as Books {

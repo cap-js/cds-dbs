@@ -1,6 +1,7 @@
 const { SQLService } = require('@cap-js/db-service')
-const cds = require('@sap/cds')
-const sqlite = require('better-sqlite3')
+const cds = require('@sap/cds/lib')
+let sqlite // sqlite driver is loaded on connect
+
 const $session = Symbol('dbc.session')
 const sessionVariableMap = require('./session.json')  // Adjust the path as necessary for your project
 const convStrm = require('stream/consumers')
@@ -28,21 +29,29 @@ class SQLiteService extends SQLService {
   get factory() {
     return {
       options: this.options.pool || {},
-      create: tenant => {
-        const database = this.url4(tenant)
-        const dbc = new sqlite(database, this.options.client)
-        const deterministic = { deterministic: true }
-        dbc.function('session_context', key => dbc[$session][key])
-        dbc.function('regexp', deterministic, (re, x) => (RegExp(re).test(x) ? 1 : 0))
-        dbc.function('ISO', deterministic, d => d && new Date(d).toISOString())
-        dbc.function('year', deterministic, d => d === null ? null : toDate(d).getUTCFullYear())
-        dbc.function('month', deterministic, d => d === null ? null : toDate(d).getUTCMonth() + 1)
-        dbc.function('day', deterministic, d => d === null ? null : toDate(d).getUTCDate())
-        dbc.function('hour', deterministic, d => d === null ? null : toDate(d, true).getUTCHours())
-        dbc.function('minute', deterministic, d => d === null ? null : toDate(d, true).getUTCMinutes())
-        dbc.function('second', deterministic, d => d === null ? null : toDate(d, true).getUTCSeconds())
-        if (!dbc.memory) dbc.pragma('journal_mode = WAL')
-        return dbc
+      create: async tenant => {
+        try {
+          if (!sqlite) loadSQLite(this.options.driver || this.options.credentials?.driver)
+          const database = this.url4(tenant)
+          const dbc = new sqlite(database, this.options.client || {})
+          await dbc.ready
+
+          const deterministic = { deterministic: true }
+          dbc.function('session_context', key => dbc[$session][key])
+          dbc.function('regexp', deterministic, (re, x) => (RegExp(re).test(x) ? 1 : 0))
+          dbc.function('ISO', deterministic, d => d && new Date(d).toISOString())
+          dbc.function('year', deterministic, d => d === null ? null : toDate(d).getUTCFullYear())
+          dbc.function('month', deterministic, d => d === null ? null : toDate(d).getUTCMonth() + 1)
+          dbc.function('day', deterministic, d => d === null ? null : toDate(d).getUTCDate())
+          dbc.function('hour', deterministic, d => d === null ? null : toDate(d, true).getUTCHours())
+          dbc.function('minute', deterministic, d => d === null ? null : toDate(d, true).getUTCMinutes())
+          dbc.function('second', deterministic, d => d === null ? null : toDate(d, true).getUTCSeconds())
+          if (database !== ':memory:') dbc.pragma?.('journal_mode = WAL') || dbc.exec('PRAGMA journal_mode = WAL')
+          return dbc
+        } catch (err) {
+          Promise.reject(err)
+          await new Promise(() => { })
+        }
       },
       destroy: dbc => dbc.close(),
       validate: dbc => dbc.open,
@@ -106,7 +115,10 @@ class SQLiteService extends SQLService {
     const pageSize = (1 << 16)
     // Allow for both array and iterator result sets
     const first = Array.isArray(rs) ? { done: !rs[0], value: rs[0] } : rs.next()
-    if (first.done) return
+    if (first.done) {
+      yield one ? 'null' : '[]'
+      return
+    }
     if (one) {
       yield first.value[0]
       // Close result set to release database connection
@@ -134,10 +146,8 @@ class SQLiteService extends SQLService {
   }
 
   async _allStream(stmt, binding_params, one, objectMode) {
-    stmt = stmt.constructor.name === 'Statement' ? stmt : stmt.__proto__
-    stmt.raw(true)
-    const get = stmt.get(binding_params)
-    if (!get) return []
+    stmt = stmt.iterate ? stmt : stmt.__proto__
+    stmt.raw?.(true)
     const rs = stmt.iterate(binding_params)
     const stream = Readable.from(objectMode ? this._iteratorObjectMode(rs) : this._iteratorRaw(rs, one), { objectMode })
     const close = () => rs.return() // finish result set when closed early
@@ -302,6 +312,25 @@ class SQLiteService extends SQLService {
     }
 
     static ReservedWords = { ...super.ReservedWords, ...sqliteKeywords }
+  }
+}
+
+function loadSQLite(driver) {
+  const drivers = {
+    node: './node-sqlite.js',
+    'better-sqlite3': 'better-sqlite3',
+    'sql.js': './sql.js.js',
+  }
+
+  if (driver) {
+    sqlite = require(drivers[driver])
+    return
+  }
+
+  try { sqlite = require(drivers['better-sqlite3']) }
+  catch {
+    try { sqlite = require(drivers.node) }
+    catch { sqlite = require(drivers['sql.js']) }
   }
 }
 
