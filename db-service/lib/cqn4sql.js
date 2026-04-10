@@ -69,8 +69,17 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
       const { where, having } = transformSearch(searchTerm)
       if (where) inferred.SELECT.where = where
       else if (having) inferred.SELECT.having = having
-      if (where || having) (inferred.SELECT.orderBy ??= []).unshift(...(where || having).map(fn => ({ func: fn.func, args:[...fn.args,true], sort: 'desc' })))
-      // if (where || having) (inferred.SELECT.columns ??= []).unshift(...(where || having).map(fn => ({ func: fn.func, args:[...fn.args,true], as: 'score' })))
+      if (searchTerm.func) (inferred.SELECT.orderBy ??= []).unshift({ func: searchTerm.func, args: [...searchTerm.args, true], sort: 'desc' })
+      else if (searchTerm.xpr) {
+        const searchSelect = searchTerm.xpr[2]
+        const searchFunc = searchSelect.SELECT.where[0]
+          ; (inferred.SELECT.orderBy ??= []).unshift({
+            __proto__: SELECT.from(searchSelect.SELECT.from)
+              .columns({ func: searchFunc.func, args: [...searchFunc.args, true] })
+              .where([searchTerm.xpr[0], 'in', { list: searchSelect.SELECT.columns }]), // TODO: <-- ensure that the sub select in the order by is bound to the original query result row
+            sort: 'desc'
+          })
+      }
     }
   }
   // query modifiers can also be defined in from ref leaf infix filter
