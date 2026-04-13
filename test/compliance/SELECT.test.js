@@ -304,7 +304,7 @@ describe('SELECT', () => {
       await INSERT.into(RightChild).entries({ ID: rightChildId, title: 'right' })
       await INSERT.into(WithRelationship).entries({ leftChildId, rightChildId })
 
-      const cqn = SELECT.one(WithRelationship, cds.ql.columns`*, leftChild { ID, title }`)
+      const cqn = SELECT.one(WithRelationship, cds.ql.columns`*, leftChild { ID, title }`).forUpdate({ ignoreLocked: true })
       const res = await cds.run(cqn)
       assert.equal(res.leftChild.title, 'left')
     })
