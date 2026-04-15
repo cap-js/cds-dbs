@@ -193,14 +193,6 @@ const HANAFunctions = {
   },
 
   /**
-   * Returns the length of the vector
-   * @param {*} v - Vector
-   * @returns {string} - SQL statement
-   */
-  cardinality(v) {
-    return `vector_dims(${this.expr(v)})`
-  },
-  /**
    * Computes the cosine similarity of two vectors
    * @param {*} v1 - Vector 1
    * @param {*} v2 - Vector 2
@@ -219,14 +211,6 @@ const HANAFunctions = {
     return `l2_distance(${this.expr(v1)},${this.expr(v2)})`
   },
   /**
-   * Computes the L2 norm of a vector
-   * @param {*} v - Vector
-   * @returns {string} - SQL statement
-   */
-  l2norm(v) { 
-    return `vector_norm(${this.expr(v)})`
-  },
-  /**
    * L2 normalizes the vector
    * @param {*} v - Vector
    * @returns {string} - SQL statement
@@ -234,7 +218,6 @@ const HANAFunctions = {
   l2normalize(v) { 
     return `l2_normalize(${this.expr(v)})`
   },
-  // subvector exists on PG with the same feature set
 }
 
 for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunctions[each]

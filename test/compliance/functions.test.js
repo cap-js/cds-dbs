@@ -169,23 +169,6 @@ describe('functions', () => {
       throw new Error('not supported')
     })
   })
-  describe('CARDINALITY', () => {
-		test('CARDINALITY in a query', async () => {
-			const res = await SELECT.from('complex.vectors.Books').columns([
-				'*',
-				{
-					xpr: [
-						{
-							func: 'cardinality',
-							args: [{ ref: ['embedding'] }]
-						}
-					],
-					as: 'CUSTOM_COL'
-				}
-			]);
-			expect(res[0].CUSTOM_COL).toBeTruthy();
-		});
-	});
   describe('CAST', () => {
     test.skip('missing', () => {
       throw new Error('not supported')

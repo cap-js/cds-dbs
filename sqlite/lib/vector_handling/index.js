@@ -54,11 +54,6 @@ module.exports = async function addSQLiteVectorSupport(dbc) {
     const result = generateVector(text, text_type, model_and_version)
     return JSON.stringify(result)
   })
-  dbc.function('CARDINALITY', { deterministic: true }, vector => {
-    const v = toFloatArray(vector)
-    if (v == null) return null
-    return v.length
-  })
   dbc.function('COSINE_SIMILARITY', { deterministic: true }, (vector1, vector2) => {
     const v1 = toFloatArray(vector1)
     const v2 = toFloatArray(vector2)
@@ -85,15 +80,6 @@ module.exports = async function addSQLiteVectorSupport(dbc) {
     }
     return Math.sqrt(sum)
   })
-  dbc.function('L2NORM', { deterministic: true }, vector => {
-    const v = toFloatArray(vector)
-    if (v == null) return null
-    let sum = 0
-    for (let i = 0; i < v.length; i++) {
-      sum += v[i] * v[i]
-    }
-    return Math.sqrt(sum)
-  })
   dbc.function('L2NORMALIZE', { deterministic: true }, vector => {
     const v = toFloatArray(vector)
     if (v == null) return null
@@ -104,12 +90,6 @@ module.exports = async function addSQLiteVectorSupport(dbc) {
     const norm = Math.sqrt(sum)
     if (norm === 0) return fromFloatArray(v, vector)
     const result = v.map(x => x / norm)
-    return fromFloatArray(result, vector)
-  })
-  dbc.function('SUBVECTOR', { deterministic: true }, (vector, start, length) => {
-    const v = toFloatArray(vector)
-    if (v == null) return null
-    const result = v.slice(start - 1, start - 1 + length)
     return fromFloatArray(result, vector)
   })
 }
