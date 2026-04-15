@@ -70,17 +70,17 @@ class CQN2PQLRenderer extends CQN2SQL {
   quote(s) { return s }
 
   managed(columns, elements) {
-    const keys = Object.keys(elements).filter(e => elements[e].key && !elements[e].isAssociation)
+    const keys = ObjectKeys(elements).filter(e => elements[e].key && !elements[e].isAssociation)
     const keyZero = keys[0]
 
     const ret = super.managed(columns, elements)
 
     ret.forEach(c => {
       const { name, insert, update, onInsert, onUpdate } = c
-      const element = elements[name]
+      const element = elements?.[name]
       c.upsert = keyZero && (
         // upsert requires the keys to be provided for the existance join (default values optional)
-        element.key
+        element?.key
           // If both insert and update have the same managed definition exclude the old value check
           || (onInsert && onUpdate && insert === update)
           ? `${insert} as ${name}`
@@ -110,5 +110,7 @@ class CQN2PQLRenderer extends CQN2SQL {
     return { extract, sql }
   }
 }
+
+const ObjectKeys = o => (o && [...ObjectKeys(o.__proto__), ...Object.keys(o)]) || []
 
 module.exports = CQN2PQLRenderer

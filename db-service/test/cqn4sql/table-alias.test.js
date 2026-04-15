@@ -512,6 +512,29 @@ describe('table alias access', () => {
        `,
       )
     })
+    it('in having with func', () => {
+      let query = cqn4sql(
+        cds.ql`SELECT from bookshop.Books {
+            author.name as author,
+            count(*) as numberOfBooks,
+          }
+          group by author.name
+          having $self.numberOfBooks > 1
+         `,
+        model,
+      )
+      expect(query).to.deep.equal(
+        cds.ql`SELECT from bookshop.Books as $B
+          left join bookshop.Authors as author on author.ID = $B.author_ID
+         {
+          author.name as author,
+          count(*) as numberOfBooks,
+        }
+        group by author.name
+        having count(*) > 1
+       `,
+      )
+    })
     it('in where', () => {
       let query = cqn4sql(
         cds.ql`SELECT from bookshop.Authors {
@@ -1111,6 +1134,30 @@ describe('table alias access', () => {
           B.dedication_sub_foo,
           B.dedication_dedication,
           B.author_ID
+        }`,
+      )
+    })
+
+    it('nested subqueries propagate FK columns through wildcard expansion', () => {
+      let query = cqn4sql(
+        cds.ql`SELECT from (
+          SELECT from (
+            SELECT from bookshop.Books as Books { Books.author }
+          ) as mid
+        ) as outer`,
+        model,
+      )
+      expect(query).to.deep.equal(
+        cds.ql`SELECT from (
+          SELECT from (
+            SELECT from bookshop.Books as Books {
+              Books.author_ID
+            }
+          ) as mid {
+            mid.author_ID
+          }
+        ) as outer {
+          outer.author_ID
         }`,
       )
     })
