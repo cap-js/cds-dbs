@@ -99,7 +99,7 @@ function generateVector(text, _, model_and_version) {
     const res = embedding(text)
     return Array.from(res.embedding)
   }
-  let dimensions = 384
+  let dimensions;
   switch (model_and_version) {
     case 'SAP_GXY.20250407':
     case 'SAP_GXY.20240715':
