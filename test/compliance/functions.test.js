@@ -169,6 +169,11 @@ describe('functions', () => {
       throw new Error('not supported')
     })
   })
+  describe('CARDINALITY', () => {
+    test.skip('missing', () => {
+      throw new Error('not supported')
+    })
+  })
   describe('CAST', () => {
     test.skip('missing', () => {
       throw new Error('not supported')
