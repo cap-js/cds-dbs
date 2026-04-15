@@ -199,7 +199,7 @@ const HANAFunctions = {
    * @returns {string} - SQL statement
    */
   cosine_similarity(v1, v2) {
-    return `cosine_distance(${this.expr(v1)},${this.expr(v2)})`
+    return `1 - cosine_distance(${this.expr(v1)},${this.expr(v2)})`
   },
   /**
    * Computes the L2 distance of two vectors.
