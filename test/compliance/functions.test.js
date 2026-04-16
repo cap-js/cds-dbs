@@ -236,7 +236,7 @@ describe('functions', () => {
 				{
 					func: 'cosine_similarity',
 					args: [
-						{ ref: ['descr_embedding'] },
+						{ ref: ['embedding'] },
 						{
 							func: 'VECTOR_EMBEDDING',
 							args: [{ ref: ['title'] }, { val: 'QUERY' }, { val: 'SAP_GXY.20250407' }]
