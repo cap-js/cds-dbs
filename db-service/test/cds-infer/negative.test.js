@@ -180,6 +180,16 @@ describe('negative', () => {
         /Duplicate definition of element “ID”/,
       )
     })
+    it('duplicate definition of nested projection (expand)', () => {
+      expect(() => _inferred(cds.ql`SELECT from bookshop.Books { author {name}, author {name} }`)).to.throw(
+        /Duplicate definition of element “author”/,
+      )
+    })
+    it('duplicate definition of nested projection (inline)', () => {
+      expect(() => _inferred(cds.ql`SELECT from bookshop.Books { author.{name}, author.{name} }`)).to.throw(
+        /Duplicate definition of element “author_name”/,
+      )
+    })
 
     it('anonymous functions are inferred by their func property name, ambiguities are rejected', () => {
       let ambiguousFunctions = cds.ql`SELECT from bookshop.Books { sum(1 + 1), sum(1 + 1) }`
@@ -246,6 +256,31 @@ describe('negative', () => {
        select "modifiedBy" explicitly with "BooksSub.modifiedBy", "Authors.modifiedBy"
        select "ID" explicitly with "BooksSub.ID", "Authors.ID"`,
         )
+      })
+
+      it('duplicated wildcard is not allowed', () => {
+        let query = cds.ql`SELECT from bookshop.Books as Books { *, 1+1 as calc, * }`
+        expect(() => _inferred(query)).to.throw(/Duplicate wildcard "\*" in column list/)
+      })
+
+      it('duplicated wildcard is not allowed in expand on assoc', () => {
+        let query = cds.ql`SELECT from bookshop.Books as Books { *, author { *, 1+1 as calc, * } }`
+        expect(() => _inferred(query)).to.throw(/Duplicate wildcard "\*" in expand of "author"/)
+      })
+
+      it('duplicated wildcard is not allowed in expand on structure', () => {
+        let query = cds.ql`SELECT from bookshop.Books as Books { *, dedication { *, 1+1 as calc, * } }`
+        expect(() => _inferred(query)).to.throw(/Duplicate wildcard "\*" in expand of "dedication"/)
+      })
+
+      it('duplicated wildcard is not allowed in inline on assoc', () => {
+        let query = cds.ql`SELECT from bookshop.Books as Books { *, author.{ *, 1 as calc, * } }`
+        expect(() => _inferred(query)).to.throw(/Duplicate wildcard "\*" in inline of "author"/)
+      })
+
+      it('duplicated wildcard is not allowed in inline on structure', () => {
+        let query = cds.ql`SELECT from bookshop.Books as Books { *, dedication.{ *, 1 as calc, * } }`
+        expect(() => _inferred(query)).to.throw(/Duplicate wildcard "\*" in inline of "dedication"/)
       })
     })
   })
@@ -414,10 +449,10 @@ describe('negative', () => {
   })
 
   describe('infix filters', () => {
-    it('rejects non fk traversal in infix filter in from', () => {
-      expect(() => _inferred(cds.ql`SELECT from bookshop.Books[author.name = 'Kurt']`, model)).to.throw(
-        /Only foreign keys of “author” can be accessed in infix filter, but found “name”/,
-      )
+    it('allows non fk traversal in infix filter in from (dangling filter)', () => {
+      // Dangling filters with path expressions are now supported
+      // SELECT from Books[author.name = 'Kurt'] is equivalent to SELECT from Books WHERE author.name = 'Kurt'
+      expect(() => _inferred(cds.ql`SELECT from bookshop.Books[author.name = 'Kurt']`, model)).to.not.throw()
     })
     it('does not reject non fk traversal in infix filter in where exists', () => {
       let query = cds.ql`SELECT from bookshop.Books where exists author.books[author.name = 'John Doe']`

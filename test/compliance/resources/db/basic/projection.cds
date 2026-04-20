@@ -1,15 +1,18 @@
 namespace basic.projection;
 
 using {basic.literals} from './literals';
+using {basic.common} from './common';
 
-entity globals  as projection on literals.globals;
-entity number   as projection on literals.number;
-entity string   as projection on literals.string;
-entity date     as projection on literals.date;
-entity time     as projection on literals.time;
-entity dateTime as projection on literals.dateTime;
+entity globals     as projection on literals.globals;
+entity number      as projection on literals.number;
+entity string      as projection on literals.string;
+entity date        as projection on literals.date;
+entity time        as projection on literals.time;
+entity dateTime    as projection on literals.dateTime;
+entity keys        as projection on common.keys;
+entity cuid        as projection on common.cuid;
 
-entity now_in_view as select $now as now: Timestamp from literals.globals;
+entity now_in_view as select $now as now : Timestamp from literals.globals;
 
 entity ![all]   as
     select from literals.globals {

@@ -1,22 +1,23 @@
 'use strict'
 
-// REVISIT: we should always return cds.linked elements
-// > e.g. cds.linked({definitions:{pseudos}})
+const cds = require('@sap/cds')
+const { String, Timestamp } = cds.builtin.types
+
 const pseudos = {
   elements: {
     $user: {
       elements: {
-        id: { type: 'cds.String' },
-        locale: { type: 'cds.String' }, // deprecated
-        tenant: { type: 'cds.String' }, // deprecated
+        id: String,
+        locale: String, // deprecated
+        tenant: String, // deprecated
       },
     },
-    $now: { type: 'cds.Timestamp' },
-    $at: { type: 'cds.Timestamp' },
-    $from: { type: 'cds.Timestamp' },
-    $to: { type: 'cds.Timestamp' },
-    $locale: { type: 'cds.String' },
-    $tenant: { type: 'cds.String' },
+    $now: Timestamp,
+    $at: Timestamp,
+    $from: Timestamp,
+    $to: Timestamp,
+    $locale: String,
+    $tenant: String,
   },
 }
 

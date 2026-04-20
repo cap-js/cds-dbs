@@ -34,19 +34,30 @@ let isolateCounter = 0
 // Overwrite cds.test with autoIsolation logic
 cds.test = Object.setPrototypeOf(function () {
 
-  global.beforeAll(() => {
+  global.beforeAll(async () => {
+    const path = cds.utils.path
+    const sep = path.sep
+
+    // Inject the provided plugins for cds.env resolving
+    const plugins = {}
+    try { plugins['@cap-js/sqlite'] = { impl: require.resolve('@cap-js/sqlite') } } catch {/* ignore */ }
+    try { plugins['@cap-js/hana'] = { impl: require.resolve('@cap-js/hana') } } catch {/* ignore */ }
+    try { plugins['@cap-js/postgres'] = { impl: require.resolve('@cap-js/postgres') } } catch {/* ignore */ }
+    process.env.CDS_PLUGINS = JSON.stringify(plugins)
+
     try {
-      const path = cds.utils.path
-      const sep = path.sep
       const testSource = process.argv[1].split(`${sep}test${sep}`)[0]
       const serviceDefinitionPath = `${testSource}/test/service`
-      cds.env.requires.db = {...cds.env.requires.db, ...require(serviceDefinitionPath)}
-      require(testSource + '/cds-plugin')
+
+      // Overwrite default cds.requires.db with test config
+      const config = require(serviceDefinitionPath)
+      config.driver = process.env.CDS_REQUIRES_DB_DRIVER ?? config.driver
+      process.env.CDS_REQUIRES_DB = JSON.stringify(config)
     } catch {
       // Default to sqlite for packages without their own service
-      cds.env.requires.db = {...cds.env.requires.db, ...require('@cap-js/sqlite/test/service')}
-      require('@cap-js/sqlite/cds-plugin')
+      process.env.CDS_REQUIRES_DB = JSON.stringify(require('@cap-js/sqlite/test/service'))
     }
+    cds.env = cds.env.for(cds)
   })
 
   let ret = cdsTest(...arguments)
@@ -97,7 +108,7 @@ cds.test = Object.setPrototypeOf(function () {
   ret.data.autoIsolation(true)
 
   global.beforeAll(async () => {
-    if (ret.data._autoIsolation && !ret.data._deployed) {
+    if (ret.data._autoIsolation && !cds.options.in_memory && !ret.data._deployed) {
       ret.data._deployed = cds.deploy(cds.options.from[0])
       await ret.data._deployed
     }
@@ -119,15 +130,5 @@ cds.test = Object.setPrototypeOf(function () {
     global.cds.resolve.cache = {}
   })
 
-  ret.expect = cdsTest.expect
   return ret
 }, cdsTest.constructor.prototype)
-
-cds.test.expect = cdsTest.expect
-
-// REVISIT: remove once sflight or cds-test is adjusted to the correct behavior
-const expect = cdsTest.expect().__proto__.constructor.prototype
-const _includes = expect.includes
-expect.includes = function (x) {
-  return typeof x === 'object' ? this.subset(...arguments) : _includes.apply(this, arguments)
-}
