@@ -1,5 +1,5 @@
 let embedding
-try { embedding = require('./semantic-search/embedding.js') } catch { }
+try { embedding = require('./semantic-search/embedding.js') } catch { /**/ }
 
 module.exports = async function addSQLiteVectorSupport(dbc) {
   let genVector = generateVector
