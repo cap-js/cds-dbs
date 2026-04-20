@@ -27,15 +27,18 @@
   },
   "dependencies": {
     "@cap-js/db-service": "^2.9.0",
-    "better-sqlite3": "^12.0.0",
-    "onnxruntime-node": "^1.24.2"
+    "better-sqlite3": "^12.0.0"
   },
   "peerDependencies": {
     "@sap/cds": ">=9.8",
-    "sql.js": "^1.13.0"
+    "sql.js": "^1.13.0",
+    "onnxruntime-node": "^1.24.2"
   },
   "peerDependenciesMeta": {
     "sql.js": {
+      "optional": true
+    },
+    "onnxruntime-node": {
       "optional": true
     }
   },
