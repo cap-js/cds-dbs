@@ -1,14 +1,13 @@
+const os = require('os')
 const path = require('path')
 const ort = require('onnxruntime-node')
-const { getDataDir } = require('./utils.js')
 const {
   downloadModelIfNeeded,
   forceRedownloadModel,
   loadModelAndVocab,
-  normalizeText,
   preTokenize,
   wordPieceTokenize,
-  validateTokenIds
+  validateTokenIds,
 } = require('./model-utils.js')
 
 const MODEL_NAME = 'Xenova/all-MiniLM-L6-v2'
@@ -45,8 +44,7 @@ function wordPieceTokenizer(text, vocab, maxLength = 512) {
     throw new Error('Special tokens must have numeric IDs')
   }
 
-  const normalizedText = normalizeText(text)
-  const preTokens = preTokenize(normalizedText)
+  const preTokens = preTokenize(text)
 
   const tokens = [clsToken]
   const ids = [clsId]
@@ -65,9 +63,7 @@ function wordPieceTokenizer(text, vocab, maxLength = 512) {
   tokens.push(sepToken)
   ids.push(sepId)
 
-  if (tokens.length <= maxLength) {
-    return [{ tokens, ids }]
-  }
+  if (tokens.length <= maxLength) return [{ tokens, ids }]
 
   // For longer texts, create overlapping chunks
   const maxContentLength = maxLength - 2
@@ -134,18 +130,14 @@ function processChunkedEmbeddings(chunks, session) {
   }
 
   // If multiple chunks, average the embeddings
-  if (embeddings.length === 1) {
-    return embeddings[0]
-  }
+  if (embeddings.length === 1) return embeddings[0]
 
   const hiddenSize = embeddings[0].length
   const avgEmbedding = new Float32Array(hiddenSize)
 
   for (let i = 0; i < hiddenSize; i++) {
     let sum = 0
-    for (const embedding of embeddings) {
-      sum += embedding[i]
-    }
+    for (const embedding of embeddings) { sum += embedding[i] }
     avgEmbedding[i] = sum / embeddings.length
   }
 
@@ -162,23 +154,40 @@ async function createSession() {
 
 function embedding(text) {
   const chunks = wordPieceTokenizer(text, vocab)
+  const vector = normalizeEmbedding(processChunkedEmbeddings(chunks, session))
+
+  const chunkObj = { content: text }
+  return Object.defineProperty(chunkObj, 'embedding', {
+    value: vector,
+    writable: true,
+    configurable: true,
+    enumerable: false
+  })
+
   function normalizeEmbedding(embedding) {
     let norm = 0
-    for (let i = 0; i < embedding.length; i++) {
-      norm += embedding[i] * embedding[i]
-    }
+    for (let i = 0; i < embedding.length; i++) { norm += embedding[i] * embedding[i] }
     norm = Math.sqrt(norm)
-
-    const normalized = new Float32Array(embedding.length)
-    for (let i = 0; i < embedding.length; i++) {
-      normalized[i] = embedding[i] / norm
-    }
-    return normalized
+    for (let i = 0; i < embedding.length; i++) { embedding[i] = embedding[i] / norm }
+    return embedding
   }
-
-  const pooledEmbedding = processChunkedEmbeddings(chunks, session)
-  return normalizeEmbedding(pooledEmbedding)
 }
 
+/**
+ * Get the platform-specific data directory for the application
+ * @param {string} appName - The application name (defaults to 'semantic-search')
+ * @returns {string} The full path to the data directory
+ */
+function getDataDir(appName = 'semantic-search') {
+  const home = os.homedir()
+  const dir = os.platform() === 'win32'
+    ? process.env.LOCALAPPDATA || process.env.APPDATA || path.join(home, 'AppData', 'Local')
+    : process.env.XDG_DATA_HOME || path.join(home, '.local', 'share')
+
+  return path.join(dir, appName)
+}
+
+
 module.exports = embedding
+module.exports.embedding = embedding
 module.exports.createSession = createSession

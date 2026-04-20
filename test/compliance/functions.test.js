@@ -231,21 +231,9 @@ describe('functions', () => {
   })
   describe('COSINE_SIMILARITY', () => {
     test('COSINE_SIMILARITY', async () => {
-      const res = await SELECT.from('complex.vectors.Books').columns([
-				'*',
-				{
-					func: 'cosine_similarity',
-					args: [
-						{ ref: ['embedding'] },
-						{
-							func: 'VECTOR_EMBEDDING',
-							args: [{ ref: ['title'] }, { val: 'QUERY' }, { val: 'SAP_GXY.20250407' }]
-						}
-					],
-					as: 'CUSTOM_COL'
-				}
-			]);
-			expect(res[0].CUSTOM_COL).toBeTruthy();
+      const res = await SELECT.from('complex.vectors.Books')
+        .columns`cosine_similarity(cast('[1, 0, 0]' as cds.Vector), cast('[1, 0, 0]' as cds.Vector)) as custom`
+      expect(res[0].custom).to.eq(1)
     })
   })
   describe('COSH', () => {
@@ -555,28 +543,12 @@ describe('functions', () => {
     })
   })
   describe('L2DISTANCE', () => {
-		test('L2DISTANCE in a query', async () => {
-			const res = await SELECT.from('complex.vectors.Books').columns([
-				'*',
-				{
-					xpr: [
-						{
-							func: 'l2distance',
-							args: [
-								{ ref: ['embedding'] },
-								{
-									func: 'VECTOR_EMBEDDING',
-									args: [{ ref: ['title'] }, { val: 'QUERY' }, { val: 'SAP_GXY.20250407' }]
-								}
-							]
-						}
-					],
-					as: 'CUSTOM_COL'
-				}
-			]);
-			expect(res[0].CUSTOM_COL).toBeTruthy();
-		});
-	});
+    test('L2DISTANCE in a query', async () => {
+      const res = await SELECT.from('complex.vectors.Books')
+        .columns`l2distance(cast('[1, 0, 0]' as cds.Vector), cast('[1, 0, 0]' as cds.Vector)) as custom`
+      expect(res[0].custom).to.eq(0)
+    });
+  });
   describe('LAG', () => {
     test.skip('missing', () => {
       throw new Error('not supported')
@@ -1257,28 +1229,16 @@ describe('functions', () => {
   })
   describe('VECTOR_EMBEDDING', () => {
     test('VECTOR_EMBEDDING in a query', async () => {
-			const res = await SELECT.from('complex.associations.Books').columns([
-				'*',
-				{
-					func: 'VECTOR_EMBEDDING',
-					args: [{ ref: ['title'] }, { val: 'QUERY' }, { val: 'SAP_GXY.20250407' }],
-					as: 'CUSTOM_COL'
-				}
-			]);
-			expect(res[0].CUSTOM_COL).toBeTruthy();
-		});
+      const res = await SELECT.from('complex.associations.Books')
+        .columns`VECTOR_EMBEDDING(title, 'QUERY', 'SAP_GXY.20250407') as custom`
+      expect(res[0].custom).truthy
+    })
 
-		test('VECTOR_EMBEDDING with specific adapter in a query', async () => {
-			const res = await SELECT.from('complex.associations.Books').columns([
-				'*',
-				{
-					func: 'VECTOR_EMBEDDING',
-					args: [{ ref: ['title'] }, { val: 'QUERY' }, { val: 'text-embedding-ada-002' }, { val: 'AI_CORE' }],
-					as: 'CUSTOM_COL'
-				}
-			]);
-			expect(res[0].CUSTOM_COL).toBeTruthy();
-		});
+    test('VECTOR_EMBEDDING with specific adapter in a query', async () => {
+      const res = await SELECT.from('complex.associations.Books')
+        .columns`VECTOR_EMBEDDING(title, 'QUERY', 'SAP_GXY.20250407') as custom`
+      expect(res[0].custom).truthy
+    })
   })
   describe('WEEK', () => {
     test.skip('missing', () => {
