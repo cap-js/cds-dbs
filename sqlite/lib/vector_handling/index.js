@@ -1,15 +1,17 @@
-const { createSession, embedding } = require('./semantic-search/embedding.js')
+let embedding
+try { embedding = require('./semantic-search/embedding.js') } catch { }
 
 module.exports = async function addSQLiteVectorSupport(dbc) {
-  await createSession()
+  let genVector = generateVector
+  try { await embedding.createSession() } catch { genVector = randomVector }
 
   dbc.function('VECTOR_EMBEDDING', { deterministic: true }, (text, text_type, model_and_version) => {
     if (text_type !== 'DOCUMENT' && text_type !== 'QUERY') throw Error(`VECOTR_EMBEDDING called but text_type is ${text_type} and not DOCUMENT or QUERY`)
-    return generateVector(text, text_type, model_and_version)
+    return genVector(text, text_type, model_and_version)
   })
   dbc.function('VECTOR_EMBEDDING', { deterministic: true }, (text, text_type, model_and_version, remote_source) => {
     if (text_type !== 'DOCUMENT' && text_type !== 'QUERY') throw Error(`VECOTR_EMBEDDING called for ${remote_source} but text_type is ${text_type} and not DOCUMENT or QUERY`,)
-    return generateVector(text, text_type, model_and_version)
+    return genVector(text, text_type, model_and_version)
   })
   dbc.function('COSINE_SIMILARITY', { deterministic: true }, (vector1, vector2) => {
     if (vector1 == null || vector2 == null) return null
@@ -77,6 +79,10 @@ const model_dimensions = {
   'SAP_GXY.20240715': 384, // 768 actually
 }
 function generateVector(text, _, model_and_version) {
-  if (text) return JSON.stringify(Array.from(embedding(text).embedding))
+  if (text) return JSON.stringify(Array.from(embedding.embedding(text).embedding))
+  return JSON.stringify(new Array(model_dimensions[model_and_version] ?? 384).fill(0))
+}
+function randomVector(text, _, model_and_version) {
+  if (text) return JSON.stringify(new Array(model_dimensions[model_and_version] ?? 384).fill(null).map(() => Math.random()))
   return JSON.stringify(new Array(model_dimensions[model_and_version] ?? 384).fill(0))
 }
