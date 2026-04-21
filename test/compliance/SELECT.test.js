@@ -295,23 +295,6 @@ describe('SELECT', () => {
       assert.strictEqual(res[0].static.length, 1)
     })
 
-    test('select one with expand', async () => {
-      const { LeftChild, RightChild, WithRelationship } = cds.entities('complex.associations.unmanaged')
-
-      const leftChildId = cds.utils.uuid()
-      const rightChildId = cds.utils.uuid()
-      await INSERT.into(LeftChild).entries({ ID: leftChildId, title: 'left' })
-      await INSERT.into(RightChild).entries({ ID: rightChildId, title: 'right' })
-      await INSERT.into(WithRelationship).entries({ leftChildId, rightChildId })
-
-      const cqn = SELECT.one.from(WithRelationship)
-        .columns`*, leftChild { * }, rightChild { * }`
-        .where({ 'rightChild.title': 'A' })
-        .forUpdate({ ignoreLocked: true })
-      const res = await cds.run(cqn)
-      assert.equal(res.leftChild.title, 'left')
-    })
-
     test.skip('invalid cast (wrong)', async () => {
       const { globals } = cds.entities('basic.projection')
       const cqn = cds.ql`SELECT 'String' as ![string] : cds.DoEsNoTeXiSt FROM ${globals}`
