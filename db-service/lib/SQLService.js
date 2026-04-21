@@ -538,6 +538,7 @@ if (DEBUG_PQL._debug || cds.repl) {
           const cqn = db.srv.cqn4sql(this)
           return this.flat(cqn)
         }
+        forSql() { return this.forSQL() }
         toSQL() {
           if (this.SELECT) this.SELECT.expand = 'root' // Enforces using json functions always for top-level SELECTS
           const { sql, values } = db.srv.cqn2sql(this)
