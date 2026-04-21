@@ -2,12 +2,11 @@ const { tx } = require('@sap/cds')
 const cds = require('../../test/cds.js')
 
 describe('locking', () => {
-  const { expect } = cds.test(__dirname + '/../../test/bookshop')
+  const { expect } = cds.test(__dirname + '/../../test/compliance/resources')
 
   describe('forUpdate', async () => {
-
     test('wait=0', async () => {
-      const { Books } = cds.entities
+      const { Books } = cds.entities('complex.associations.unmanaged')
       let tx1, tx2
       try {
         tx1 = await cds.tx()
@@ -23,7 +22,7 @@ describe('locking', () => {
     })
 
     test('wait>0', async () => {
-      const { Books } = cds.entities
+      const { Books } = cds.entities('complex.associations.unmanaged')
       let tx1, tx2
       try {
         tx1 = await cds.tx()
@@ -47,5 +46,66 @@ describe('locking', () => {
       }
     })
 
+    describe('ignoreLocked', async () => {
+      test('skips rows locked by another transaction, returns the rest', async () => {
+        const { Books } = cds.entities('complex.associations.unmanaged')
+        await INSERT.into(Books).entries([
+          { ID: 8001, title: 'Locked' },
+          { ID: 8002, title: 'Free' },
+        ])
+
+        let tx1
+        try {
+          tx1 = cds.tx()
+          await tx1.run(SELECT.from(Books).where({ ID: 8001 }).forUpdate({ wait: 0 }))
+
+          const res = await SELECT.from(Books)
+            .where({ ID: { in: [8001, 8002] } })
+            .forUpdate({ ignoreLocked: true })
+
+          expect(res).length(1)
+          expect(res[0].ID).equal(8002)
+        } finally {
+          await tx1?.rollback()
+          await DELETE.from(Books).where({ ID: { in: [8001, 8002] } })
+        }
+      })
+
+      describe('when the target entity uses a composite key', () => {
+        test('returns empty array when all rows are locked', async () => {
+          const { WithRelationship, LeftChild, RightChild } = cds.entities('complex.associations.unmanaged')
+          const LEFT_CHILD_ID = cds.utils.uuid(),
+            RIGHT_CHILD_ID = cds.utils.uuid()
+
+          await INSERT.into(LeftChild).entries({ ID: LEFT_CHILD_ID, title: 'L' })
+          await INSERT.into(RightChild).entries({ ID: RIGHT_CHILD_ID, title: 'R' })
+          await INSERT.into(WithRelationship).entries({ leftChildId: LEFT_CHILD_ID, rightChildId: RIGHT_CHILD_ID })
+
+          let tx1
+          try {
+            tx1 = cds.tx()
+            await tx1.run(SELECT.from(WithRelationship).forUpdate({ wait: 0 }))
+
+            const res = await SELECT.from(WithRelationship).forUpdate({ ignoreLocked: true })
+            expect(res).length(0)
+          } finally {
+            await tx1?.rollback()
+            await DELETE.from(WithRelationship).where({ leftChildId: LEFT_CHILD_ID, rightChildId: RIGHT_CHILD_ID })
+            await DELETE.from(LeftChild).where({ ID: LEFT_CHILD_ID })
+            await DELETE.from(RightChild).where({ ID: RIGHT_CHILD_ID })
+          }
+        })
+
+        test('composite-key entity with expand returns undefined without SQL error when table is empty', async () => {
+          const { WithRelationship } = cds.entities('complex.associations.unmanaged')
+
+          const res = await SELECT.one.from(WithRelationship).columns`*, leftChild { * }, rightChild { * }`.forUpdate({
+            ignoreLocked: true,
+          })
+
+          expect(res).undefined
+        })
+      })
+    })
   })
 })
