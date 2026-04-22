@@ -176,18 +176,20 @@ class HANAService extends SQLService {
       const resultQuery = query.clone()
       resultQuery.SELECT.forUpdate = undefined
       resultQuery.SELECT.forShareLock = undefined
+      
       const keys = Object.keys(req.target?.keys || {})
+      
       if (keys.length && query.SELECT.forUpdate?.ignoreLocked) {
-        // Exit early when ALL existing rows are locked
+        // Exit early when no row was found in the inital query
         if (rows.length === 0) return isOne ? undefined : []
         
-        // REVISIT: No Support for count
-        // Filter for those rows that are not locked
+        // Filter for those rows that were locked by the initial query
         const left = { list: keys.map(k => ({ ref: [k] })) }
         const right = { list: rows.map(r => ({ list: keys.map(k => ({ val: r[k.toUpperCase()] })) })) }
         resultQuery.SELECT.limit = undefined
         resultQuery.SELECT.where = [left, 'in', right]
       }
+      
       return this.onSELECT({ query: resultQuery, __proto__: req })
     }
 
