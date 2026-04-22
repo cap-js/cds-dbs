@@ -18,24 +18,3 @@ entity Authors {
                  and static.ID     >  0
                  and name          != null;
 }
-
-// ---
-
-entity LeftChild {
-  key ID    : UUID;
-      title : String;
-}
-
-entity RightChild {
-  key ID    : UUID;
-      title : String;
-}
-
-entity WithRelationship {
-  key leftChildId  : UUID;
-  key rightChildId : UUID;
-      leftChild    : Association to one LeftChild
-                       on leftChild.ID = $self.leftChildId;
-      rightChild   : Association to one RightChild
-                       on rightChild.ID = $self.rightChildId;
-}
