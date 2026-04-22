@@ -130,15 +130,5 @@ cds.test = Object.setPrototypeOf(function () {
     global.cds.resolve.cache = {}
   })
 
-  ret.expect = cdsTest.expect
   return ret
 }, cdsTest.constructor.prototype)
-
-cds.test.expect = cdsTest.expect
-
-// REVISIT: remove once sflight or cds-test is adjusted to the correct behavior
-const expect = cdsTest.expect().__proto__.constructor.prototype
-const _includes = expect.includes
-expect.includes = function (x) {
-  return typeof x === 'object' ? this.subset(...arguments) : _includes.apply(this, arguments)
-}
