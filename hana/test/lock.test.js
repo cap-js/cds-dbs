@@ -75,6 +75,7 @@ describe('locking', () => {
         test('returns empty array when all rows are locked', async () => {
           const { keys } = cds.entities('basic.common')
 
+          // Guarantee at least one item is present
           await INSERT.into(keys).entries({ id: 42 })
 
           let tx1
@@ -90,15 +91,14 @@ describe('locking', () => {
           }
         })
 
-        test('composite-key entity with expand returns undefined without SQL error when table is empty', async () => {
+        test('returns undefined when select does not yield any results ', async () => {
           const { keys } = cds.entities('basic.common')
 
-          await INSERT.into(keys).entries({ id: 42 })
-
+          // Guarantee no item with id 42 can be found
+          await DELETE.from(keys).where({ id: 42 })
           const res = await SELECT.one.from(keys).where({ id: 42 }).forUpdate({ ignoreLocked: true })
 
           expect(res).undefined
-          await DELETE.from(keys).where({ id: 42 })
         })
       })
     })
