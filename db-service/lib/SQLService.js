@@ -6,6 +6,10 @@ const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
 const { resolveTable } = require('./utils')
 
+// REVISIT: make string the default in next major
+const _count_as_string = cds.env.features.count_as_string
+const _count = _count_as_string ? { func: 'count', cast: { type: 'cds.String' } } : { func: 'count' }
+
 const BINARY_TYPES = {
   'cds.Binary': 1,
   'cds.hana.BINARY': 1
@@ -326,24 +330,24 @@ class SQLService extends DatabaseService {
    * Derives and executes a query to fill in `$count` for given query
    * @param {import('@sap/cds/apis/cqn').SELECT} query - SELECT CQN
    * @param {unknown[]} ret - Results of the original query
-   * @returns {Promise<number>}
+   * @returns {Promise<number|string>}
    */
   async count(query, ret) {
     if (ret?.length) {
       const { one, limit: _ } = query.SELECT,
         n = ret.length
       const [max, offset = 0] = one ? [1] : _ ? [_.rows?.val, _.offset?.val] : []
-      if (max === undefined || (n < max && (n || !offset))) return n + offset
+      if (max === undefined || (n < max && (n || !offset))) return _count_as_string ? `${n + offset}` : n + offset
     }
 
     // Keep original query columns when potentially used insde conditions
     const { having, groupBy } = query.SELECT
     let columns = []
-    if ((having?.length || groupBy?.length)) {
+    if (having?.length || groupBy?.length) {
       columns = query.SELECT.columns.filter(c => !c.expand)
     }
     if (columns.length === 0) columns.push({ val: 1 })
-    const cq = SELECT.one([{ func: 'count' }]).from(
+    const cq = SELECT.one([_count]).from(
       cds.ql.clone(query, {
         columns,
         localized: false,

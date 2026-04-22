@@ -1,8 +1,10 @@
+// ensure opt-out is possible
+process.env.cds_features_count__as__string = false
+
 const cds = require('../../cds.js')
 const bookshop = require('path').resolve(__dirname, '../../bookshop')
 
 describe('Bookshop - Genres', () => {
-  if (cds.version < '9') return test.todo('Tests are skipped until release of cds9')
   const { expect, GET, perf } = cds.test(bookshop, '--service', 'TreeService')
   const { report } = perf || {}
 
