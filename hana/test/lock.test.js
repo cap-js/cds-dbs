@@ -73,37 +73,32 @@ describe('locking', () => {
 
       describe('when the target entity uses a composite key', () => {
         test('returns empty array when all rows are locked', async () => {
-          const { WithRelationship, LeftChild, RightChild } = cds.entities('complex.associations.unmanaged')
-          const LEFT_CHILD_ID = cds.utils.uuid(),
-            RIGHT_CHILD_ID = cds.utils.uuid()
+          const { keys } = cds.entities('basic.common')
 
-          await INSERT.into(LeftChild).entries({ ID: LEFT_CHILD_ID, title: 'L' })
-          await INSERT.into(RightChild).entries({ ID: RIGHT_CHILD_ID, title: 'R' })
-          await INSERT.into(WithRelationship).entries({ leftChildId: LEFT_CHILD_ID, rightChildId: RIGHT_CHILD_ID })
+          await INSERT.into(keys).entries({ id: 42 })
 
           let tx1
           try {
             tx1 = cds.tx()
-            await tx1.run(SELECT.from(WithRelationship).forUpdate({ wait: 0 }))
+            await tx1.run(SELECT.from(keys).forUpdate({ wait: 0 }))
 
-            const res = await SELECT.from(WithRelationship).forUpdate({ ignoreLocked: true })
+            const res = await SELECT.from(keys).forUpdate({ ignoreLocked: true })
             expect(res).length(0)
           } finally {
             await tx1?.rollback()
-            await DELETE.from(WithRelationship).where({ leftChildId: LEFT_CHILD_ID, rightChildId: RIGHT_CHILD_ID })
-            await DELETE.from(LeftChild).where({ ID: LEFT_CHILD_ID })
-            await DELETE.from(RightChild).where({ ID: RIGHT_CHILD_ID })
+            await DELETE.from(keys).where({ id: 42 })
           }
         })
 
         test('composite-key entity with expand returns undefined without SQL error when table is empty', async () => {
-          const { WithRelationship } = cds.entities('complex.associations.unmanaged')
+          const { keys } = cds.entities('basic.common')
 
-          const res = await SELECT.one.from(WithRelationship).columns`*, leftChild { * }, rightChild { * }`.forUpdate({
-            ignoreLocked: true,
-          })
+          await INSERT.into(keys).entries({ id: 42 })
+
+          const res = await SELECT.one.from(keys).where({ id: 42 }).forUpdate({ ignoreLocked: true })
 
           expect(res).undefined
+          await DELETE.from(keys).where({ id: 42 })
         })
       })
     })
