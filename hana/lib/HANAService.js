@@ -147,11 +147,9 @@ class HANAService extends SQLService {
     }
 
     const isLockQuery = query.SELECT.forUpdate || query.SELECT.forShareLock
-    if (!isLockQuery) {
-      // REVISIT: disable this for queries like (SELECT 1)
-      // Will return multiple rows with objects inside
-      query.SELECT.expand = 'root'
-    }
+    // REVISIT: disable this for queries like (SELECT 1)
+    // Will return multiple rows with objects inside
+    if (!isLockQuery) query.SELECT.expand = 'root'
 
     const { cqn, sql, temporary, blobs, withclause, values } = this.cqn2sql(query, data)
     delete query.SELECT.expand
@@ -164,6 +162,7 @@ class HANAService extends SQLService {
     let sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
     const { hints } = query.SELECT
     if (hints) sqlScript += ` WITH HINT (${hints.join(',')})`
+    
     let rows
     if (values?.length || blobs.length > 0 || isStream) {
       const ps = await this.prepare(sqlScript, blobs.length)
@@ -179,9 +178,11 @@ class HANAService extends SQLService {
       resultQuery.SELECT.forShareLock = undefined
       const keys = Object.keys(req.target?.keys || {})
       if (keys.length && query.SELECT.forUpdate?.ignoreLocked) {
+        // Exit early when ALL existing rows are locked
         if (rows.length === 0) return isOne ? undefined : []
-        // REVISIT: No support for count
-        // where [keys] in [values]
+        
+        // REVISIT: No Support for count
+        // Filter for those rows that are not locked
         const left = { list: keys.map(k => ({ ref: [k] })) }
         const right = { list: rows.map(r => ({ list: keys.map(k => ({ val: r[k.toUpperCase()] })) })) }
         resultQuery.SELECT.limit = undefined
