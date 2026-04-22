@@ -147,11 +147,9 @@ class HANAService extends SQLService {
     }
 
     const isLockQuery = query.SELECT.forUpdate || query.SELECT.forShareLock
-    if (!isLockQuery) {
-      // REVISIT: disable this for queries like (SELECT 1)
-      // Will return multiple rows with objects inside
-      query.SELECT.expand = 'root'
-    }
+    // REVISIT: disable this for queries like (SELECT 1)
+    // Will return multiple rows with objects inside
+    if (!isLockQuery) query.SELECT.expand = 'root'
 
     const { cqn, sql, temporary, blobs, withclause, values } = this.cqn2sql(query, data)
     delete query.SELECT.expand
@@ -164,6 +162,7 @@ class HANAService extends SQLService {
     let sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
     const { hints } = query.SELECT
     if (hints) sqlScript += ` WITH HINT (${hints.join(',')})`
+    
     let rows
     if (values?.length || blobs.length > 0 || isStream) {
       const ps = await this.prepare(sqlScript, blobs.length)
@@ -177,15 +176,20 @@ class HANAService extends SQLService {
       const resultQuery = query.clone()
       resultQuery.SELECT.forUpdate = undefined
       resultQuery.SELECT.forShareLock = undefined
+      
       const keys = Object.keys(req.target?.keys || {})
+      
       if (keys.length && query.SELECT.forUpdate?.ignoreLocked) {
-        // REVISIT: No support for count
-        // where [keys] in [values]
+        // Exit early when no row was found in the inital query
+        if (rows.length === 0) return isOne ? undefined : []
+        
+        // Filter for those rows that were locked by the initial query
         const left = { list: keys.map(k => ({ ref: [k] })) }
         const right = { list: rows.map(r => ({ list: keys.map(k => ({ val: r[k.toUpperCase()] })) })) }
         resultQuery.SELECT.limit = undefined
         resultQuery.SELECT.where = [left, 'in', right]
       }
+      
       return this.onSELECT({ query: resultQuery, __proto__: req })
     }
 
@@ -707,8 +711,7 @@ class HANAService extends SQLService {
       }
 
       // Calculate final output columns once
-      let outputColumns = ''
-      outputColumns = `${path ? this.quote('_path_') : `'$[0'`} as "_path_",${blobs} as "_blobs_",${expands} as "_expands_",${jsonColumn} as "_json_"`
+      let outputColumns = `${path ? this.quote('_path_') : `'$[0'`} as "_path_",${blobs} as "_blobs_",${expands} as "_expands_",${jsonColumn} as "_json_"`
       if (blobColumns.length)
         outputColumns = `${outputColumns},${blobColumns.map(b => `${this.quote(b)} as "${b.replace(/"/g, '""')}"`)}`
       this._outputColumns = outputColumns

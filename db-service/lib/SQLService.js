@@ -1,12 +1,14 @@
-const cds = require('@sap/cds'),
-  DEBUG = cds.log('sql|db'),
-  DEBUG_PQL = cds.log('pql')
+const cds = require('@sap/cds')
+const DEBUG = cds.log('sql|db')
 const { Readable, Transform } = require('stream')
 const { pipeline } = require('stream/promises')
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
-let cqn2pql
 const { resolveTable } = require('./utils')
+
+// REVISIT: make string the default in next major
+const _count_as_string = cds.env.features.count_as_string
+const _count = _count_as_string ? { func: 'count', cast: { type: 'cds.String' } } : { func: 'count' }
 
 const BINARY_TYPES = {
   'cds.Binary': 1,
@@ -200,7 +202,7 @@ class SQLService extends DatabaseService {
     const ps = await this.prepare(sql)
     const results = entries ? await Promise.all(entries.map(e => ps.run(e))) : await ps.run()
     // REVISIT: results isn't an array, when no entries -> how could that work? when do we have no entries?
-    return results.reduce((total, affectedRows) => (total += affectedRows.changes), 0)
+    return results.reduce((total, affectedRows) => total + affectedRows.changes, 0)
   }
 
   /**
@@ -328,24 +330,24 @@ class SQLService extends DatabaseService {
    * Derives and executes a query to fill in `$count` for given query
    * @param {import('@sap/cds/apis/cqn').SELECT} query - SELECT CQN
    * @param {unknown[]} ret - Results of the original query
-   * @returns {Promise<number>}
+   * @returns {Promise<number|string>}
    */
   async count(query, ret) {
     if (ret?.length) {
       const { one, limit: _ } = query.SELECT,
         n = ret.length
       const [max, offset = 0] = one ? [1] : _ ? [_.rows?.val, _.offset?.val] : []
-      if (max === undefined || (n < max && (n || !offset))) return n + offset
+      if (max === undefined || (n < max && (n || !offset))) return _count_as_string ? `${n + offset}` : n + offset
     }
 
     // Keep original query columns when potentially used insde conditions
     const { having, groupBy } = query.SELECT
     let columns = []
-    if ((having?.length || groupBy?.length)) {
+    if (having?.length || groupBy?.length) {
       columns = query.SELECT.columns.filter(c => !c.expand)
     }
     if (columns.length === 0) columns.push({ val: 1 })
-    const cq = SELECT.one([{ func: 'count' }]).from(
+    const cq = SELECT.one([_count]).from(
       cds.ql.clone(query, {
         columns,
         localized: false,
@@ -393,29 +395,19 @@ class SQLService extends DatabaseService {
     })
   }
 
-  /** @param {unknown[]} args */
   constructor(...args) {
     super(...args)
-    /** @type {unknown} */
     this.class = new.target // for IntelliSense
   }
 
   /**
    * @param {import('@sap/cds/apis/cqn').Query} query
-   * @param {unknown} values
    * @returns {typeof SQLService.CQN2SQL}
    */
   cqn2sql(query, values) {
-    const q = this.cqn4sql(query)
     const cqn2sql = new this.class.CQN2SQL(this)
+    const q = this.cqn4sql(query)
     const sql = cqn2sql.render(q, values)
-
-    if (DEBUG_PQL._debug) {
-      cqn2pql ??= require('./cqn2pql')
-      const pql = new cqn2pql(this).render(this.cqn4sql(query, false), values)
-      DEBUG_PQL.debug(pql.sql, pql.values ?? '')
-    }
-
     return sql
   }
 
@@ -519,39 +511,70 @@ const _target_name4 = q => {
   return first.id || first
 }
 
-const sqls = new (class extends SQLService {
-  get factory() {
-    return null
+
+// Add support for cqn2pql if debug logging for pql is enabled, or if running in the REPL.
+const DEBUG_PQL = cds.log('pql')
+if (DEBUG_PQL._debug || cds.repl) {
+
+  // Add helper method to convert CQN to PQL, used below...
+  SQLService.prototype.cqn2pql = function cqn2pql (query, values) {
+    const CQN2PQL = cqn2pql.renderer ??= require('./cqn2pql')
+    return new CQN2PQL(this).render(query, values)
   }
 
-  get model() {
-    return cds.model
+  // Add support for logging generated PQL if debug logging for pql is enabled.
+  if (DEBUG_PQL._debug) {
+    const $super = SQLService.prototype.cqn2sql
+    SQLService.prototype.cqn2sql = function (query, values) {
+      const q2 = this.cqn4sql(query, false) // FIXME: calling cqn4sql twice per query is utterly expensive, isn't it ?!?
+      const pql = this.cqn2pql(q2, values)
+      DEBUG_PQL.debug(pql.sql, pql.values ?? '')
+      return $super.call(this, query, values)
+    }
   }
-})()
-cds.extend(cds.ql.Query).with(
-  class {
-    forSQL() {
-      const cqn = (cds.db || sqls).cqn4sql(this)
-      return this.flat(cqn)
+
+  // If running in the REPL, extend cds.ql.Query with helpers to inspect queries. 
+  if (cds.repl) {
+
+    cds.extend(cds.ql.Query).with(
+      class {
+        forSQL() {
+          const cqn = db.srv.cqn4sql(this)
+          return this.flat(cqn)
+        }
+        forSql() { return this.forSQL() }
+        toSQL() {
+          if (this.SELECT) this.SELECT.expand = 'root' // Enforces using json functions always for top-level SELECTS
+          const { sql, values } = db.srv.cqn2sql(this)
+          return { sql, values } // skipping .cqn property
+        }
+        toSql() {
+          const { sql } = this.toSQL()
+          return sql
+        }
+        toPQL() {
+          const { sql, values } = db.srv.cqn2pql(this)
+          return { sql, values } // skipping .cqn property
+        }
+        toPql() {
+          const { sql } = this.toPQL()
+          return sql
+        }
+      }
+    )
+
+    /** 
+     * Dummy SQL service used in extensions to cds.ql above, 
+     * if no real SQL service is available yet through cds.db. 
+     */
+    class db extends SQLService {
+      /** @returns {SQLService} */ 
+      static get srv() { return cds.db || (this.singleton ??= new this) }
+      get factory() { return null }
+      get model() { return cds.model }
     }
-    toSQL() {
-      if (this.SELECT) this.SELECT.expand = 'root' // Enforces using json functions always for top-level SELECTS
-      const { sql, values } = (cds.db || sqls).cqn2sql(this)
-      return { sql, values } // skipping .cqn property
-    }
-    toSql() {
-      return this.toSQL().sql
-    }
-    toPQL() {
-      cqn2pql ??= require('./cqn2pql')
-      const { sql, values } = new cqn2pql(cds.db || sqls).render((cds.db || sqls).cqn4sql(this, false))
-      return { sql, values } // skipping .cqn property
-    }
-    toPql() {
-      return this.toPQL().sql
-    }
-  },
-)
+  }
+}
 
 Object.assign(SQLService, { _target_name4 })
 module.exports = SQLService

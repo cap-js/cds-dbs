@@ -10,8 +10,7 @@ const admin = {
 const totalBooks = 6
 
 describe('Bookshop - Read', () => {
-  const expect = require('@cap-js/cds-test/lib/expect.js') // REVISIT: to.deep.contain is not mirror to jest
-  const { GET } = cds.test(bookshop)
+  const { GET, expect } = cds.test(bookshop)
 
   test('Books', async () => {
     const res = await GET('/browse/Books', { headers: { 'accept-language': 'de' } })
@@ -23,14 +22,14 @@ describe('Bookshop - Read', () => {
     const res = await GET('/browse/ListOfBooks?$count=true&$top=0')
     expect(res.status).to.be.eq(200)
     expect(res.data.value.length).to.be.eq(0)
-    expect(res.data['@odata.count']).to.be.eq(totalBooks)
+    expect(res.data['@odata.count']).to.be.eq(`${totalBooks}`)
   })
 
   test('Books $count with $top=2', async () => {
     const res = await GET('/browse/ListOfBooks?$count=true&$top=2')
     expect(res.status).to.be.eq(200)
     expect(res.data.value.length).to.be.eq(2)
-    expect(res.data['@odata.count']).to.be.eq(totalBooks)
+    expect(res.data['@odata.count']).to.be.eq(`${totalBooks}`)
   })
 
   test('Books $count with $top=1 and groupby', async () => {
@@ -39,7 +38,7 @@ describe('Bookshop - Read', () => {
     )
     expect(res.status).to.be.eq(200)
     expect(res.data.value.length).to.be.eq(1)
-    expect(res.data['@odata.count']).to.be.eq(totalBooks)
+    expect(res.data['@odata.count']).to.be.eq(`${totalBooks}`)
   })
 
   test('Books $count in expand', async () => {
@@ -200,9 +199,9 @@ describe('Bookshop - Read', () => {
 
   test('reuse already executed select as subselect', async () => {
     let s = SELECT.columns('ID').from('sap.capire.bookshop.Books')
-    let res = await s
+    await s
 
-    res = await SELECT.one.from('sap.capire.bookshop.Books as b')
+    const res = await SELECT.one.from('sap.capire.bookshop.Books as b')
       .join('sap.capire.bookshop.Authors as a')
       .on('a.ID = b.author_ID')
       .columns('a.name', 'b.title')
@@ -287,7 +286,7 @@ describe('Bookshop - Read', () => {
       admin,
     )
 
-    expect(res).to.deep.contain({
+    expect(res).to.containSubset({
       status: 200,
       data: {
         value: [{
@@ -314,7 +313,7 @@ describe('Bookshop - Read', () => {
     const { Books } = cds.entities('sap.capire.bookshop')
     const res = await SELECT.one`ID as i, title as t, author as a { name as n, books as b { title as t } }`.from(SELECT.from`${Books}[ID=252]`)
 
-    expect(res).to.deep.contain({
+    expect(res).to.containSubset({
       i: 252,
       t: 'Eleonora',
       a: { n: 'Edgar Allen Poe' }
@@ -426,7 +425,7 @@ describe('Bookshop - Read', () => {
   test('Books $count with $top=0 and group by', async () => {
     // top=0 to force count subquery
     const res = await GET(`/admin/Books?$apply=groupby((author/name))&$top=0&$count=true`, admin)
-    expect(res.data['@odata.count']).to.be.eq(4)
+    expect(res.data['@odata.count']).to.be.eq('4')
   })
 
   it('joins as subselect are executable', async () => {
