@@ -10,8 +10,7 @@ const admin = {
 const totalBooks = 6
 
 describe('Bookshop - Read', () => {
-  const expect = require('@cap-js/cds-test/lib/expect.js') // REVISIT: to.deep.contain is not mirror to jest
-  const { GET } = cds.test(bookshop)
+  const { GET, expect } = cds.test(bookshop)
 
   test('Books', async () => {
     const res = await GET('/browse/Books', { headers: { 'accept-language': 'de' } })
@@ -287,7 +286,7 @@ describe('Bookshop - Read', () => {
       admin,
     )
 
-    expect(res).to.deep.contain({
+    expect(res).to.containSubset({
       status: 200,
       data: {
         value: [{
@@ -314,7 +313,7 @@ describe('Bookshop - Read', () => {
     const { Books } = cds.entities('sap.capire.bookshop')
     const res = await SELECT.one`ID as i, title as t, author as a { name as n, books as b { title as t } }`.from(SELECT.from`${Books}[ID=252]`)
 
-    expect(res).to.deep.contain({
+    expect(res).to.containSubset({
       i: 252,
       t: 'Eleonora',
       a: { n: 'Edgar Allen Poe' }
