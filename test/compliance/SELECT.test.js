@@ -316,6 +316,20 @@ describe('SELECT', () => {
       assert.strictEqual(res[0].res, '0.50')
     })
 
+    test('select cast decimal without scale strips trailing dot and zeros', async () => {
+      const { globals } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT CAST(1.0 AS Decimal) AS res FROM ${globals}`
+      const res = await cds.run(cqn)
+      assert.strictEqual(res[0].res, '1')
+    })
+
+    test('select cast decimal without scale strips trailing zeros, keeps significant digits', async () => {
+      const { globals } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT CAST(0.50 AS Decimal) AS res FROM ${globals}`
+      const res = await cds.run(cqn)
+      assert.strictEqual(res[0].res, '0.5')
+    })
+
     test('$now in view refers to tx timestamp', async () => {
       let ts, res1, res2
       await cds.tx(async tx => {
