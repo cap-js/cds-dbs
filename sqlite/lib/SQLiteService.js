@@ -274,7 +274,7 @@ class SQLiteService extends SQLService {
         ? (expr, elem) =>
             elem?.scale
               ? `CASE WHEN ${expr} IS NULL THEN NULL ELSE format('%.${elem.scale}f', ${expr}) END`
-              : `CASE WHEN ${expr} IS NULL THEN NULL ELSE format('%.17g', ${expr}) END`
+              : `CASE WHEN ${expr} IS NULL THEN NULL ELSE rtrim(rtrim(format('%.999f', ${expr}), '0'), '.') END`
         : undefined,
       // Binary is not allowed in json objects
       Binary: expr => `${expr} || ''`,
