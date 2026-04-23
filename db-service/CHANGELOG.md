@@ -18,8 +18,6 @@
 
 * `$self` reference to func column in `having` ([#1539](https://github.com/cap-js/cds-dbs/issues/1539)) ([9eac576](https://github.com/cap-js/cds-dbs/commit/9eac5762fc4d254a1bc54bded1dd6a492299f576)), closes [#1528](https://github.com/cap-js/cds-dbs/issues/1528)
 * foreign key not included in wildcard select from subquery ([#1540](https://github.com/cap-js/cds-dbs/issues/1540)) ([0fde4ed](https://github.com/cap-js/cds-dbs/commit/0fde4eda21a389c68982f348e9e7c3680c00dcb3)), closes [#1127](https://github.com/cap-js/cds-dbs/issues/1127)
-* **pql:** avoid type error on bad query ([#1544](https://github.com/cap-js/cds-dbs/issues/1544)) ([aa4948c](https://github.com/cap-js/cds-dbs/commit/aa4948c5aaf76a93e778c8a36d2f9a3aa5532ef1))
-* Remove voodoo and run with standard chai and vitest ([#1573](https://github.com/cap-js/cds-dbs/issues/1573)) ([0e91fbe](https://github.com/cap-js/cds-dbs/commit/0e91fbe2596ba74b81d76f9fa475af4ac75aad55))
 * sqlite generated key is named lastInsertRowid ([#1501](https://github.com/cap-js/cds-dbs/issues/1501)) ([a4d3437](https://github.com/cap-js/cds-dbs/commit/a4d34378297c8afdb13abb7e664165012c36eb8f))
 
 ## [2.9.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.8.2...db-service-v2.9.0) (2026-03-09)
