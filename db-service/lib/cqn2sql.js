@@ -5,6 +5,9 @@ const { resolveTable } = require('./utils')
 
 const _simple_queries = cds.env.features.sql_simple_queries
 const _strict_booleans = _simple_queries < 2
+// REVISIT: make string the default in next major
+const _count_as_string = cds.env.features.count_as_string
+const _count = _count_as_string ? { func: 'count', cast: { type: 'cds.String' } } : { func: 'count' }
 
 const { Readable } = require('stream')
 
@@ -655,7 +658,7 @@ class CQN2SQLRenderer {
 
   SELECT_count(q) {
     const countQuery = cds.ql.clone(q, {
-      columns: [{ func: 'count' }],
+      columns: [_count],
       one: 0, limit: 0, orderBy: 0, expand: 0, count: 0
     })
     countQuery.as = q.as + '@odata.count'
