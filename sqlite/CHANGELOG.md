@@ -4,6 +4,25 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.3.0](https://github.com/cap-js/cds-dbs/compare/sqlite-v2.2.1...sqlite-v2.3.0) (2026-04-29)
+
+
+### Added
+
+* decimal affinity in sqlite ([#1547](https://github.com/cap-js/cds-dbs/issues/1547)) ([9228adc](https://github.com/cap-js/cds-dbs/commit/9228adc22733b18934997506271a0c7fa6505eb8))
+
+
+### Fixed
+
+* supersede potentially compromised release ([#1589](https://github.com/cap-js/cds-dbs/issues/1589)) ([bd73895](https://github.com/cap-js/cds-dbs/commit/bd7389524d00ddd6ed73fc79308e19e7bf952b53))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.10.0 to ^2.10.1
+
 ## [2.2.1](https://github.com/cap-js/cds-dbs/compare/sqlite-v2.2.0...sqlite-v2.2.1) (2026-04-22)
 
 
