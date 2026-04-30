@@ -2,7 +2,7 @@
 
 const _inferred = require('../../lib/infer')
 const cds = require('@sap/cds')
-const { expect } = cds.test
+const {expect} = cds.test
 
 describe('Infer types of calculated elements in select list', () => {
   let model
@@ -20,14 +20,14 @@ describe('Infer types of calculated elements in select list', () => {
       model,
     )
     let { Books } = model.entities
-    expect(inferred.elements).to.deep.equal({
+    expect(inferred.elements).to.containSubset({
       ID: Books.elements.ID,
       area: Books.elements.area,
       strArea: {
-        type: 'cds.String',
+        _type: 'cds.String',
       },
       areaCastedToInt: {
-        type: 'cds.Integer',
+        _type: 'cds.Integer',
       },
     })
   })

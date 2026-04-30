@@ -5,10 +5,11 @@
   "cds": {
     "requires": {
       "db": {
-        "impl": "@cap-js/sqlite",
+        "kind": "sql",
         "client": {
           "xy": 51
-        }
+        },
+        "decimal_affinity": "real"
       }
     },
     "features": {

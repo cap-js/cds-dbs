@@ -236,7 +236,7 @@ describe('Structured Access', () => {
 
     it('denies path ending on struct field in expression', () => {
       expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books { 2*dedication.sub as foo }`, model)).to.throw(
-        /A structured element can't be used as a value in an expression/,
+        `The operator "*" can only be used with scalar operands`,
       )
     })
   })

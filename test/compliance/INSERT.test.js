@@ -163,6 +163,23 @@ describe('INSERT', () => {
   })
 
   describe('from', () => {
+    test('transform', async () => {
+      const { cuid, keys } = cds.entities('basic.common')
+      // fill other table first
+      await cds.run(INSERT([
+        { id: 1 },
+        { id: 1, default: 'overwritten' },
+      ]).into(keys))
+      await INSERT.into(cuid)
+        .columns(['ID'])
+        .from(cds.ql`SELECT id || '-' || default as ID FROM ${keys} WHERE id = ${1}`)
+      const select = await SELECT.from(cuid).orderBy('ID')
+      expect(select).deep.eq([
+        {ID:'1-defaulted'},
+        {ID:'1-overwritten'},
+      ])
+    })
+
     test('smart quoting', async () => {
       const { Alter, ASC } = cds.entities('complex.keywords')
       // fill other table first
@@ -186,5 +203,25 @@ describe('INSERT', () => {
     expect(affectedRows == 1).to.be.eq(true)
     // InsertResult
     expect(affectedRows).not.to.include({ _affectedRows: 1 }) // lastInsertRowid not available on postgres
+  })
+
+  test('default $now adds current tx timestamp in correct format', async () => {
+    await cds.tx(async tx => {
+      // the statements are run explicitly in sequential order to ensure current_timestamp would create different timestamps
+      await tx.run(INSERT.into('basic.common.dollar_now_default').entries({ id: 5 }))
+      await tx.run(INSERT.into('basic.common.dollar_now_default').entries({ id: 6 }))
+    })
+
+    const result = await SELECT.from('basic.common.dollar_now_default')
+
+    expect(result.length).to.eq(2)
+    expect(result[0].date).to.match(/^\d{4}-\d{2}-\d{2}$/)
+    expect(result[0].date).to.eq(result[1].date)
+    expect(result[0].time).to.match(/^\d{2}:\d{2}:\d{2}$/)
+    expect(result[0].time).to.eq(result[1].time)
+    expect(result[0].dateTime).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/)
+    expect(result[0].dateTime).to.eq(result[1].dateTime)
+    expect(result[0].timestamp).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
+    expect(result[0].timestamp).to.eq(result[1].timestamp)
   })
 })

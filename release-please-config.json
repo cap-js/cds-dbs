@@ -1,4 +1,7 @@
 {
+  "plugins": [
+    "node-workspace"
+  ],
   "packages": {
     "db-service": {},
     "sqlite": {},
@@ -24,6 +27,16 @@
     {
       "type": "perf",
       "section": "Performance Improvements",
+      "hidden": false
+    },
+    {
+      "type": "removed",
+      "section": "Removed",
+      "hidden": false
+    },
+    {
+      "type": "changed",
+      "section": "Changed",
       "hidden": false
     }
   ]

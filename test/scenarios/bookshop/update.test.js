@@ -138,7 +138,7 @@ describe('Bookshop - Update', () => {
     const { RenameKeys } = cds.entities('AdminService')
     const updateRichardsBooks = UPDATE.entity(RenameKeys)
       .where(`author.name = 'Richard Carpenter'`)
-      .set('ID = 42')
+      .set('foo = 42')
     const selectRichardsBooks = cds.ql`SELECT * FROM ${RenameKeys} where author.name = 'Richard Carpenter'`
 
     await cds.run(updateRichardsBooks)
@@ -173,7 +173,9 @@ describe('Bookshop - Update', () => {
     // Ensure that the @cds.on.insert and @cds.on.update are correctly applied
     expect(onInsert.createdAt).to.be.eq(onInsert.modifiedAt)
     expect(onInsert.createdAt).to.be.eq(onUpdate.createdAt)
-    expect(onInsert.modifiedAt).to.be.not.eq(onUpdate.modifiedAt)
+    // REVISIT: this is not guaranteed to be different, as the two UPSERTs 
+    // might run within the same millisecond
+    // expect(onInsert.modifiedAt).to.be.not.eq(onUpdate.modifiedAt) 
 
     // Ensure that the actual update happened
     expect(onInsert.descr).to.be.eq('CREATED')

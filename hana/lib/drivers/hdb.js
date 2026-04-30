@@ -4,7 +4,7 @@ const { text } = require('stream/consumers')
 
 const cds = require('@sap/cds')
 const hdb = require('hdb')
-const iconv = require('iconv-lite')
+const iconv = hdb.iconv
 
 const { driver, prom, handleLevel } = require('./base')
 const { resultSetStream } = require('./stream')
@@ -35,6 +35,7 @@ class HDBDriver extends driver {
   constructor(creds) {
     creds = {
       fetchSize: 1 << 16, // V8 default memory page size
+      compress: false, // compression is disabled by default to avoic cpu overhead
       ...creds,
     }
 

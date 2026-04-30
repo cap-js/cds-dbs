@@ -168,6 +168,25 @@ describe('UPDATE', () => {
       }`)
     expect(query.UPDATE).to.deep.equal(expected.UPDATE)
   })
+
+  it('supports multiple path expressions in where clause', () => {
+    const q = UPDATE('bookshop.Window as Window').set({ description: 'sliding window' }).where('door.car.make =', 'BMW')
+    const res = cqn4sql(q, model)
+
+    const innerSelect = cds.ql`SELECT from bookshop.Window as Window
+      left join bookshop.Door as door on door.ID = Window.door_ID
+      left join bookshop.Car as car on car.ID = door.car_ID
+      { Window.ID }
+      where car.make = 'BMW'`
+
+    const expected = UPDATE.entity({ ref: ['bookshop.Window'] }).alias('Window2')
+    expected.UPDATE.where = [
+      { list: [{ ref: ['Window2', 'ID'] }] },
+      'in',
+      innerSelect,
+    ]
+    expect (JSON.parse(JSON.stringify(res))).to.deep.equal(JSON.parse(JSON.stringify(expected)))
+  })
 })
 describe('UPDATE with path expression', () => {
   let model
@@ -178,35 +197,35 @@ describe('UPDATE with path expression', () => {
 
   it('with path expressions with draft enabled entity', () => {
     const { UPDATE } = cds.ql
-    let u = UPDATE.entity('bookshop.CatalogService.Books as Books').where(`author.name LIKE '%Bron%'`)
+    let u = UPDATE.entity('update.CatalogService.Books as Books').where(`author.name LIKE '%Bron%'`)
 
-    let expected = UPDATE.entity({ ref: ['bookshop.CatalogService.Books'] })
+    let expected = UPDATE.entity({ ref: ['update.CatalogService.Books'] })
 
     // dont use virtual key `isActiveEntity` in `UPDATE … where (<key>) in <subquery>`
     expected.UPDATE.where = [
       { list: [{ ref: ['Books2', 'ID'] }] },
       'in',
       cds.ql`
-            (SELECT Books.ID from bookshop.CatalogService.Books as Books
-              left join bookshop.CatalogService.Authors as author on author.ID = Books.author_ID
+            (SELECT Books.ID from update.CatalogService.Books as Books
+              left join update.CatalogService.Authors as author on author.ID = Books.author_ID
               where author.name LIKE '%Bron%'
             )
       `,
     ]
     expected.UPDATE.entity = {
       as: 'Books2',
-      ref: ['bookshop.CatalogService.Books'],
+      ref: ['update.CatalogService.Books'],
     }
     let res = cqn4sql(u, model)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(JSON.parse(JSON.stringify(expected)))
   })
 
   it('path expression via calculated element leads to subquery if used in where', () => {
-    const q = UPDATE('bookshop.Orders.Items as Items').set({ price: 5 }).where('price = 4.99')
+    const q = UPDATE('update.Orders.Items as Items').set({ price: 5 }).where('price = 4.99')
 
     const res = cqn4sql(q, model)
 
-    const expected = UPDATE.entity({ ref: ['bookshop.Orders.Items'] }).alias('Items2')
+    const expected = UPDATE.entity({ ref: ['update.Orders.Items'] }).alias('Items2')
     expected.UPDATE.where = [
       {
         list: [{ ref: ['Items2', 'up__ID'] }, { ref: ['Items2', 'book_ID'] }],
@@ -216,8 +235,8 @@ describe('UPDATE with path expression', () => {
         (SELECT
           Items.up__ID,
           Items.book_ID
-        FROM bookshop.Orders.Items AS Items
-        LEFT JOIN bookshop.Books AS book ON book.ID = Items.book_ID
+        FROM update.Orders.Items AS Items
+        LEFT JOIN update.Books AS book ON book.ID = Items.book_ID
         WHERE (book.stock * 2) = 4.99
         )
       `,
@@ -227,11 +246,11 @@ describe('UPDATE with path expression', () => {
   })
 
   it('if there is no path expression in the where, we dont need subselect magic', () => {
-    const q = UPDATE('bookshop.Orders.Items as Items').set({ quantity: 3 }).where('1 = 1')
+    const q = UPDATE('update.Orders.Items as Items').set({ quantity: 3 }).where('1 = 1')
     const res = cqn4sql(q, model)
     expect(JSON.parse(JSON.stringify(res))).to.eql({
       UPDATE: {
-        entity: { ref: ['bookshop.Orders.Items'], as: 'Items' },
+        entity: { ref: ['update.Orders.Items'], as: 'Items' },
         where: [{ val: 1 }, '=', { val: 1 }],
       },
     })

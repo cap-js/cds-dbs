@@ -1,5 +1,7 @@
 'use strict'
 
+const cds = require('@sap/cds')
+
 /**
  * Formats a ref array into a string representation.
  * If the first step is an entity, the separator is a colon, otherwise a dot.
@@ -19,6 +21,31 @@ function prettyPrintRef(ref, model = null) {
     }
     return acc + `${curr.id ? curr.id + '[…]' : curr}`
   }, '')
+}
+
+function hasOwnSkip(definition) {
+  return (
+    definition && Object.hasOwn(definition, '@cds.persistence.skip') && definition['@cds.persistence.skip'] === true
+  )
+}
+
+function isRuntimeView(definition) {
+  if (!definition || !cds.env.features.runtime_views) return false
+  if (definition['_isRuntimeView']) return true
+  if (!definition['@cds.persistence.skip']) {
+    Object.defineProperty(definition, '_isRuntimeView', {
+      value: true,
+      writable: false,
+      configurable: true,
+      enumerable: false
+    })
+    return true
+  }
+  // views with "as select from" variant are also runtime views, even if they are annotated with persistence skip
+  if (definition.query && !definition.query._target) return true
+  if (definition.query) return isRuntimeView(definition.query._target)
+
+  return false
 }
 
 /**
@@ -123,12 +150,17 @@ function getModelUtils(model, query) {
     if (!def || !isLocalized(def)) return def
     return model.definitions[`localized.${def.name}`] || def
   }
-
   return {
     getLocalizedName,
     isLocalized,
     getDefinition,
   }
+}
+
+function resolveTable(target) {
+  if (target.query?._target && !Object.prototype.hasOwnProperty.call(target, '@cds.persistence.table'))
+    return resolveTable(target.query._target)
+  return target
 }
 
 // export the function to be used in other modules
@@ -139,4 +171,7 @@ module.exports = {
   getImplicitAlias,
   defineProperty,
   getModelUtils,
+  hasOwnSkip,
+  isRuntimeView,
+  resolveTable
 }

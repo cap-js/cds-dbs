@@ -107,6 +107,44 @@ describe('DELETE', () => {
     ]
     expect(query.DELETE).to.deep.equal(expected.DELETE)
   })
+  it('DELETE with where exists expansion and path expression via multiple assocs', () => {
+    const forNodeModel = cds.compile.for.nodejs(JSON.parse(JSON.stringify(cds.model)))
+    const { DELETE } = cds.ql
+    let d = DELETE.from('bookshop.Books:author as author').where(`books.genre.name = 'Fiction'`)
+    const query = cqn4sql(d, forNodeModel)
+
+    // this is the final exists subquery
+    const subquery = cds.ql`
+     SELECT author.ID from bookshop.Authors as author
+      left join bookshop.Books as books on books.author_ID = author.ID
+      left join bookshop.Genres as genre on genre.ID = books.genre_ID
+     where exists (
+      SELECT 1 from bookshop.Books as $B where $B.author_ID = author.ID
+     ) and genre.name = 'Fiction' 
+    `
+    const expected = JSON.parse(`{
+      "DELETE": {
+          "from": {
+            "ref": [
+              "bookshop.Authors"
+            ],
+            "as": "author2"
+          }
+        }
+      }`)
+    expected.DELETE.where = [
+      {
+        list: [
+          {
+            ref: ['author2', 'ID'],
+          },
+        ],
+      },
+      'in',
+      subquery,
+    ]
+    expect(query.DELETE).to.deep.equal(expected.DELETE)
+  })
 
   it('in a list with exactly one val, dont transform to key comparison', () => {
     const query = {

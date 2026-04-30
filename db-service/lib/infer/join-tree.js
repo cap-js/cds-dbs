@@ -133,20 +133,22 @@ class JoinTree {
    *
    * @param {string} alias - The original alias name.
    * @param {unknown[]} outerQueries - An array of outer queries.
+   * @param {string} key - The key to be used for storing the alias in the map. If not provided, the upper-case version of the alias will be used as the key.
    * @returns {string} - The next unambiguous table alias.
    */
-  addNextAvailableTableAlias(alias, outerQueries) {
+  addNextAvailableTableAlias(alias, outerQueries, key) {
     const upperAlias = alias.toUpperCase()
-    if (this._queryAliases.get(upperAlias) || outerQueries?.some(outer => outerHasAlias(outer))) {
+    if (this._queryAliases.get(upperAlias) || outerQueries?.some(outer => outerHasAlias(outer, key))) {
       let j = 2
-      while (this._queryAliases.get(upperAlias + j) || outerQueries?.some(outer => outerHasAlias(outer, j))) j += 1
+      while (this._queryAliases.get(upperAlias + j) || outerQueries?.some(outer => outerHasAlias(outer, key, j))) j += 1
       alias += j
     }
-    this._queryAliases.set(alias.toUpperCase(), alias)
+    this._queryAliases.set(key || alias.toUpperCase(), alias)
     return alias
 
-    function outerHasAlias(outer, number) {
-      return outer.joinTree._queryAliases.get(number ? upperAlias + number : upperAlias)
+    function outerHasAlias(outer, searchInValues = false, number) {
+      const currAlias = number ? upperAlias + number : upperAlias
+      return searchInValues ? Array.from(outer.joinTree._queryAliases.values()).includes(currAlias) : outer.joinTree._queryAliases.get(currAlias)
     }
   }
 
@@ -212,6 +214,8 @@ class JoinTree {
             // filter is always join relevant
             // if the column ends up in an `inline` -> each assoc step is join relevant
             child.$refLink.onlyForeignKeyAccess = false
+            // all parents are now also join relevant
+            markParentAsJoinRelevant(child.parent)
           } else {
             child.$refLink.onlyForeignKeyAccess = true
           }
@@ -223,6 +227,8 @@ class JoinTree {
         if (node.$refLink && (!elements || !(child.$refLink.definition.name in elements))) {
           // no foreign key access
           node.$refLink.onlyForeignKeyAccess = false
+          markParentAsJoinRelevant(node.parent)
+
           col.$refLinks[i - 1] = node.$refLink
         }
 
@@ -232,6 +238,15 @@ class JoinTree {
       i += 1
     }
     return true
+
+    function markParentAsJoinRelevant(parent) {
+      while (parent) {
+        if (parent.$refLink?.definition.isAssociation) {
+          parent.$refLink.onlyForeignKeyAccess = false
+        }
+        parent = parent.parent
+      }
+    }
 
     function joinId(step, args, where) {
       let appendix

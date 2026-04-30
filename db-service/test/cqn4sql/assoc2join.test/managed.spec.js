@@ -1,0 +1,243 @@
+'use strict'
+
+const cds = require('@sap/cds')
+const { loadModel } = require('../helpers/model')
+const { expectCqn } = require('../helpers/expectCqn')
+
+let cqn4sql = require('../../../lib/cqn4sql')
+
+describe('(a2j) managed associations', () => {
+  before(async () => {
+    const model = await loadModel()
+    const orig = cqn4sql // keep reference to original to avoid recursion
+    cqn4sql = q => orig(q, model)
+  })
+
+  describe('simple', () => {
+    it('path ends in scalar', () => {
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { ID, author.name }`)
+      const expected = cds.ql`
+				SELECT from bookshop.Books as Books
+				left outer join bookshop.Authors as author on author.ID = Books.author_ID
+				{
+					Books.ID,
+					author.name as author_name
+				}`
+      expectCqn(transformed).to.equal(expected)
+    })
+    it('path ends in structure', () => {
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.EStrucSibling as EStrucSibling { ID, self.struc1 }`)
+      const expected = cds.ql`
+				SELECT from bookshop.EStrucSibling as EStrucSibling
+					left outer join bookshop.EStrucSibling as self on self.ID = EStrucSibling.self_ID
+				{
+					EStrucSibling.ID,
+					self.struc1_deeper_foo as  self_struc1_deeper_foo,
+					self.struc1_deeper_bar as  self_struc1_deeper_bar
+				}`
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('assoc is within structure', () => {
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { ID, dedication.addressee.name }`)
+      const expected = cds.ql`
+				SELECT from bookshop.Books as Books
+					left outer join bookshop.Person as addressee on addressee.ID = Books.dedication_addressee_ID
+				{
+					Books.ID,
+					addressee.name as dedication_addressee_name
+				}`
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('different paths with different assocs', () => {
+      const transformed = cqn4sql(cds.ql`
+				SELECT from bookshop.Books as Books 
+				{
+					ID,
+					author.name,
+					author.dateOfBirth,
+          genre.descr,
+					dedication.addressee.name
+				}`)
+      const expected = cds.ql`
+				SELECT from bookshop.Books as Books
+					left outer join bookshop.Authors as author on author.ID = Books.author_ID
+					left outer join bookshop.Genres as genre on genre.ID = Books.genre_ID
+					left outer join bookshop.Person as addressee on addressee.ID = Books.dedication_addressee_ID
+				{
+          Books.ID,
+					author.name as author_name,
+					author.dateOfBirth as author_dateOfBirth,
+					genre.descr as genre_descr,
+					addressee.name as dedication_addressee_name
+				}`
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('different paths with different assocs with same target', () => {
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { ID, author.name, coAuthor.name }`)
+      const expected = cds.ql`
+				SELECT from bookshop.Books as Books
+					left outer join bookshop.Authors as author on author.ID = Books.author_ID
+					left outer join bookshop.Authors as coAuthor on coAuthor.ID = Books.coAuthor_ID
+				{
+					Books.ID,
+					author.name as author_name,
+					coAuthor.name as coAuthor_name
+				}`
+      expectCqn(transformed).to.equal(expected)
+    })
+  })
+
+  describe('shared prefix', () => {
+    it('one association', () => {
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { ID, author.name, author.dateOfBirth }`)
+      const expected = cds.ql`
+				SELECT from bookshop.Books as Books
+					left outer join bookshop.Authors as author on author.ID = Books.author_ID
+				{
+					Books.ID,
+					author.name as author_name,
+					author.dateOfBirth as author_dateOfBirth
+				}`
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('drill into structure', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          ID,
+          author.name,
+          author.address.street
+        }`)
+      const expected = cds.ql`
+				SELECT from bookshop.Books as Books
+					left outer join bookshop.Authors as author on author.ID = Books.author_ID
+				{
+					Books.ID,
+					author.name as author_name,
+					author.address_street as author_address_street
+				}`
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('drill into structure w/ explicit table alias', () => {
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.Books as B { ID, author.name, B.author.address.street }`)
+      const expected = cds.ql`
+				SELECT from bookshop.Books as B
+					left outer join bookshop.Authors as author on author.ID = B.author_ID
+				{
+					B.ID,
+					author.name as author_name,
+					author.address_street as author_address_street
+				}`
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('in where', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          ID,
+          author.name
+        }
+        WHERE author.placeOfBirth = 'Marbach'`)
+      const expected = cds.ql`
+        SELECT from bookshop.Books as Books
+          left outer join bookshop.Authors as author on author.ID = Books.author_ID
+        {
+          Books.ID,
+          author.name as author_name
+        }
+        WHERE author.placeOfBirth = 'Marbach'`
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('in having', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          ID,
+          author.name
+        }
+        HAVING author.placeOfBirth = 'Marbach'`)
+      const expected = cds.ql`
+        SELECT from bookshop.Books as Books
+          left outer join bookshop.Authors as author on author.ID = Books.author_ID
+        {
+          Books.ID,
+          author.name as author_name
+        }
+        HAVING author.placeOfBirth = 'Marbach'`
+      expectCqn(transformed).to.equal(expected)
+    })
+  })
+
+  describe('recursive associations', () => {
+    it('assign unique table aliases', () => {
+      const transformed = cqn4sql(cds.ql`
+				SELECT from bookshop.Books as Books
+				{
+					title,
+					genre.descr,
+					genre.parent.code,
+					genre.parent.descr,
+					genre.parent.parent.descr,
+					genre.parent.parent.parent.descr,
+				}`)
+      const expected = cds.ql`
+				SELECT from bookshop.Books as Books
+					left outer join bookshop.Genres as genre on genre.ID = Books.genre_ID
+					left outer join bookshop.Genres as parent on parent.ID = genre.parent_ID
+					left outer join bookshop.Genres as parent2 on parent2.ID = parent.parent_ID
+					left outer join bookshop.Genres as parent3 on parent3.ID = parent2.parent_ID
+				{
+					Books.title,
+					genre.descr as genre_descr,
+					parent.code as genre_parent_code,
+					parent.descr as genre_parent_descr,
+					parent2.descr as genre_parent_parent_descr,
+					parent3.descr as genre_parent_parent_parent_descr
+				}`
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('explicit table alias shadows assoc', () => {
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.Genres as parent { parent.parent.parent.descr }`)
+
+      const expected = cds.ql`
+				SELECT from bookshop.Genres as parent
+					left outer join bookshop.Genres as parent2 on parent2.ID = parent.parent_ID
+					left outer join bookshop.Genres as parent3 on parent3.ID = parent2.parent_ID
+				{
+					parent3.descr as parent_parent_descr
+				}`
+      expectCqn(transformed).to.equal(expected)
+    })
+  })
+
+  describe('key renaming', () => {
+    it('multiple explicit keys (renamed) along path', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.AssocMaze1 as AM
+        {
+          ID,
+          a_assocYA.a as x
+        }`)
+      const expected = cds.ql`
+        SELECT from bookshop.AssocMaze1 as AM
+          left outer join bookshop.AssocMaze2 as a_assocYA
+            on a_assocYA.A_1_a = AM.a_assocYA_B_1_a
+              and a_assocYA.A_1_b_ID = AM.a_assocYA_B_1_b_ID
+              and a_assocYA.A_2_a = AM.a_assocYA_B_2_a
+              and a_assocYA.A_2_b_ID = AM.a_assocYA_B_2_b_ID
+        {
+          AM.ID,
+          a_assocYA.a as x
+        }`
+      expectCqn(transformed).to.equal(expected)
+    })
+  })
+})

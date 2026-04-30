@@ -1,5 +1,5 @@
 const cds = require('@sap/cds')
-const { hasDeep } = require('../lib/deep-queries')
+const { hasDeep } = require('./deep-queries')
 
 // REVISIT: very deep & fragile dependencies to internal modules -> copy these into here
 const propagateForeignKeys = require('@sap/cds/libx/_runtime/common/utils/propagateForeignKeys')

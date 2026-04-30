@@ -1,4 +1,6 @@
 // path expressions along `Books:author` are not possible
+
+namespace keyless;
 entity Books {
   key ID : Integer;
   title  : String;

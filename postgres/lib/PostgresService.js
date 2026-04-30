@@ -19,13 +19,7 @@ class PostgresService extends SQLService {
 
   get factory() {
     return {
-      options: {
-        min: 0,
-        testOnBorrow: true,
-        acquireTimeoutMillis: 1000,
-        destroyTimeoutMillis: 1000,
-        ...this.options.pool,
-      },
+      options: this.options.pool || {},
       create: async () => {
         const { credentials: cr = {}, client: clientOptions = {} } = this.options
         const credentials = {
@@ -48,8 +42,10 @@ class PostgresService extends SQLService {
               ca: cr.sslrootcert,
             }),
         }
-        const dbc = new Client({...credentials, ...clientOptions})
+        const dbc = new Client({ ...credentials, ...clientOptions })
         await dbc.connect()
+        dbc.open = true
+        dbc.on('end', () => { dbc.open = false })
         return dbc
       },
       destroy: dbc => dbc.end(),
@@ -212,7 +208,7 @@ GROUP BY k
           if (isBinary) value.setEncoding('base64')
           value.pipe(paramStream)
           value.on('error', err => paramStream.emit('error', err))
-          streams[i] = paramStream
+          streams.push(paramStream)
           newValues[i] = streamID
           sql = sql.replace(
             new RegExp(`\\$${i + 1}`, 'g'),
@@ -283,12 +279,7 @@ GROUP BY k
         return target && this.run(cds.ql.CREATE(target))
       }
     }
-    // Look for ? placeholders outside of string and replace them with $n
-    if (/('|")(\1|[^\1]*?\1)|(\?)/.exec(query)?.[3]) {
-      let i = 1
-      // eslint-disable-next-line no-unused-vars
-      req.query = query.replace(/('|")(\1|[^\1]*?\1)|(\?)/g, (a, _b, _c, d, _e, _f, _g) => (d ? '$' + i++ : a))
-    }
+
     try {
       return await super.onPlainSQL(req, next)
     }
@@ -372,8 +363,8 @@ GROUP BY k
         const nulls = c.nulls || (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? 'LAST' : 'FIRST')
         const o = localized
           ? this.expr(c) +
-            (c.element?.[this.class._localized] && locale ? ` COLLATE "${locale}"` : '') +
-            (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+          (c.element?.[this.class._localized] && locale ? ` COLLATE "${locale}"` : '') +
+          (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
           : this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
         return o + ' NULLS ' + (nulls.toLowerCase() === 'first' ? 'FIRST' : 'LAST')
       })
@@ -384,7 +375,7 @@ GROUP BY k
     }
 
     orderByICU(orderBy, localized) {
-      const locale = `${this.context.locale.replace('_', '-')}-x-icu`
+      const locale = this.context.locale ? `${this.context.locale.replace('_', '-')}-x-icu` : this.context.locale
       return this._orderBy(orderBy, localized, locale)
     }
 
@@ -715,14 +706,19 @@ class QueryStream extends Query {
     this.push = this.stream.push.bind(this.stream)
 
     this._prom = new Promise((resolve, reject) => {
+      let hasData = false
       this.once('error', reject)
       this.once('end', () => {
-        if (!objectMode && !this._one) this.push(this.constructor.close)
+        if (!objectMode && !this._one) {
+          if (!hasData) this.push(this.constructor.open)
+          this.push(this.constructor.close)
+        }
         this.push(null)
         if (this.stream.isPaused()) this.stream.resume()
-        resolve(null)
+        resolve(this._one ? null : this.stream)
       })
       this.once('row', row => {
+        hasData = true
         if (row == null) return resolve(null)
         resolve(this.stream)
       })
@@ -806,17 +802,17 @@ class ParameterStream extends Writable {
     this.lengthBuffer = Buffer.from([0x64, 0, 0, 0, 0])
 
     // Flush quote character before input stream
-    this.flushChunk = chunk => {
+    this.flushChunk = (chunk, cb) => {
       delete this.flushChunk
 
       this.lengthBuffer.writeUInt32BE(chunk.length + 5, 1)
       this.connection.stream.write(this.lengthBuffer)
-      this.connection.stream.write(Buffer.from(this.constructor.sep))
-      return this.connection.stream.write(chunk)
+      this.connection.stream.write(this.constructor.sep)
+      this.connection.stream.write(chunk, cb)
     }
   }
 
-  static sep = String.fromCharCode(31) // Separator One
+  static sep = Buffer.from(String.fromCharCode(31)) // Separator One
   static done = Buffer.from([0x63, 0, 0, 0, 4])
 
   then(resolve, reject) {
@@ -867,17 +863,14 @@ class ParameterStream extends Writable {
     })
   }
 
-  flush(chunk, callback) {
-    if (this.flushChunk(chunk)) {
-      return callback()
-    }
-    this.connection.stream.once('drain', callback)
+  flush(chunk, cb) {
+    this.flushChunk(chunk, cb)
   }
 
-  flushChunk(chunk) {
+  flushChunk(chunk, cb) {
     this.lengthBuffer.writeUInt32BE(chunk.length + 4, 1)
     this.connection.stream.write(this.lengthBuffer)
-    return this.connection.stream.write(chunk)
+    this.connection.stream.write(chunk, cb)
   }
 
   handleError(e) {

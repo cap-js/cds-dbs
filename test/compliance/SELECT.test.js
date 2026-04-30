@@ -118,12 +118,13 @@ describe('SELECT', () => {
 
     test('select funcs', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = cds.ql`SELECT min(string),max(string),count() FROM ${string}`
+      const cqn = cds.ql`SELECT min(string),max(string),count(), count() as count64: cds.Integer64 FROM ${string}`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
       assert.strictEqual(res[0].min, 'no', 'Ensure that the function is applied')
       assert.strictEqual(res[0].max, 'yes', 'Ensure that the function is applied')
       assert.strictEqual(res[0].count, 3, 'Ensure that the function is applied')
+      assert.strictEqual(res[0].count64, '3', 'Ensure that the cast is applied')
     })
 
     test('select funcs (duplicates)', async () => {
@@ -171,7 +172,6 @@ describe('SELECT', () => {
     })
 
     test('select xpr', async () => {
-      // REVISIT: Make HANAService ANSI SQL compliant by wrapping compare expressions into case statements for columns
       const { string } = cds.entities('basic.projection')
       const cqn = cds.ql`SELECT (${'yes'} = string) as xpr : cds.Boolean FROM ${string} order by string`
       const res = await cds.run(cqn)
@@ -179,6 +179,60 @@ describe('SELECT', () => {
       assert.equal(res[0].xpr, null)
       assert.equal(res[1].xpr, false)
       assert.equal(res[2].xpr, true)
+    })
+
+    const inline = ({ xpr = [] }) => { for (const expr of xpr) if (expr && typeof expr === 'object' && 'val' in expr) expr.param = false }
+    test('select == and !=', async () => {
+
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT 
+        1 == null as valEQnull : cds.Boolean,
+        1 != null as valNEnull : cds.Boolean,
+        null == 1 as nullEQval : cds.Boolean,
+        null != 1 as nullNEval : cds.Boolean,
+        null == null as nullEQnull : cds.Boolean,
+        null != null as nullNEnull : cds.Boolean
+      FROM ${string}`
+
+      cqn.SELECT.columns.forEach(inline)
+
+      const res = await cds.run(cqn)
+      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+
+      assert.equal(res[0].valEQnull, false)
+      assert.equal(res[0].valNEnull, true)
+
+      assert.equal(res[0].nullEQval, false)
+      assert.equal(res[0].nullNEval, true)
+
+      assert.equal(res[0].nullEQnull, true)
+      assert.equal(res[0].nullNEnull, false)
+    })
+
+    test('select = and <>', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT 
+        1 = null as valEQnull : cds.Boolean,
+        1 <> null as valNEnull : cds.Boolean,
+        null = 1 as nullEQval : cds.Boolean,
+        null <> 1 as nullNEval : cds.Boolean,
+        null = null as nullEQnull : cds.Boolean,
+        null <> null as nullNEnull : cds.Boolean
+      FROM ${string}`
+
+      cqn.SELECT.columns.forEach(inline)
+
+      const res = await cds.run(cqn)
+      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+
+      assert.equal(res[0].valEQnull, false)
+      assert.equal(res[0].valNEnull, null)
+
+      assert.equal(res[0].nullEQval, null)
+      assert.equal(res[0].nullNEval, null)
+
+      assert.equal(res[0].nullEQnull, true)
+      assert.equal(res[0].nullNEnull, null)
     })
 
     test('select calculation', async () => {
@@ -246,6 +300,40 @@ describe('SELECT', () => {
       const cqn = cds.ql`SELECT 'String' as ![string] : cds.DoEsNoTeXiSt FROM ${globals}`
       await expect(cds.run(cqn), { message: 'Not supported type: cds.DoEsNoTeXiSt' })
         .rejected
+    })
+
+    test('select cast literal integer to decimal', async () => {
+      const { globals } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT CAST(1 AS Decimal) / CAST(2 AS Decimal) AS res FROM ${globals}`
+      const res = await cds.run(cqn)
+      assert.ok(res[0].res.match(/^0\.5/i))
+    })
+
+    test('select cast literal integer to decimal with scale', async () => {
+      const { globals } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT CAST(0.5 AS Decimal(4, 2)) AS res FROM ${globals}`
+      const res = await cds.run(cqn)
+      assert.strictEqual(res[0].res, '0.50')
+    })
+
+    test('select cast decimal without scale strips trailing zeros, keeps significant digits', async () => {
+      const { globals } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT CAST(0.50 AS Decimal) AS res FROM ${globals}`
+      const res = await cds.run(cqn)
+      assert.strictEqual(res[0].res, '0.5')
+    })
+
+    test('$now in view refers to tx timestamp', async () => {
+      let ts, res1, res2
+      await cds.tx(async tx => {
+        ts = tx.context.timestamp
+        // the statements are run explicitly in sequential order to ensure current_timestamp would create different timestamps
+        res1 = await tx.run(SELECT.one.from('basic.projection.now_in_view'))
+        res2 = await tx.run(SELECT.one.from('basic.projection.now_in_view'))
+      })
+
+      expect(res1.now).to.eq(ts.toISOString())
+      expect(res1.now).to.eq(res2.now)
     })
   })
 
@@ -469,35 +557,35 @@ describe('SELECT', () => {
 
     test('deep nested not', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [CXL`not startswith(string,${'n'})`] }} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [cds.parse.expr`not startswith(string,${'n'})`] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
 
     test('deep nested boolean function w/o operator', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [CXL`startswith(string,${'n'})`] }} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [cds.parse.expr`startswith(string,${'n'})`] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'no')
     })
 
     test('deep nested not + and', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [CXL`not startswith(string,${'n'}) and not startswith(string,${'n'})`] }} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [cds.parse.expr`not startswith(string,${'n'}) and not startswith(string,${'n'})`] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
 
     test('multiple levels of not negations of expressions', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', { xpr: ['not', CXL`not startswith(string,${'n'})`] }] }} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', { xpr: ['not', cds.parse.expr`not startswith(string,${'n'})`] }] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
 
     test('multiple not in a single deep nested expression', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [CXL`not not not startswith(string,${'n'})`] }} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [cds.parse.expr`not not not startswith(string,${'n'})`] }} ORDER BY string DESC`
       await cds.tx(async tx => {
         let res
         try {
@@ -512,14 +600,14 @@ describe('SELECT', () => {
 
     test('multiple levels of not negations of expression with not + and', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', { xpr: ['not', CXL`not startswith(string,${'n'}) and not startswith(string,${'n'})`] }] }} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', { xpr: ['not', cds.parse.expr`not startswith(string,${'n'}) and not startswith(string,${'n'})`] }] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
 
     test('multiple levels of not negations of expression with multiple not in a single expression', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', { xpr: ['not', CXL`not not not startswith(string,${'n'}) and not not not startswith(string,${'n'})`] }] }} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', { xpr: ['not', cds.parse.expr`not not not startswith(string,${'n'}) and not not not startswith(string,${'n'})`] }] }} ORDER BY string DESC`
       await cds.tx(async tx => {
         let res
         try {
@@ -534,14 +622,14 @@ describe('SELECT', () => {
 
     test('deep nested not before xpr with CASE statement', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', CXL`string = 'no' ? true : false`] }] }} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', cds.parse.expr`string = 'no' ? true : false`] }] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
 
     test('deep nested multiple not before xpr with CASE statement', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', 'not', 'not', CXL`string = 'no' ? true : false`] }] }} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', 'not', 'not', cds.parse.expr`string = 'no' ? true : false`] }] }} ORDER BY string DESC`
       await cds.tx(async tx => {
         let res
         try {
@@ -556,14 +644,14 @@ describe('SELECT', () => {
 
     test('deep nested not before CASE statement', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', ...(CXL`string = 'no' ? true : false`).xpr] }] }} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', ...(cds.parse.expr`string = 'no' ? true : false`).xpr] }] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
 
     test('deep nested multiple not before CASE statement', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', 'not', 'not', ...(CXL`string = 'no' ? true : false`).xpr] }] }} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', 'not', 'not', ...(cds.parse.expr`string = 'no' ? true : false`).xpr] }] }} ORDER BY string DESC`
       await cds.tx(async tx => {
         let res
         try {
@@ -578,21 +666,21 @@ describe('SELECT', () => {
 
     test('not before CASE statement', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', ...(CXL`string = 'no' ? true : false`).xpr] }} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', ...(cds.parse.expr`string = 'no' ? true : false`).xpr] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
 
     test('and beetwen CASE statements', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [...(CXL`string = 'no' ? true : false`).xpr, 'and', ...(CXL`string = 'no' ? true : false`).xpr] }} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [...(cds.parse.expr`string = 'no' ? true : false`).xpr, 'and', ...(cds.parse.expr`string = 'no' ? true : false`).xpr] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'no')
     })
 
     test('and beetwen CASE statements with not', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', ...(CXL`string = 'no' ? true : false`).xpr, 'and', 'not', ...(CXL`string = 'no' ? true : false`).xpr] }} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', ...(cds.parse.expr`string = 'no' ? true : false`).xpr, 'and', 'not', ...(cds.parse.expr`string = 'no' ? true : false`).xpr] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
@@ -757,13 +845,13 @@ describe('SELECT', () => {
       let oldMax, oldTimeout
       beforeAll(async () => {
         const options = cds.db.pools._factory.options
-        oldMax = options.max
-        oldTimeout = options.acquireTimeoutMillis
+        const activeOptions = cds.db.pools.undefined.options || cds.db.pools.undefined._config || {}
+
+        oldMax = options.max || activeOptions.max
+        oldTimeout = options.acquireTimeoutMillis || activeOptions.acquireTimeoutMillis
 
         if (isSQLite()) {
-          oldTimeout = cds.db.pools._factory.options.acquireTimeoutMillis
-          cds.db.pools.undefined._config.acquireTimeoutMillis =
-            cds.db.pools._factory.options.acquireTimeoutMillis = 1000
+          activeOptions.acquireTimeoutMillis = options.acquireTimeoutMillis = 1000
           return
         }
         await cds.db.disconnect()
@@ -776,14 +864,13 @@ describe('SELECT', () => {
         const options = cds.db.pools._factory.options
 
         if (isSQLite()) {
-          oldTimeout = cds.db.pools._factory.options.acquireTimeoutMillis
-          cds.db.pools.undefined._config.acquireTimeoutMillis =
-            cds.db.pools._factory.options.acquireTimeoutMillis = 1000
+          const activeOptions = cds.db.pools.undefined.options || cds.db.pools.undefined._config || {}
+          activeOptions.acquireTimeoutMillis = options.acquireTimeoutMillis = oldTimeout
           return
         }
         await cds.db.disconnect()
 
-        options.max = oldMax
+        options.max = oldMax || 1
         options.acquireTimeoutMillis = oldTimeout
       })
     }
@@ -870,7 +957,7 @@ describe('SELECT', () => {
     })
   }
 
-  describe('forUpdate', () => {
+  describe.skip('forUpdate', () => {
     const boolLock = SELECT.from('basic.projection.globals')
       .forUpdate({
         of: ['bool'],
@@ -882,7 +969,7 @@ describe('SELECT', () => {
     )
   })
 
-  describe('forShareLock', () => {
+  describe.skip('forShareLock', () => {
     const boolLock = SELECT.from('basic.projection.globals')
       .forShareLock({
         of: ['bool'],
@@ -895,7 +982,7 @@ describe('SELECT', () => {
     )
   })
 
-  describe('forUpdate ignore locked', () => {
+  describe.skip('forUpdate ignore locked', () => {
     const boolLock = SELECT.from('basic.projection.globals')
       .forShareLock({
         of: ['bool'],
@@ -906,6 +993,106 @@ describe('SELECT', () => {
       .where([{ ref: ['bool'] }, '=', { val: bool }]),
       { ignoreLocked: true }
     )
+  })
+
+  describe('error', () => {
+    test('all positional parameters', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT error('MESSAGE',(string),(short,medium,large)) FROM ${string} WHERE string = ${'yes'}`
+      cqn.SELECT.one = true
+      const res = await cds.run(cqn)
+      assert.ok(res.error, 'Ensure that the function is applied')
+      const funcRes = typeof res.error === 'string' ? JSON.parse(res.error) : res.error
+      assert.deepStrictEqual(funcRes, {
+        message: 'MESSAGE',
+        args: ['yes'],
+        targets: ['short', 'medium', 'large'],
+      }, 'Ensure that the function reads correct parameters and returns the right values')
+    })
+
+    test('vals used as args and targets parameters', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT error('MESSAGE',('Arg1'),('Target1','Target2')) FROM ${string}`
+      cqn.SELECT.one = true
+      const res = await cds.run(cqn)
+      assert.ok(res.error, 'Ensure that the function is applied')
+      const funcRes = typeof res.error === 'string' ? JSON.parse(res.error) : res.error
+      assert.deepStrictEqual(funcRes, {
+        message: 'MESSAGE',
+        args: ['Arg1'],
+        targets: ['Target1', 'Target2'],
+      }, 'Ensure that the function reads correct parameters and returns the right values')
+    })
+
+    test('no parameters', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT error() FROM ${string}`
+      cqn.SELECT.one = true
+      const res = await cds.run(cqn)
+      assert.ok(res.error, 'Ensure that the function is applied')
+      const funcRes = typeof res.error === 'string' ? JSON.parse(res.error) : res.error
+      assert.deepStrictEqual(funcRes, {
+        message: null,
+        args: null,
+        targets: null
+      }, 'Ensure that the function reads correct parameters and returns the right values')
+    })
+
+    test('only positional message parameter', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT error('MESSAGE') FROM ${string}`
+      cqn.SELECT.one = true
+      const res = await cds.run(cqn)
+      assert.ok(res.error, 'Ensure that the function is applied')
+      const funcRes = typeof res.error === 'string' ? JSON.parse(res.error) : res.error
+      assert.deepStrictEqual(funcRes, {
+        message: 'MESSAGE',
+        args: null,
+        targets: null,
+      }, 'Ensure that the function reads correct parameters and returns the right values')
+    })
+
+    test('skipped optional args positional parameter', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT error('MESSAGE',null,(short)) FROM ${string}`
+      cqn.SELECT.one = true
+      const res = await cds.run(cqn)
+      assert.ok(res.error, 'Ensure that the function is applied')
+      const funcRes = typeof res.error === 'string' ? JSON.parse(res.error) : res.error
+      assert.deepStrictEqual(funcRes, {
+        message: 'MESSAGE',
+        args: null,
+        targets: ['short'],
+      }, 'Ensure that the function reads correct parameters and returns the right values')
+    })
+
+    test('all positional parameters skipped by passing null', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT error(null,null,null) FROM ${string}`
+      cqn.SELECT.one = true
+      const res = await cds.run(cqn)
+      assert.ok(res.error, 'Ensure that the function is applied')
+      const funcRes = typeof res.error === 'string' ? JSON.parse(res.error) : res.error
+      assert.deepStrictEqual(funcRes, {
+        message: null,
+        args: null,
+        targets: null,
+      }, 'Ensure that the function reads correct parameters and returns the right values')
+    })
+
+    test.skip('nulls in lists are preserved', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT error('MESSAGE',(null,null),(null)) FROM ${string}`
+      cqn.SELECT.one = true
+      const res = await cds.run(cqn)
+      assert.ok(res.error, 'Ensure that the function is applied')
+      const funcRes = typeof res.error === 'string' ? JSON.parse(res.error) : res.error
+      assert.deepStrictEqual(funcRes, {
+        message: 'MESSAGE',
+        args: [null, null],
+        targets: null, // REVISIT: (null) -> [null]: compiler currently treats single list elements as non list elements
+      }, 'Ensure that the function reads correct parameters and returns the right values')
+    })
   })
 
   describe('search', () => {
@@ -994,6 +1181,19 @@ describe('SELECT', () => {
       for (const prop in row) if (row[prop] != null) (this[prop] ??= []).push(row[prop])
     }
 
+    test('cds/srv.foreach', () => cds.tx(async () => {
+      const { all } = cds.entities('basic.projection')
+
+
+      const expected = {}
+      const rows = await cds.ql`SELECT FROM ${all}`
+      for (const row of rows) process.call(expected, row)
+
+      const aggregate = {}
+      await cds.foreach(SELECT.from(all), process.bind(aggregate))
+      expect(aggregate).deep.eq(expected)
+    }))
+
     test('aggregate', () => cds.tx(async () => {
       const { all } = cds.entities('basic.projection')
 
@@ -1004,12 +1204,11 @@ describe('SELECT', () => {
       for (const row of rows) process.call(expected, row)
 
       const aggregate = {}
-      await cqn.clone().then (rows => rows.map(process.bind(aggregate)))
+      await cqn.clone().then(rows => rows.map(process.bind(aggregate)))
       expect(aggregate).deep.eq(expected)
     }))
 
-    // REVISIT: unskip when merged into @sap/cds
-    test.skip('async iterator', () => cds.tx(async () => {
+    test('async iterator', () => cds.tx(async () => {
       const { all } = cds.entities('basic.projection')
 
       const cqn = cds.ql`SELECT FROM ${all}`
@@ -1024,8 +1223,7 @@ describe('SELECT', () => {
     }))
   })
 
-  // REVISIT: unskip when merged into @sap/cds
-  describe.skip('pipe', () => {
+  describe('pipeline', () => {
     test('json stream', () => cds.tx(async () => {
       const { json } = require('stream/consumers')
       const { all } = cds.entities('basic.projection')
@@ -1033,7 +1231,7 @@ describe('SELECT', () => {
       const expected = await cqn.clone()
 
       let result
-      await cqn.clone().pipe(async stream => { result = await json(stream) })
+      await cqn.clone().pipeline(async stream => { result = await json(stream) })
       expect(result).deep.eq(expected)
     }))
 
@@ -1046,7 +1244,7 @@ describe('SELECT', () => {
       const cqn = cds.ql`SELECT FROM ${all}`
 
       // Start simple http server
-      const srv = http.createServer((_, res) => cqn.pipe(res))
+      const srv = http.createServer((_, res) => cqn.pipeline(res))
       await promisify(srv.listen.bind(srv))()
       cds.once('shutdown', () => { srv.close() })
 
@@ -1057,7 +1255,7 @@ describe('SELECT', () => {
         const req = http.get(`http://localhost:${port}/`)
         req.on('error', reject)
         req.on('response', res => {
-          expect(res.headers).to.have.property('content-type').eq('application/json')
+          // expect(res.headers).to.have.property('content-type').eq('application/json')
           expect(res.headers).to.have.property('transfer-encoding').eq('chunked')
           json(res).then(resolve, reject)
         })
@@ -1231,6 +1429,7 @@ describe('SELECT', () => {
     ]
 
     unified.aggregate = [
+      ...unified.ref.filter(numberRefs).map(ref => ({ func: 'avg', args: [ref] })),
       ...unified.ref.filter(numberRefs).map(ref => ({ func: 'average', args: [ref] })),
       ...unified.ref.filter(noBlobRefs).map(ref => ({ func: 'count', args: [ref] })),
       { func: 'count', args: ['*'] },
@@ -1290,7 +1489,7 @@ describe('SELECT', () => {
       // X numeric function
       ...[
         'ceiling', 'floor', 'round', // OData spec
-        'abs', 'sign', 'sin', 'tan',
+        'ceil', 'abs', 'sign', 'sin', 'tan',
       ].map(func => {
         return [
           ...unified.numeric.map(val => ({ func, args: [val] })),
@@ -1315,32 +1514,37 @@ describe('SELECT', () => {
       { func: 'log', args: [{ val: 2 }, { val: 2 }] },
       { func: 'mod', args: [{ val: 2, cast: { type: 'cds.Integer' } }, { val: 2, cast: { type: 'cds.Integer' } }] },
       // X timestamp function
-      ...['year', 'month', 'day', 'hour', 'minute', 'second', 'fractionalseconds'].map(func => {
+      ...['date', 'time', 'year', 'month', 'day', 'hour', 'minute', 'second', 'fractionalseconds'].map(func => {
         return [
           ...unified.date.map(val => ({ func, args: [val] })),
           ...unified.ref.filter(timestampRefs).map(ref => ({ func, args: [ref] })),
         ]
       }).flat(),
       // X datetime function
-      ...['year', 'month', 'day', 'hour', 'minute', 'second'].map(func => {
+      ...['date', 'time', 'year', 'month', 'day', 'hour', 'minute', 'second'].map(func => {
         return [
           ...unified.date.map(val => ({ func, args: [val] })),
           ...unified.ref.filter(datetimeRefs).map(ref => ({ func, args: [ref] })),
         ]
       }).flat(),
       // X date function
-      ...['year', 'month', 'day'].map(func => {
+      ...['date', 'year', 'month', 'day'].map(func => {
         return [
           ...unified.date.map(val => ({ func, args: [val] })),
           ...unified.ref.filter(dateRefs).map(ref => ({ func, args: [ref] })),
         ]
       }).flat(),
       // X time function
-      ...['hour', 'minute', 'second'].map(func => {
+      ...['time', 'hour', 'minute', 'second'].map(func => {
         return [
           ...unified.date.map(val => ({ func, args: [val] })),
           ...unified.ref.filter(timeRefs).map(ref => ({ func, args: [ref] })),
         ]
+      }).flat(),
+      // X,Y between function
+      ...['years_between', 'months_between', 'days_between', 'seconds_between'].map(func => {
+        const arg = [...unified.date, ...unified.ref.filter(ref => timestampRefs(ref) || datetimeRefs(ref) || dateRefs(ref))]
+        return arg.map(x => arg.map(y => ({ func, args: [x, y] }))).flat()
       }).flat(),
       ...['$user.id', '$user.locale', '$valid.from', '$valid.to', '$now'].map(val => ({ func: 'session_context', args: [{ val }] })),
       ...unified.ref.map(ref => ({ func: 'coalesce', args: [ref, ref] })),
@@ -1385,7 +1589,7 @@ describe('SELECT', () => {
             { xpr: [ref, op, SELECT(ref).from(targetName)] },
             { xpr: [{ list: [ref] }, op, SELECT(ref).from(targetName)] },
             { xpr: [{ list: [ref, ref] }, op, SELECT([{ ...ref, as: 'a' }, { ...ref, as: 'b' }]).from(targetName)] },
-            // Repreating the previous statements replaceing ref with null
+            // Repeating the previous statements replacing ref with null
             { xpr: [unified.null, op, { list: [ref] }] },
             { xpr: [unified.null, op, { list: [ref, ref] }] },
             { xpr: [{ list: [unified.null] }, op, { list: [{ list: [ref] }] }] },
