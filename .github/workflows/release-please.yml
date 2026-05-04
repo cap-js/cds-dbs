@@ -19,7 +19,7 @@ jobs:
       - uses: googleapis/release-please-action@8bb7a2ed0f90c9802c83129a9488d235a1f31a7c
         id: release
         with:
-          token: ${{secrets.CDS_DBS_TOKEN}}
+          token: ${{ github.token }}
 
   publish:
     needs: release-please
