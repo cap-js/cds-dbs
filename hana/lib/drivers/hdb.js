@@ -126,6 +126,7 @@ class HDBDriver extends driver {
 
     ret.stream = async (values, one, objectMode) => {
       const stmt = await ret._prep
+      // if (stmt.resultSetMetadata.length === 1) return hyperStream(stmt, values, one, objectMode)
       const rs = await prom(stmt, 'execute')(values || [])
       return rsIterator(rs, one, objectMode)
     }
@@ -176,31 +177,85 @@ class HDBDriver extends driver {
   }
 }
 
-async function rsIterator(rs, one, objectMode) {
-  // Raw binary data stream unparsed
-  const raw = rs.createBinaryStream()[Symbol.asyncIterator]()
+async function hyperStream(stmt, values, one, objectMode) {
+  const message = require('hdb/lib/protocol/reply/index.js')
+  const connection = stmt._connection
+  const socket = connection._socket
+  const stream = Readable.from(slice(socket), { objectMode: false })
 
+  const ondata = socket._events.data
+  socket._events.data = undefined
+  // socket.off('data', ondata)
+
+  async function* slice(stream) {
+    let segment
+    let packetLength
+    let packetRead = 0
+    let rssize
+    let streamsize
+    let streamRead = 0
+    const it = stream.iterator({ destroyOnReturn: false })
+    for await (const chunk of it) {
+      let offset = 0
+      packetRead += chunk.length
+      if (packetLength == null) {
+        packetLength = chunk.readUInt32LE(12) + 32
+        offset += 32
+      }
+      if (!segment) {
+        segment = message.Segment.create(chunk.subarray(offset), 0)
+        const rs = segment.parts.at(-1)
+        rssize = rs.buffer?.length ?? 0
+        // rs.buffer = null // release buffer memory allocation again
+        offset = segment.parts.reduce((l, c) => l + c.byteLength, 24 + offset)
+      }
+      if (offset < chunk.length && !streamsize) {
+        let length = chunk[offset++]
+        switch (length) {
+          case 0xff:
+            return null
+          case 0xf6:
+            length = chunk.readInt16LE(offset)
+            offset += 2
+            break
+          case 0xf7:
+            length = chunk.readInt32LE(offset)
+            offset += 4
+            break
+          default:
+        }
+        streamsize = length
+      }
+      if (offset < chunk.length && streamsize) {
+        const part = chunk.subarray(offset)
+        streamRead += part.length
+        yield part
+        if (streamRead >= streamsize) break
+      }
+      if (packetRead >= packetLength) break
+    }
+    if (!streamRead) yield 'null'
+
+    socket._events.data = ondata
+    connection._queue.busy = false
+    connection._queue.resume()
+  }
+
+  stmt.execute(values || [], (err, res) => { debugger })
+
+  return stream
+}
+
+async function rsIterator(rs, one, objectMode) {
   // Hyper stream
   if (rs.metadata.length === 1) {
-    const row = await raw.next()
-    let length = row.value[0]
-    let offset = 1
-    switch (length) {
-      case 0xff:
-        return null
-      case 0xf6:
-        length = row.value.readInt16LE(offset)
-        offset += 2
-        break
-      case 0xf7:
-        length = row.value.readInt32LE(offset)
-        offset += 4
-        break
-      default:
-    }
-    const data = row.value.slice(offset, offset + length)
-    return Readable.from(data, { objectMode: false })
+    const raw = rs.createReadStream()[Symbol.asyncIterator]()
+    const { value } = await raw.next()
+    return Readable.from(value?.JSONRESULT ?? 'null', { objectMode: false })
   }
+
+  // Raw binary data stream unparsed
+  const raw = rs.createBinaryStream()[Symbol.asyncIterator]()
 
   const blobs = rs.metadata.slice(4).map(b => b.columnName)
   const levels = [

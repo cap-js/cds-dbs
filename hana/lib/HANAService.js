@@ -1,6 +1,7 @@
 const fs = require('fs')
 const path = require('path')
 const { Readable } = require('stream')
+const { json } = require('stream/consumers')
 
 const { SQLService } = require('@cap-js/db-service')
 const drivers = require('./drivers')
@@ -73,8 +74,8 @@ class HANAService extends SQLService {
               try {
                 await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true, invalidCredentials: credentials, retryUntil: deadline })
               } catch (smErr) {
-                 smErr.cause = err
-                 throw new Error(`Failed connecting to pool - could not get valid credentials from Service Manager`, { cause: smErr })
+                smErr.cause = err
+                throw new Error(`Failed connecting to pool - could not get valid credentials from Service Manager`, { cause: smErr })
               }
               if (Date.now() < deadline) return create(tenant, start)
               else throw new Error(`Pool exceeded for '${tenant}' within ${acquireTimeoutMillis}ms`, { cause: err })
@@ -159,18 +160,20 @@ class HANAService extends SQLService {
     const isSimple = temporary.length + blobs.length + withclause.length === 0
     const isOne = cqn.SELECT.one || query.SELECT.from.ref?.[0].cardinality?.max === 1
     const isStream = iterator && !isLockQuery
-    const isHyper = isStream && withclause.length < 2 && cds.env.features.hyper_streaming
+    const isHyper = isSimple && cds.env.features.hyper_streaming
 
-    // REVISIT: add prepare options when param:true is used
-    let sqlScript = isHyper
-      ? `${sql} FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='${isOne ? 'no' : 'yes'}') RETURNS NVARCHAR(2147483647)`
-      : isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
+    let sqlScript = isLockQuery ? sql
+      : isHyper ? objectMode
+        ? `SELECT '$[0' as "_path_",'{}' as "_blobs_",'{}' as "_expands_",(` + sql.replace('FROM', `FROM DUMMY FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647)) as "_json_" FROM`)
+        : `${sql} FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='${isOne ? 'no' : 'yes'}') RETURNS NVARCHAR(2147483647)`
+        : isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
     const { hints } = query.SELECT
     if (hints) sqlScript += ` WITH HINT (${hints.join(',')})`
     let rows
-    if (values?.length || blobs.length > 0 || isStream) {
+    if (values?.length || blobs.length > 0 || isStream || isHyper) {
+      // REVISIT: add prepare options when param:true is used
       const ps = await this.prepare(sqlScript, blobs.length)
-      rows = this.ensureDBC() && await ps[isStream ? 'stream' : 'all'](values || [], isOne, objectMode)
+      rows = this.ensureDBC() && await ps[isStream || isHyper ? 'stream' : 'all'](values || [], isOne, objectMode)
     } else {
       rows = await this.exec(sqlScript)
     }
@@ -192,14 +195,18 @@ class HANAService extends SQLService {
       return this.onSELECT({ query: resultQuery, __proto__: req })
     }
 
-    if (rows.length && !isSimple) {
-      rows = this.parseRows(rows)
+    if (isStream) return rows
+    if (isHyper) {
+      if (rows[Symbol.asyncIterator]) rows = await json(rows)
+      else JSON.parse(rows[0]?.JSONRESULT ?? 'null')
     }
+    else if (rows.length && !isSimple) rows = this.parseRows(rows)
+
     if (cqn.SELECT.count) {
       // REVISIT: the runtime always expects that the count is preserved with .map, required for renaming in mocks
       return HANAService._arrayWithCount(rows, await this.count(query, rows))
     }
-    return isOne && !isStream ? rows[0] : rows
+    return isOne && !isStream && !isHyper ? rows[0] : rows
   }
 
   async onINSERT({ query, data }) {
@@ -445,8 +452,10 @@ class HANAService extends SQLService {
         })
 
         const isSimpleQuery = (
-          cds.env.features.sql_simple_queries &&
-          (cds.env.features.sql_simple_queries > 1 || !hasBooleans) &&
+          (
+            (cds.env.features.sql_simple_queries && (cds.env.features.sql_simple_queries > 1 || !hasBooleans))
+            || cds.env.features.hyper_streaming
+          ) &&
           !hasStructures &&
           !parent
         )
@@ -468,7 +477,7 @@ class HANAService extends SQLService {
           q.as = q.SELECT.from.as
         }
 
-        const outputAliasSimpleQueriesRequired = cds.env.features.sql_simple_queries
+        const outputAliasSimpleQueriesRequired = (cds.env.features.sql_simple_queries || cds.env.features.hyper_streaming)
           && (orderByHasOutputColumnRef || having)
         if (outputAliasSimpleQueriesRequired || rowNumberRequired || q.SELECT.columns.length !== aliasedOutputColumns.length) {
           q = cds.ql.SELECT(aliasedOutputColumns).from(q)
@@ -602,7 +611,7 @@ class HANAService extends SQLService {
               // if (col.ref?.length === 1) { col.ref.unshift(parent.as) }
               if (col.ref?.length > 1) {
                 const colName = this.column_name(col)
-                
+
                 const isSource = from => {
                   if (from.as === col.ref[0]) return true
                   return from.args?.some(a => {
@@ -675,8 +684,10 @@ class HANAService extends SQLService {
       const blobColumns = Object.keys(blobs)
       this.blobs.push(...blobColumns.filter(b => !this.blobs.includes(b)))
       if (
-        cds.env.features.sql_simple_queries &&
-        (cds.env.features.sql_simple_queries > 1 || !hasBooleans) &&
+        (
+          (cds.env.features.sql_simple_queries && (cds.env.features.sql_simple_queries > 1 || !hasBooleans))
+          || cds.env.features.hyper_streaming
+        ) &&
         structures.length + ObjectKeys(expands).length + ObjectKeys(blobs).length === 0 &&
         !q?.src?.SELECT?.parent &&
         this.temporary.length === 0
