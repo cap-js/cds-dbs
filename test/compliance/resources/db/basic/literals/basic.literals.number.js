@@ -89,6 +89,14 @@ module.exports = [
     float: '9007199254740991',
     '=float': /^9007199254740991/
   },
+  {
+    float: '1.0',
+    '=float': /^1/
+  },
+  {
+    float: '0.50',
+    '=float': /^0\.5/
+  },
   /* Ignoring transformations
   {
     decimal: 3.141592653589793,
