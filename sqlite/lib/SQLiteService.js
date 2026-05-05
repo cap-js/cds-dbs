@@ -27,8 +27,10 @@ const toDate = (d, allowTime = false) => {
 class SQLiteService extends SQLService {
 
   get factory() {
+    const pool = { ...this.options.pool }
+    if (this.url4() === ':memory:') pool.max = 1
     return {
-      options: this.options.pool || {},
+      options: pool,
       create: async tenant => {
         try {
           if (!sqlite) loadSQLite(this.options.driver || this.options.credentials?.driver)
