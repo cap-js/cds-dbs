@@ -5,42 +5,54 @@ on:
 name: release-please
 jobs:
   release-please:
-    permissions:
-        contents: write
-        pull-requests: write
-        packages: write
-        id-token: write
     runs-on: ubuntu-latest
-    environment: npm
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      db-service-release: ${{ steps.release.outputs.db-service--release_created }}
+      sqlite-release: ${{ steps.release.outputs.sqlite--release_created }}
+      postgres-release: ${{ steps.release.outputs.postgres--release_created }}
+      hana-release: ${{ steps.release.outputs.hana--release_created }}
     steps:
       # v4.4.0
       - uses: googleapis/release-please-action@8bb7a2ed0f90c9802c83129a9488d235a1f31a7c
         id: release
         with:
-          token: ${{secrets.CDS_DBS_TOKEN}}
-      # The logic below handles the npm publication:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+          token: ${{ github.token }}
+
+  publish:
+    needs: release-please
+    if: >-
+      needs.release-please.outputs.db-service-release ||
+      needs.release-please.outputs.sqlite-release ||
+      needs.release-please.outputs.postgres-release ||
+      needs.release-please.outputs.hana-release
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: 24
           registry-url: 'https://registry.npmjs.org'
 
-      ## debug info
-      - run: echo '${{ toJSON(steps.release.outputs) }} '
-
-      # Publish packages
       - name: Publish db-service
-        if: ${{ steps.release.outputs.db-service--release_created }}
+        if: ${{ needs.release-please.outputs.db-service-release }}
         run: npm publish --workspace db-service --access public --provenance
 
       - name: Publish sqlite
-        if: ${{ steps.release.outputs.sqlite--release_created }}
+        if: ${{ needs.release-please.outputs.sqlite-release }}
         run: npm publish --workspace sqlite --access public --provenance
 
       - name: Publish postgres
-        if: ${{ steps.release.outputs.postgres--release_created }}
+        if: ${{ needs.release-please.outputs.postgres-release }}
         run: npm publish --workspace postgres --access public --provenance
 
       - name: Publish SAP HANA
-        if: ${{ steps.release.outputs.hana--release_created }}
+        if: ${{ needs.release-please.outputs.hana-release }}
         run: npm publish --workspace hana --access public --provenance
