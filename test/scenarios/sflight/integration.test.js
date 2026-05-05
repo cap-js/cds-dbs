@@ -9,12 +9,6 @@ Object.defineProperty(cds.builtin.types.Decimal.constructor.prototype, "CQN2HANA
 
 const sflightPath = path.resolve(__dirname,'../../../test/sflight')
 
-// IMPORTANT: Wrapping that in beforeAll to avoid loading cds.env before cds.test()
-beforeAll(() => {
-  if (cds.env.fiori) cds.env.fiori.lean_draft = cds.env.fiori.draft_compat = true
-  else cds.env.features.lean_draft = cds.env.features.lean_draft_compatibility = true
-})
-
 // Set the test project to the sflight project
 
 describe('Integration', () => {
@@ -50,10 +44,7 @@ const npm = (dir, args) => {
     env: {
       ...process.env,
       // Cascade prepared deployment to child process
-      CDS_CONFIG: JSON.stringify({ requires: { db: cds.db.options } }),
-      // Ensure that lean draft is enabled
-      CDS_FIORI_LEAN__DRAFT: true,
-      CDS_FIORI_DRAFT__COMPAT: true,
+      CDS_CONFIG: JSON.stringify({ requires: { db: cds.db.options } })
     },
   })
 
