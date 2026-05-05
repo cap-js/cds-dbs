@@ -125,7 +125,7 @@ describe('draft tests', () => {
       { auth: { username: 'user1', password: 'user1' } },
     )
     expect(res.status).to.be.eq(200)
-    expect(res.data['@odata.count']).to.be.eq(1)
+    expect(res.data['@odata.count'] == 1).to.be.eq(true)
     firstRow = res.data.value[0]
     expect(firstRow.IsActiveEntity).to.be.eq(true)
     expect(firstRow.HasActiveEntity).to.be.eq(false)
