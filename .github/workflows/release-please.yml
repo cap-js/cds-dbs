@@ -15,8 +15,8 @@ jobs:
       postgres-release: ${{ steps.release.outputs.postgres--release_created }}
       hana-release: ${{ steps.release.outputs.hana--release_created }}
     steps:
-      # v4.4.0
-      - uses: googleapis/release-please-action@8bb7a2ed0f90c9802c83129a9488d235a1f31a7c
+      # v5.0.0
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7
         id: release
         with:
           token: ${{ github.token }}
