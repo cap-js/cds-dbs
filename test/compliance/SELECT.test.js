@@ -257,6 +257,18 @@ describe('SELECT', () => {
       assert.equal(Object.keys(res[0]).length, cqn.SELECT.columns.length)
     })
 
+    test('select case when with numeric vals in xpr', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT
+        case when string = 'yes' then 1 else 3 end as criticality : cds.Integer
+      FROM ${string}`
+      const res = await cds.run(cqn)
+      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+      assert.strictEqual(res[0].criticality, 1)
+      assert.strictEqual(res[1].criticality, 3)
+      assert.strictEqual(res[2].criticality, 3)
+    })
+
     const nulls = length => new Array(length).fill().map((_, i) => ({ as: `null${i}`, val: null }))
     test('select 200 null columns', async () => {
       const { string } = cds.entities('basic.projection')

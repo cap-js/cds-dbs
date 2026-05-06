@@ -668,7 +668,9 @@ class HANAService extends SQLService {
         }
         if (x.element?.type === 'cds.Boolean') hasBooleans = true
         const converter = x.element?.[this.class._convertOutput] || (e => e)
-        const s = x.param !== true && typeof x.val === 'number' ? this.expr({ param: false, __proto__: x }) : this.expr(x)
+        const s = x.param !== true && typeof x.val === 'number'
+          ? this.expr({ param: false, __proto__: x })
+          : x.xpr ? this.expr(this._xprWithInlineNumericVals(x)) : this.expr(x)
         sql.push(`${converter(s, x.element)} as "${columnName.replace(/"/g, '""')}"`)
       }
 

@@ -674,11 +674,30 @@ class CQN2SQLRenderer {
    */
   column_expr(x, q) {
     if (x === '*') return '*'
-
-    let sql = x.param !== true && typeof x.val === 'number' ? this.expr({ param: false, __proto__: x }) : this.expr(x)
+    if (x.param !== true && typeof x.val === 'number') x = { param: false, __proto__: x }
+    else if (x.xpr) x = this._xprWithInlineNumericVals(x)
+    let sql = this.expr(x)
     let alias = this.column_alias4(x, q)
     if (alias) sql += ' as ' + this.quote(alias)
     return sql
+  }
+
+  _xprWithInlineNumericVals(x) {
+    let modified = false
+    const xpr = x.xpr.map(el => {
+      if (el && typeof el === 'object') {
+        if (typeof el.val === 'number' && el.param !== true) {
+          modified = true
+          return { param: false, __proto__: el }
+        }
+        if (el.xpr) {
+          const r = this._xprWithInlineNumericVals(el)
+          if (r !== el) { modified = true; return r }
+        }
+      }
+      return el
+    })
+    return modified ? { __proto__: x, xpr } : x
   }
 
   /**
