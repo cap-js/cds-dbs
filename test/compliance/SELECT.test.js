@@ -260,8 +260,9 @@ describe('SELECT', () => {
     test('select case when with numeric vals in xpr', async () => {
       const { string } = cds.entities('basic.projection')
       const cqn = cds.ql`SELECT
+        string,
         case when string = 'yes' then 1 else 3 end as criticality : cds.Integer
-      FROM ${string}`
+      FROM ${string} ORDER BY string desc`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
       assert.strictEqual(res[0].criticality, 1)
