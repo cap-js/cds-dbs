@@ -127,6 +127,7 @@ cds.test = Object.setPrototypeOf(function () {
     delete cds.services.db
     delete cds.db
     delete cds.model
+    delete ret.data._deployed // data is a singleton in cds-test v1, must reset for next suite
     global.cds.resolve.cache = {}
   })
 

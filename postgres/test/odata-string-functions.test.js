@@ -4,7 +4,7 @@ const project = require('path').resolve(__dirname, 'beershop')
 process.env.DEBUG && jest.setTimeout(100000)
 
 describe('String + Collection functions', () => {
-  const { GET, expect, data } = cds.test('serve', '--project', project).verbose()
+  const { GET, expect, data } = cds.test('serve', '--project', project)
 
   data.autoIsolation(true)
   data.autoReset(true)
