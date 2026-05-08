@@ -14,7 +14,7 @@ const hanaKeywords = keywords.reduce((prev, curr) => {
   return prev
 }, {})
 
-const DEBUG = cds.debug('sql|db')
+const LOG = cds.log('sql|db'), DEBUG = cds.debug('sql|db')
 const SYSTEM_VERSIONED = '@hana.systemversioned'
 
 /**
@@ -50,9 +50,10 @@ class HANAService extends SQLService {
     }
     const isMultitenant = !!service.options.credentials.sm_url || !!service.options.credentials.baseurl || ('multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy)
     const acquireTimeoutMillis = this.options.pool?.acquireTimeoutMillis || (cds.env.profiles.includes('production') ? 1000 : 10000)
+    const maxRetries = 5
     return {
       options: this.options.pool || {},
-      create: async function create(tenant, start = Date.now()) {
+      create: async function create(tenant, start = Date.now(), attempt = 1) {
         let credentials
         try {
           const smTenant = isMultitenant
@@ -70,8 +71,12 @@ class HANAService extends SQLService {
                 throw new Error(`Pool failed connecting to '${tenant}'`, { cause: err })
               }
               const deadline = start + acquireTimeoutMillis
+              if (attempt <= maxRetries && Date.now() < deadline) { // Retry transient connection failures before invalidating credentials
+                LOG.info('connection attempt', attempt, 'of', maxRetries, 'failed - retrying')
+                return create(tenant, start, attempt + 1)
+              }
               try {
-                await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true, invalidCredentials: credentials, retryUntil: deadline })
+                await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { invalidCredentials: credentials, retryUntil: deadline })
               } catch (smErr) {
                  smErr.cause = err
                  throw new Error(`Failed connecting to pool - could not get valid credentials from Service Manager`, { cause: smErr })
