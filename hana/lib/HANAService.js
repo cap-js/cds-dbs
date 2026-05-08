@@ -71,8 +71,9 @@ class HANAService extends SQLService {
                 throw new Error(`Pool failed connecting to '${tenant}'`, { cause: err })
               }
               const deadline = start + acquireTimeoutMillis
-              if (attempt <= maxRetries && Date.now() < deadline) { // Retry transient connection failures before invalidating credentials
-                LOG.info('connection attempt', attempt, 'of', maxRetries, 'failed - retrying')
+              if (attempt <= maxRetries && Date.now() < deadline) {
+                // Retry transient connection failures before invalidating credentials
+                LOG.error('connection attempt', attempt, 'of', maxRetries, 'failed - retrying')
                 return create(tenant, start, attempt + 1)
               }
               try {
