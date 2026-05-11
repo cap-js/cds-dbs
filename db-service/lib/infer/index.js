@@ -956,19 +956,39 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
         mergePathIfNecessary(basePath, arg)
       } else if (arg.xpr || arg.args) {
         const prop = arg.xpr ? 'xpr' : 'args'
+        let inExists = false
         arg[prop].forEach(step => {
+          if (step === 'exists') {
+            inExists = true
+            return
+          }
           let subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
           if (step.ref) {
-            step.$refLinks.forEach((link, i) => {
-              const { definition } = link
-              if (definition.value) {
-                mergePathsIntoJoinTree(definition.value, subPath)
-              } else {
-                subPath.$refLinks.push(link)
-                subPath.ref.push(step.ref[i])
+            if (inExists) {
+              // refs following `exists` become subqueries in cqn4sql — only the basePath prefix
+              // needs a JOIN (for correlation), the exists-target association itself does not.
+              if (subPath.$refLinks.length > 0) {
+                inferred.joinTree.mergeColumn(subPath, originalQuery.outerQueries)
+                // The exists subquery correlates against the last assoc in basePath,
+                // so it's not just a FK access — force a real JOIN.
+                const lastLink = subPath.$refLinks[subPath.$refLinks.length - 1]
+                if (lastLink.onlyForeignKeyAccess) lastLink.onlyForeignKeyAccess = false
+                if (!calcElement.value.isJoinRelevant)
+                  defineProperty(step, 'isJoinRelevant', true)
               }
-            })
-            mergePathIfNecessary(subPath, step)
+            } else {
+              step.$refLinks.forEach((link, i) => {
+                const { definition } = link
+                if (definition.value) {
+                  mergePathsIntoJoinTree(definition.value, subPath)
+                } else {
+                  subPath.$refLinks.push(link)
+                  subPath.ref.push(step.ref[i])
+                }
+              })
+              mergePathIfNecessary(subPath, step)
+            }
+            inExists = false
           } else if (step.args || step.xpr) {
             const nestedProp = step.xpr ? 'xpr' : 'args'
             step[nestedProp].forEach(a => {
@@ -977,6 +997,9 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
               if (!a.ref) subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
               mergePathsIntoJoinTree(a, subPath)
             })
+            inExists = false
+          } else {
+            if (step !== 'not') inExists = false
           }
         })
       }
@@ -1014,6 +1037,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
       const ref = column.ref[i]
       const link = column.$refLinks[i]
       if (link.definition.on && link.definition.isAssociation) {
+        if (assoc) return true
         if (!column.ref[i + 1]) {
           if (column.expand && assoc) return true
           // if unmanaged assoc is exposed, ignore it
