@@ -2,7 +2,7 @@ const cds = require('../../cds.js')
 const bookshop = cds.utils.path.resolve(__dirname, '../../bookshop') + '/srv'
 
 describe('Runtime Views', () => {
-  const { expect } = cds.test('serve', bookshop, '--in-memory')
+  const { expect } = cds.test('serve', bookshop, '--in-memory?')
 
   beforeAll(async () => {
     const { Edition, Page, Review } = cds.entities('bookshop')
