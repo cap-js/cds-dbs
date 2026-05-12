@@ -11,7 +11,7 @@ const cdsTypes = cds.builtin.types
  * @param {import('@sap/cds/apis/csn').CSN} [model]
  * @returns {import('./cqn').Query} = q with .target and .elements
  */
-function infer(originalQuery, model) {
+function infer(originalQuery, model, useTechnicalAlias = true) {
   if (!model) throw new Error('Please specify a model')
   const inferred = originalQuery
 
@@ -34,7 +34,7 @@ function infer(originalQuery, model) {
 
   let $combinedElements
 
-  const sources = inferTarget(_.into || _.from || _.entity, {}) // IMPORTANT: _.into has to go before _.from for INSERT.into().from(SELECT)
+  const sources = inferTarget(_.into || _.from || _.entity, {}, useTechnicalAlias) // IMPORTANT: _.into has to go before _.from for INSERT.into().from(SELECT)
   const aliases = Object.keys(sources)
   const target = aliases.length === 1 ? getDefinitionFromSources(sources, aliases[0]) : originalQuery
   Object.defineProperties(inferred, {
@@ -80,7 +80,7 @@ function infer(originalQuery, model) {
    *                              Each key is a query source alias, and its value is the corresponding CSN Definition.
    * @returns {object} The updated `querySources` object with inferred sources from the `from` clause.
    */
-  function inferTarget(from, querySources, useTechnicalAlias = true) {
+  function inferTarget(from, querySources, useTechnicalAlias) {
     const { ref } = from
     // Given a from clause `Root:parent[$main.name = name].parent as Foo`
     // we need to first resolve until to the last step of the from.ref
@@ -707,7 +707,7 @@ function infer(originalQuery, model) {
      *    d. Otherwise, the corresponding `$refLinks` definition is added to the `elements` object.
      * 2. Returns the `elements` object.
      */
-    function resolveInline(col, namePrefix = col.as || col.flatName) {
+    function resolveInline(col, namePrefix = col.as || col.flatName, outerBase = null) {
       const { inline, $refLinks } = col
       const $leafLink = $refLinks[$refLinks.length - 1]
       if (!$leafLink.definition.target && !$leafLink.definition.elements) {
@@ -715,10 +715,13 @@ function infer(originalQuery, model) {
           `Unexpected “inline” on “${col.ref.map(idOnly)}”; can only be used after a reference to a structure, association or table alias`,
         )
       }
+      const effectiveBase = outerBase
+        ? { ref: [...outerBase.ref, ...col.ref], $refLinks: [...outerBase.$refLinks, ...col.$refLinks] }
+        : col
       let elements = {}
       let seenWildcard = false
       inline.forEach(inlineCol => {
-        inferArg(inlineCol, null, $leafLink, { inXpr: true, baseColumn: col })
+        inferArg(inlineCol, null, $leafLink, { inXpr: true, baseColumn: effectiveBase })
         if (inlineCol === '*') {
           if (seenWildcard) throw new Error(`Duplicate wildcard "*" in inline of "${col.as || col.ref.map(idOnly).join('_')}"`)
           seenWildcard = true
@@ -777,7 +780,7 @@ function infer(originalQuery, model) {
           else if (inlineCol.ref) nameParts.push(...inlineCol.ref.map(idOnly))
           const name = nameParts.join('_')
           if (inlineCol.inline) {
-            const inlineElements = resolveInline(inlineCol, name)
+            const inlineElements = resolveInline(inlineCol, name, effectiveBase)
             elements = { ...elements, ...inlineElements }
           } else if (inlineCol.expand) {
             const expandElements = resolveExpand(inlineCol)

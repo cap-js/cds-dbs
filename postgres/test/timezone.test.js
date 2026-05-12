@@ -5,7 +5,7 @@ const project = resolve(__dirname, 'beershop')
 process.env.DEBUG && jest.setTimeout(100000)
 
 describe('CAP PostgreSQL Adapter', () => {
-  const { GET, PUT, expect, data } = cds.test('serve', '--project', project).verbose()
+  const { GET, PUT, expect, data } = cds.test('serve', '--project', project)
 
   data.autoIsolation(true)
   data.autoReset(true)

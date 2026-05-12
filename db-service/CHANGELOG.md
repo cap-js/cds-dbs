@@ -4,6 +4,36 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.11.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.10.1...db-service-v2.11.0) (2026-04-29)
+
+
+### Added
+
+* supersede potentially compromised release ([#1590](https://github.com/cap-js/cds-dbs/issues/1590)) ([3be4044](https://github.com/cap-js/cds-dbs/commit/3be404417229a2dd539e4b40393d3bd346e4388c))
+
+## [2.10.1](https://github.com/cap-js/cds-dbs/compare/db-service-v2.10.0...db-service-v2.10.1) (2026-04-29)
+
+
+### Fixed
+
+* supersede potentially compromised release ([#1589](https://github.com/cap-js/cds-dbs/issues/1589)) ([bd73895](https://github.com/cap-js/cds-dbs/commit/bd7389524d00ddd6ed73fc79308e19e7bf952b53))
+
+## [2.10.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.9.0...db-service-v2.10.0) (2026-04-22)
+
+
+### Added
+
+* `cds.features.count_as_string` ([#1556](https://github.com/cap-js/cds-dbs/issues/1556)) ([00e0e60](https://github.com/cap-js/cds-dbs/commit/00e0e60d68edf0d42c1fce2fae3bb1286aca131e))
+* **cqn4sql:** support for enums ([#1527](https://github.com/cap-js/cds-dbs/issues/1527)) ([27c4279](https://github.com/cap-js/cds-dbs/commit/27c4279c495fce8344c785e4489e3116d1a52c55))
+* pql ([#1532](https://github.com/cap-js/cds-dbs/issues/1532)) ([943f76a](https://github.com/cap-js/cds-dbs/commit/943f76a3e4405eb91f0f4b929590212500c49c30))
+
+
+### Fixed
+
+* `$self` reference to func column in `having` ([#1539](https://github.com/cap-js/cds-dbs/issues/1539)) ([9eac576](https://github.com/cap-js/cds-dbs/commit/9eac5762fc4d254a1bc54bded1dd6a492299f576)), closes [#1528](https://github.com/cap-js/cds-dbs/issues/1528)
+* foreign key not included in wildcard select from subquery ([#1540](https://github.com/cap-js/cds-dbs/issues/1540)) ([0fde4ed](https://github.com/cap-js/cds-dbs/commit/0fde4eda21a389c68982f348e9e7c3680c00dcb3)), closes [#1127](https://github.com/cap-js/cds-dbs/issues/1127)
+* sqlite generated key is named lastInsertRowid ([#1501](https://github.com/cap-js/cds-dbs/issues/1501)) ([a4d3437](https://github.com/cap-js/cds-dbs/commit/a4d34378297c8afdb13abb7e664165012c36eb8f))
+
 ## [2.9.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.8.2...db-service-v2.9.0) (2026-03-09)
 
 
