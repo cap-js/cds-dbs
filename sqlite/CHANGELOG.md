@@ -4,6 +4,73 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.4.0](https://github.com/cap-js/cds-dbs/compare/sqlite-v2.3.0...sqlite-v2.4.0) (2026-04-29)
+
+
+### Added
+
+* supersede potentially compromised release ([#1590](https://github.com/cap-js/cds-dbs/issues/1590)) ([3be4044](https://github.com/cap-js/cds-dbs/commit/3be404417229a2dd539e4b40393d3bd346e4388c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.10.1 to ^2.11.0
+
+## [2.3.0](https://github.com/cap-js/cds-dbs/compare/sqlite-v2.2.1...sqlite-v2.3.0) (2026-04-29)
+
+
+### Added
+
+* decimal affinity in sqlite ([#1547](https://github.com/cap-js/cds-dbs/issues/1547)) ([9228adc](https://github.com/cap-js/cds-dbs/commit/9228adc22733b18934997506271a0c7fa6505eb8))
+
+
+### Fixed
+
+* supersede potentially compromised release ([#1589](https://github.com/cap-js/cds-dbs/issues/1589)) ([bd73895](https://github.com/cap-js/cds-dbs/commit/bd7389524d00ddd6ed73fc79308e19e7bf952b53))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.10.0 to ^2.10.1
+
+## [2.2.1](https://github.com/cap-js/cds-dbs/compare/sqlite-v2.2.0...sqlite-v2.2.1) (2026-04-22)
+
+
+### Fixed
+
+* sqlite generated key is named lastInsertRowid ([#1501](https://github.com/cap-js/cds-dbs/issues/1501)) ([a4d3437](https://github.com/cap-js/cds-dbs/commit/a4d34378297c8afdb13abb7e664165012c36eb8f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.9.0 to ^2.10.0
+
+## [2.2.0](https://github.com/cap-js/cds-dbs/compare/sqlite-v2.1.3...sqlite-v2.2.0) (2026-03-09)
+
+
+### Added
+
+* support for `node:sqlite` and `sql.js` ([#614](https://github.com/cap-js/cds-dbs/issues/614)) ([887d1bb](https://github.com/cap-js/cds-dbs/commit/887d1bba82347857364bc133983b9e16e054d6cd))
+
+
+### Fixed
+
+* hana groupby with path expressions ([#1493](https://github.com/cap-js/cds-dbs/issues/1493)) ([920acde](https://github.com/cap-js/cds-dbs/commit/920acdee0edb538b74d6e5cb0a82a086556df85e))
+* the combination of `iterator` and `SELECT.one` ([#1514](https://github.com/cap-js/cds-dbs/issues/1514)) ([4b28579](https://github.com/cap-js/cds-dbs/commit/4b2857920a7a57bcfc09a9b5fb765283cf8bd70b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.8.2 to ^2.9.0
+
 ## [2.1.3](https://github.com/cap-js/cds-dbs/compare/sqlite-v2.1.2...sqlite-v2.1.3) (2026-02-03)
 
 

@@ -2,7 +2,8 @@
 // test the calculation of the elements of the query
 
 const cds = require('@sap/cds')
-const expect = require('@cap-js/cds-test/lib/expect.js') // REVISIT: contain({_type}) doesn't work with jest
+const {expect} = cds.test
+
 const inferred = require('../../lib/infer')
 function _inferred(q, m = cds.model) {
   return inferred(q, m)
@@ -72,7 +73,7 @@ describe('infer elements', () => {
       const inferred = _inferred(cds.ql`
         SELECT 11, 'foo', true, false from bookshop.Books
       `)
-      expect(inferred.elements).to.deep.contain({
+      expect(inferred.elements).to.containSubset({
         11: { _type: 'cds.Integer' },
         foo: { _type: 'cds.String' },
         true: { _type: 'cds.Boolean' },
@@ -205,7 +206,7 @@ describe('infer elements', () => {
         }
       `
       let inferred = _inferred(q)
-      expect(inferred.elements).to.deep.contain({
+      expect(inferred.elements).to.containSubset({
         twoLeapYearsEarlier: { _type: 'cds.Date' },
         twoLeapYearsLater: { _type: 'cds.Date' },
         months_between: {},
@@ -220,7 +221,7 @@ describe('infer elements', () => {
         }
       `
       let inferred = _inferred(q)
-      expect(inferred.elements).to.deep.contain({
+      expect(inferred.elements).to.containSubset({
         twoLeapYearsEarlier: { _type: 'cds.Date' },
         twoLeapYearsLater: { _type: 'cds.Date' },
         calc: {},
@@ -367,7 +368,7 @@ describe('infer elements', () => {
       let inferred = _inferred(query)
       let { Books } = model.entities
       expect(inferred.sources).to.have.nested.property('Books.definition', Books)
-      expect(inferred.elements).to.deep.contain({
+      expect(inferred.elements).to.containSubset({
         price: {
           _type: 'cds.Integer',
         },
@@ -410,6 +411,72 @@ describe('infer elements', () => {
       })
     })
 
+    it('simple values, sql style cast', () => {
+      let query = CQL(`SELECT from bookshop.Books as Books {
+      cast( 5 as cds.Integer ) as price,
+      cast( 3.14 as cds.Decimal ) as pi,
+      cast( 3.1415 as cds.Decimal(5,4) ) as pid,
+      cast( 'simple string' as cds.String ) as string,
+      cast( 'large string' as cds.LargeString ) as stringl,
+      cast( false as cds.Boolean ) as boolf,
+      cast( true as cds.Boolean ) as boolt,
+      cast( null as cds.String ) as nullc,
+      cast( '1970-01-01' as cds.Date ) as date,
+      cast( '00:00:00' as cds.Time ) as time,
+      cast( '1970-01-01 00:00:00' as cds.DateTime ) as datetime,
+      cast( '1970-01-01 00:00:00.000' as cds.Timestamp ) as timestamp,
+      cast( price * stock as cds.Decimal(10,2) ) as total
+    }`)
+      let inferred = _inferred(query)
+      let { Books } = model.entities
+      expect(inferred.sources).to.have.nested.property('Books.definition', Books)
+      expect(inferred.elements).to.containSubset({
+        price: {
+          _type: 'cds.Integer',
+        },
+        pi: {
+          _type: 'cds.Decimal',
+        },
+        pid: {
+          _type: 'cds.Decimal',
+          precision: 5,
+          scale: 4
+        },
+        boolf: {
+          _type: 'cds.Boolean',
+        },
+        boolt: {
+          _type: 'cds.Boolean',
+        },
+        nullc: {
+          _type: 'cds.String',
+        },
+        date: {
+          _type: 'cds.Date',
+        },
+        time: {
+          _type: 'cds.Time',
+        },
+        datetime: {
+          _type: 'cds.DateTime',
+        },
+        timestamp: {
+          _type: 'cds.Timestamp',
+        },
+        string: {
+          _type: 'cds.String',
+        },
+        stringl: {
+          _type: 'cds.LargeString',
+        },
+        total: {
+          _type: 'cds.Decimal',
+          precision: 10,
+          scale: 2
+        },
+      })
+    })
+
     it('supports a cast expression in the select list', () => {
       let query = cds.ql`SELECT from bookshop.Books as Books { cast(cast(ID as Integer) as String) as IDS, cast(ID as bookshop.DerivedFromDerivedString) as IDCustomType }`
       let inferred = _inferred(query)
@@ -423,7 +490,7 @@ describe('infer elements', () => {
           type: 'bookshop.DerivedFromDerivedString',
         },
       }
-      expect(inferred.elements).to.deep.contain(expectedElements)
+      expect(inferred.elements).to.containSubset(expectedElements)
     })
 
     it('supports a cdl-style cast in the select list', () => {
@@ -557,7 +624,7 @@ describe('infer elements', () => {
         $locale: pseudos.elements.$locale,
         $tenant: pseudos.elements.$tenant,
       }
-      expect(inferred.elements).to.deep.contain(expectedElements)
+      expect(inferred.elements).to.containSubset(expectedElements)
     })
 
     it('$variables in where do not matter for infer', () => {

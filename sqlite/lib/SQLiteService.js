@@ -30,23 +30,28 @@ class SQLiteService extends SQLService {
     return {
       options: this.options.pool || {},
       create: async tenant => {
-        if (!sqlite) loadSQLite(this.options.driver || this.options.credentials?.driver)
-        const database = this.url4(tenant)
-        const dbc = new sqlite(database, this.options.client || {})
-        await dbc.ready
+        try {
+          if (!sqlite) loadSQLite(this.options.driver || this.options.credentials?.driver)
+          const database = this.url4(tenant)
+          const dbc = new sqlite(database, this.options.client || {})
+          await dbc.ready
 
-        const deterministic = { deterministic: true }
-        dbc.function('session_context', key => dbc[$session][key])
-        dbc.function('regexp', deterministic, (re, x) => (RegExp(re).test(x) ? 1 : 0))
-        dbc.function('ISO', deterministic, d => d && new Date(d).toISOString())
-        dbc.function('year', deterministic, d => d === null ? null : toDate(d).getUTCFullYear())
-        dbc.function('month', deterministic, d => d === null ? null : toDate(d).getUTCMonth() + 1)
-        dbc.function('day', deterministic, d => d === null ? null : toDate(d).getUTCDate())
-        dbc.function('hour', deterministic, d => d === null ? null : toDate(d, true).getUTCHours())
-        dbc.function('minute', deterministic, d => d === null ? null : toDate(d, true).getUTCMinutes())
-        dbc.function('second', deterministic, d => d === null ? null : toDate(d, true).getUTCSeconds())
-        if (database !== ':memory:') dbc.pragma?.('journal_mode = WAL') || dbc.exec('PRAGMA journal_mode = WAL')
-        return dbc
+          const deterministic = { deterministic: true }
+          dbc.function('session_context', key => dbc[$session][key])
+          dbc.function('regexp', deterministic, (re, x) => (RegExp(re).test(x) ? 1 : 0))
+          dbc.function('ISO', deterministic, d => d && new Date(d).toISOString())
+          dbc.function('year', deterministic, d => d === null ? null : toDate(d).getUTCFullYear())
+          dbc.function('month', deterministic, d => d === null ? null : toDate(d).getUTCMonth() + 1)
+          dbc.function('day', deterministic, d => d === null ? null : toDate(d).getUTCDate())
+          dbc.function('hour', deterministic, d => d === null ? null : toDate(d, true).getUTCHours())
+          dbc.function('minute', deterministic, d => d === null ? null : toDate(d, true).getUTCMinutes())
+          dbc.function('second', deterministic, d => d === null ? null : toDate(d, true).getUTCSeconds())
+          if (database !== ':memory:') dbc.pragma?.('journal_mode = WAL') || dbc.exec('PRAGMA journal_mode = WAL')
+          return dbc
+        } catch (err) {
+          Promise.reject(err)
+          await new Promise(() => { })
+        }
       },
       destroy: dbc => dbc.close(),
       validate: dbc => dbc.open,
@@ -110,7 +115,10 @@ class SQLiteService extends SQLService {
     const pageSize = (1 << 16)
     // Allow for both array and iterator result sets
     const first = Array.isArray(rs) ? { done: !rs[0], value: rs[0] } : rs.next()
-    if (first.done) return
+    if (first.done) {
+      yield one ? 'null' : '[]'
+      return
+    }
     if (one) {
       yield first.value[0]
       // Close result set to release database connection
@@ -262,9 +270,11 @@ class SQLiteService extends SQLService {
       Int64: cds.env.features.ieee754compatible ? expr => `CAST(${expr} as TEXT)` : undefined,
       // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
-      Decimal: cds.env.features.ieee754compatible ? (expr, elem) => elem?.scale
-        ? `CASE WHEN ${expr} IS NULL THEN NULL ELSE format('%.${elem.scale}f', ${expr}) END`
-        : `CAST(${expr} as TEXT)`
+      Decimal: cds.env.features.ieee754compatible
+        ? (expr, elem) =>
+            elem?.scale
+              ? `CASE WHEN ${expr} IS NULL THEN NULL ELSE format('%.${elem.scale}f', ${expr}) END`
+              : `CASE WHEN ${expr} IS NULL THEN NULL ELSE rtrim(rtrim(format('%.999f', ${expr}), '0'), '.') END`
         : undefined,
       // Binary is not allowed in json objects
       Binary: expr => `${expr} || ''`,
@@ -281,7 +291,8 @@ class SQLiteService extends SQLService {
       Time: () => 'TIME_TEXT',
       DateTime: () => 'DATETIME_TEXT',
       Timestamp: () => 'TIMESTAMP_TEXT',
-      Map: () => 'JSON_TEXT'
+      Map: () => 'JSON_TEXT',
+      Decimal: cds.env.requires.db?.decimal_affinity?.match(/^real$/i) ? () => 'REAL_DECIMAL' : undefined,
     }
 
     get is_distinct_from_() {
@@ -307,15 +318,10 @@ function loadSQLite(driver) {
     return
   }
 
-  try {
-    sqlite = require(drivers['better-sqlite3'])
-  } catch {
-    try {
-      sqlite = require(drivers.node)
-    } catch {
-      // When failing to load better-sqlite3 it fallsback to sql.js (wasm version of sqlite)
-      sqlite = require(drivers['sql.js'])
-    }
+  try { sqlite = require(drivers['better-sqlite3']) }
+  catch {
+    try { sqlite = require(drivers.node) }
+    catch { sqlite = require(drivers['sql.js']) }
   }
 }
 

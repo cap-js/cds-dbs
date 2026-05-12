@@ -4,6 +4,62 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.3.0](https://github.com/cap-js/cds-dbs/compare/postgres-v2.2.2...postgres-v2.3.0) (2026-04-29)
+
+
+### Added
+
+* supersede potentially compromised release ([#1590](https://github.com/cap-js/cds-dbs/issues/1590)) ([3be4044](https://github.com/cap-js/cds-dbs/commit/3be404417229a2dd539e4b40393d3bd346e4388c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.10.1 to ^2.11.0
+
+## [2.2.2](https://github.com/cap-js/cds-dbs/compare/postgres-v2.2.1...postgres-v2.2.2) (2026-04-29)
+
+
+### Fixed
+
+* supersede potentially compromised release ([#1589](https://github.com/cap-js/cds-dbs/issues/1589)) ([bd73895](https://github.com/cap-js/cds-dbs/commit/bd7389524d00ddd6ed73fc79308e19e7bf952b53))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.10.0 to ^2.10.1
+
+## [2.2.1](https://github.com/cap-js/cds-dbs/compare/postgres-v2.2.0...postgres-v2.2.1) (2026-04-22)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.9.0 to ^2.10.0
+
+## [2.2.0](https://github.com/cap-js/cds-dbs/compare/postgres-v2.1.3...postgres-v2.2.0) (2026-03-09)
+
+
+### Added
+
+* support for `node:sqlite` and `sql.js` ([#614](https://github.com/cap-js/cds-dbs/issues/614)) ([887d1bb](https://github.com/cap-js/cds-dbs/commit/887d1bba82347857364bc133983b9e16e054d6cd))
+
+
+### Fixed
+
+* hana groupby with path expressions ([#1493](https://github.com/cap-js/cds-dbs/issues/1493)) ([920acde](https://github.com/cap-js/cds-dbs/commit/920acdee0edb538b74d6e5cb0a82a086556df85e))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.8.2 to ^2.9.0
+
 ## [2.1.3](https://github.com/cap-js/cds-dbs/compare/postgres-v2.1.2...postgres-v2.1.3) (2026-02-03)
 
 

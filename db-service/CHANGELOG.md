@@ -4,6 +4,55 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.11.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.10.1...db-service-v2.11.0) (2026-04-29)
+
+
+### Added
+
+* supersede potentially compromised release ([#1590](https://github.com/cap-js/cds-dbs/issues/1590)) ([3be4044](https://github.com/cap-js/cds-dbs/commit/3be404417229a2dd539e4b40393d3bd346e4388c))
+
+## [2.10.1](https://github.com/cap-js/cds-dbs/compare/db-service-v2.10.0...db-service-v2.10.1) (2026-04-29)
+
+
+### Fixed
+
+* supersede potentially compromised release ([#1589](https://github.com/cap-js/cds-dbs/issues/1589)) ([bd73895](https://github.com/cap-js/cds-dbs/commit/bd7389524d00ddd6ed73fc79308e19e7bf952b53))
+
+## [2.10.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.9.0...db-service-v2.10.0) (2026-04-22)
+
+
+### Added
+
+* `cds.features.count_as_string` ([#1556](https://github.com/cap-js/cds-dbs/issues/1556)) ([00e0e60](https://github.com/cap-js/cds-dbs/commit/00e0e60d68edf0d42c1fce2fae3bb1286aca131e))
+* **cqn4sql:** support for enums ([#1527](https://github.com/cap-js/cds-dbs/issues/1527)) ([27c4279](https://github.com/cap-js/cds-dbs/commit/27c4279c495fce8344c785e4489e3116d1a52c55))
+* pql ([#1532](https://github.com/cap-js/cds-dbs/issues/1532)) ([943f76a](https://github.com/cap-js/cds-dbs/commit/943f76a3e4405eb91f0f4b929590212500c49c30))
+
+
+### Fixed
+
+* `$self` reference to func column in `having` ([#1539](https://github.com/cap-js/cds-dbs/issues/1539)) ([9eac576](https://github.com/cap-js/cds-dbs/commit/9eac5762fc4d254a1bc54bded1dd6a492299f576)), closes [#1528](https://github.com/cap-js/cds-dbs/issues/1528)
+* foreign key not included in wildcard select from subquery ([#1540](https://github.com/cap-js/cds-dbs/issues/1540)) ([0fde4ed](https://github.com/cap-js/cds-dbs/commit/0fde4eda21a389c68982f348e9e7c3680c00dcb3)), closes [#1127](https://github.com/cap-js/cds-dbs/issues/1127)
+* sqlite generated key is named lastInsertRowid ([#1501](https://github.com/cap-js/cds-dbs/issues/1501)) ([a4d3437](https://github.com/cap-js/cds-dbs/commit/a4d34378297c8afdb13abb7e664165012c36eb8f))
+
+## [2.9.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.8.2...db-service-v2.9.0) (2026-03-09)
+
+
+### Added
+
+* runtime views ([#1410](https://github.com/cap-js/cds-dbs/issues/1410)) ([5242675](https://github.com/cap-js/cds-dbs/commit/5242675c97472b86b81b3dc5fe0906141d276b02))
+* support calculated elements in hierarchies ([#1456](https://github.com/cap-js/cds-dbs/issues/1456)) ([97c6f66](https://github.com/cap-js/cds-dbs/commit/97c6f6661f0ac4043245e021f2bf182f4e5d406f))
+
+
+### Fixed
+
+* **`exists`:** detect join relevant path after exists ([#1412](https://github.com/cap-js/cds-dbs/issues/1412)) ([c5bad06](https://github.com/cap-js/cds-dbs/commit/c5bad06724ce6761379f91748490c6caac84153a)), closes [#1407](https://github.com/cap-js/cds-dbs/issues/1407)
+* **cqn2sql:** Relied on inconstistent behavior of cds.ql.cloned queries ([#1500](https://github.com/cap-js/cds-dbs/issues/1500)) ([f9cb201](https://github.com/cap-js/cds-dbs/commit/f9cb2011219a86ae22f22fcc105e597b23209adf))
+* enable expressions for `inline` ([#1512](https://github.com/cap-js/cds-dbs/issues/1512)) ([65f78e1](https://github.com/cap-js/cds-dbs/commit/65f78e1f3af83188462e9d44db67daa5d743ceb0))
+* path expressions for scoped queries ([#1507](https://github.com/cap-js/cds-dbs/issues/1507)) ([0f1e234](https://github.com/cap-js/cds-dbs/commit/0f1e234b373f26a6244c715c9ca9d4a207a0faed))
+* reject duplicated wildcards ([#1511](https://github.com/cap-js/cds-dbs/issues/1511)) ([b483062](https://github.com/cap-js/cds-dbs/commit/b483062e2ff5a8d0960dc2e7b71880af87ee8f78))
+* the combination of `iterator` and `SELECT.one` ([#1514](https://github.com/cap-js/cds-dbs/issues/1514)) ([4b28579](https://github.com/cap-js/cds-dbs/commit/4b2857920a7a57bcfc09a9b5fb765283cf8bd70b))
+* wildcard on inlined assoc ([#1513](https://github.com/cap-js/cds-dbs/issues/1513)) ([e520b97](https://github.com/cap-js/cds-dbs/commit/e520b97fd30394825b937b3613370c32c36c24a4))
+
 ## [2.8.2](https://github.com/cap-js/cds-dbs/compare/db-service-v2.8.1...db-service-v2.8.2) (2026-02-03)
 
 

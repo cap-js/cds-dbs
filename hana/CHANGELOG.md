@@ -4,6 +4,68 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.8.0](https://github.com/cap-js/cds-dbs/compare/hana-v2.7.2...hana-v2.8.0) (2026-04-29)
+
+
+### Added
+
+* supersede potentially compromised release ([#1590](https://github.com/cap-js/cds-dbs/issues/1590)) ([3be4044](https://github.com/cap-js/cds-dbs/commit/3be404417229a2dd539e4b40393d3bd346e4388c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.10.1 to ^2.11.0
+
+## [2.7.2](https://github.com/cap-js/cds-dbs/compare/hana-v2.7.1...hana-v2.7.2) (2026-04-29)
+
+
+### Fixed
+
+* supersede potentially compromised release ([#1589](https://github.com/cap-js/cds-dbs/issues/1589)) ([bd73895](https://github.com/cap-js/cds-dbs/commit/bd7389524d00ddd6ed73fc79308e19e7bf952b53))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.10.0 to ^2.10.1
+
+## [2.7.1](https://github.com/cap-js/cds-dbs/compare/hana-v2.7.0...hana-v2.7.1) (2026-04-22)
+
+
+### Fixed
+
+* select forUpdate ignoreLocked; entity \w composite-key HANA error ([#1572](https://github.com/cap-js/cds-dbs/issues/1572)) ([49df942](https://github.com/cap-js/cds-dbs/commit/49df9422285cd9c2f7de21cde7933f4065ae88b9))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.9.0 to ^2.10.0
+
+## [2.7.0](https://github.com/cap-js/cds-dbs/compare/hana-v2.6.0...hana-v2.7.0) (2026-03-09)
+
+
+### Added
+
+* runtime views ([#1410](https://github.com/cap-js/cds-dbs/issues/1410)) ([5242675](https://github.com/cap-js/cds-dbs/commit/5242675c97472b86b81b3dc5fe0906141d276b02))
+
+
+### Fixed
+
+* avoid rollback race condition during .disconnect ([#1502](https://github.com/cap-js/cds-dbs/issues/1502)) ([4fa5758](https://github.com/cap-js/cds-dbs/commit/4fa57587c931b279d3832ee2ce95fc39dffbe3db))
+* hana groupby with path expressions ([#1493](https://github.com/cap-js/cds-dbs/issues/1493)) ([920acde](https://github.com/cap-js/cds-dbs/commit/920acdee0edb538b74d6e5cb0a82a086556df85e))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.8.2 to ^2.9.0
+
 ## [2.6.0](https://github.com/cap-js/cds-dbs/compare/hana-v2.5.1...hana-v2.6.0) (2026-02-03)
 
 

@@ -10,7 +10,7 @@ All you need to do is to install the database package, as follows:
 npm add @cap-js/hana
 ```
 
-Learn more about setup and usage in the [respective database guide](https://cap.cloud.sap/docs/guides/databases-hana).
+Learn more about setup and usage in the [respective database guide](https://cap.cloud.sap/docs/guides/databases/hana).
 
 ## Support
 
@@ -18,11 +18,11 @@ This project is open to feature requests/suggestions, bug reports etc. via [GitH
 
 ## Contribution
 
-Contribution and feedback are encouraged and always welcome. For more information about how to contribute, the project structure, as well as additional contribution information, see our [Contribution Guidelines](CONTRIBUTING.md).
+Contribution and feedback are encouraged and always welcome. For more information about how to contribute, the project structure, as well as additional contribution information, see our [Contribution Guidelines](../CONTRIBUTING.md).
 
 ## Code of Conduct
 
-We as members, contributors, and leaders pledge to make participation in our community a harassment-free experience for everyone. By participating in this project, you agree to abide by its [Code of Conduct](CODE_OF_CONDUCT.md) at all times.
+We as members, contributors, and leaders pledge to make participation in our community a harassment-free experience for everyone. By participating in this project, you agree to abide by its [Code of Conduct](../CODE_OF_CONDUCT.md) at all times.
 
 ## Licensing
 
