@@ -1037,7 +1037,6 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
       const ref = column.ref[i]
       const link = column.$refLinks[i]
       if (link.definition.on && link.definition.isAssociation) {
-        if (assoc) return true
         if (!column.ref[i + 1]) {
           if (column.expand && assoc) return true
           // if unmanaged assoc is exposed, ignore it
