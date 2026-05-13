@@ -453,7 +453,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
           arg.$refLinks.push({ definition: pseudos.elements[id], target: pseudos })
           pseudoPath = true // only first path step must be well defined
           nameSegments.push(id)
-        } else if ($baseLink) {
+        } else if ($baseLink && !firstStepIsSelf) {
           const { definition, target } = $baseLink
           const elements = getDefinition(definition.target)?.elements || definition.elements
           if (elements && id in elements) {
@@ -484,7 +484,15 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
             target: getDefinitionFromSources(sources, id),
           })
         } else if (firstStepIsSelf) {
-          arg.$refLinks.push({ definition: { elements: queryElements }, target: { elements: queryElements } })
+          const nextStep = arg.ref[1]?.id || arg.ref[1]
+          let elements = queryElements
+          if (nextStep && (!queryElements || !(nextStep in queryElements)) && inferred.outerQueries) {
+            const outerQuery = inferred.outerQueries[0]
+            if (outerQuery?.elements && nextStep in outerQuery.elements) {
+              elements = outerQuery.elements
+            }
+          }
+          arg.$refLinks.push({ definition: { elements }, target: { elements } })
         } else if (arg.ref.length > 1 && inferred.outerQueries?.find(outer => id in outer.sources)) {
           // outer query accessed via alias
           const outerAlias = inferred.outerQueries.find(outer => id in outer.sources)
@@ -707,7 +715,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
      *    d. Otherwise, the corresponding `$refLinks` definition is added to the `elements` object.
      * 2. Returns the `elements` object.
      */
-    function resolveInline(col, namePrefix = col.as || col.flatName) {
+    function resolveInline(col, namePrefix = col.as || col.flatName, outerBase = null) {
       const { inline, $refLinks } = col
       const $leafLink = $refLinks[$refLinks.length - 1]
       if (!$leafLink.definition.target && !$leafLink.definition.elements) {
@@ -715,10 +723,13 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
           `Unexpected “inline” on “${col.ref.map(idOnly)}”; can only be used after a reference to a structure, association or table alias`,
         )
       }
+      const effectiveBase = outerBase
+        ? { ref: [...outerBase.ref, ...col.ref], $refLinks: [...outerBase.$refLinks, ...col.$refLinks] }
+        : col
       let elements = {}
       let seenWildcard = false
       inline.forEach(inlineCol => {
-        inferArg(inlineCol, null, $leafLink, { inXpr: true, baseColumn: col })
+        inferArg(inlineCol, null, $leafLink, { inXpr: true, baseColumn: effectiveBase })
         if (inlineCol === '*') {
           if (seenWildcard) throw new Error(`Duplicate wildcard "*" in inline of "${col.as || col.ref.map(idOnly).join('_')}"`)
           seenWildcard = true
@@ -777,7 +788,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
           else if (inlineCol.ref) nameParts.push(...inlineCol.ref.map(idOnly))
           const name = nameParts.join('_')
           if (inlineCol.inline) {
-            const inlineElements = resolveInline(inlineCol, name)
+            const inlineElements = resolveInline(inlineCol, name, effectiveBase)
             elements = { ...elements, ...inlineElements }
           } else if (inlineCol.expand) {
             const expandElements = resolveExpand(inlineCol)

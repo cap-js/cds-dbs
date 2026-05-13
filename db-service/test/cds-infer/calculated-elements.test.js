@@ -2,7 +2,7 @@
 
 const _inferred = require('../../lib/infer')
 const cds = require('@sap/cds')
-const expect = require('@cap-js/cds-test/lib/expect.js') // REVISIT: contain({_type}) doesn't work with jest
+const {expect} = cds.test
 
 describe('Infer types of calculated elements in select list', () => {
   let model
@@ -20,7 +20,7 @@ describe('Infer types of calculated elements in select list', () => {
       model,
     )
     let { Books } = model.entities
-    expect(inferred.elements).to.deep.contain({
+    expect(inferred.elements).to.containSubset({
       ID: Books.elements.ID,
       area: Books.elements.area,
       strArea: {

@@ -6,6 +6,10 @@ const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
 const { resolveTable } = require('./utils')
 
+// REVISIT: make string the default in next major
+const _count_as_string = cds.env.features.count_as_string
+const _count = _count_as_string ? { func: 'count', cast: { type: 'cds.String' } } : { func: 'count' }
+
 const BINARY_TYPES = {
   'cds.Binary': 1,
   'cds.hana.BINARY': 1
@@ -296,7 +300,7 @@ class SQLService extends DatabaseService {
    * @type {Handler}
    */
   async onEVENT({ event }) {
-    if (DEBUG._debug) DEBUG.debug(event) // in the other cases above DEBUG happens in cqn2sql
+    if(DEBUG._debug) DEBUG.debug(event) // in the other cases above DEBUG happens in cqn2sql
     return await this.exec(event)
   }
 
@@ -306,7 +310,7 @@ class SQLService extends DatabaseService {
    */
   async onPlainSQL({ query, data }, next) {
     if (typeof query === 'string') {
-      if (DEBUG._debug) DEBUG.debug(query, data)
+      if(DEBUG._debug) DEBUG.debug(query, data)
       const ps = await this.prepare(query)
       const exec = this.hasResults(query) ? d => ps.all(d) : d => ps.run(d)
       if (Array.isArray(data) && Array.isArray(data[0])) return await Promise.all(data.map(exec))
@@ -326,24 +330,24 @@ class SQLService extends DatabaseService {
    * Derives and executes a query to fill in `$count` for given query
    * @param {import('@sap/cds/apis/cqn').SELECT} query - SELECT CQN
    * @param {unknown[]} ret - Results of the original query
-   * @returns {Promise<number>}
+   * @returns {Promise<number|string>}
    */
   async count(query, ret) {
     if (ret?.length) {
       const { one, limit: _ } = query.SELECT,
         n = ret.length
       const [max, offset = 0] = one ? [1] : _ ? [_.rows?.val, _.offset?.val] : []
-      if (max === undefined || (n < max && (n || !offset))) return n + offset
+      if (max === undefined || (n < max && (n || !offset))) return _count_as_string ? `${n + offset}` : n + offset
     }
 
     // Keep original query columns when potentially used insde conditions
     const { having, groupBy } = query.SELECT
     let columns = []
-    if ((having?.length || groupBy?.length)) {
+    if (having?.length || groupBy?.length) {
       columns = query.SELECT.columns.filter(c => !c.expand)
     }
     if (columns.length === 0) columns.push({ val: 1 })
-    const cq = SELECT.one([{ func: 'count' }]).from(
+    const cq = SELECT.one([_count]).from(
       cds.ql.clone(query, {
         columns,
         localized: false,
@@ -411,7 +415,7 @@ class SQLService extends DatabaseService {
    * @param {import('@sap/cds/apis/cqn').Query} q
    * @returns {import('./infer/cqn').Query}
    */
-  cqn4sql(q, useTechnicalAlias = true) {
+  cqn4sql(q, useTechnicalAlias=true) {
     if (
       !cds.env.features.db_strict &&
       !q.SELECT?.from?.join &&
@@ -513,7 +517,7 @@ const DEBUG_PQL = cds.log('pql')
 if (DEBUG_PQL._debug || cds.repl) {
 
   // Add helper method to convert CQN to PQL, used below...
-  SQLService.prototype.cqn2pql = function cqn2pql(query, values) {
+  SQLService.prototype.cqn2pql = function cqn2pql (query, values) {
     const CQN2PQL = cqn2pql.renderer ??= require('./cqn2pql')
     return new CQN2PQL(this).render(query, values)
   }
@@ -538,7 +542,7 @@ if (DEBUG_PQL._debug || cds.repl) {
           const cqn = db.srv.cqn4sql(this)
           return this.flat(cqn)
         }
-        forSql() { return this.forSql() }
+        forSql() { return this.forSQL() }
         toSQL() {
           if (this.SELECT) this.SELECT.expand = 'root' // Enforces using json functions always for top-level SELECTS
           const { sql, values } = db.srv.cqn2sql(this)
@@ -564,7 +568,7 @@ if (DEBUG_PQL._debug || cds.repl) {
      * if no real SQL service is available yet through cds.db. 
      */
     class db extends SQLService {
-      /** @returns {SQLService} */
+      /** @returns {SQLService} */ 
       static get srv() { return cds.db || (this.singleton ??= new this) }
       get factory() { return null }
       get model() { return cds.model }
