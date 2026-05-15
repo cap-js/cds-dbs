@@ -125,7 +125,7 @@ BEGIN
   SELECT ERROR_CODE, ERROR_TEXT, :dur AS WAITED_SECONDS FROM M_PROCEDURE_ASYNC_EXECUTIONS WHERE ASYNC_CALL_ID = :ID;
 END;`, [ASYNC_CALL_ID])
         // Ensure that the procedure succeeded
-        expect(status.changes[1][0].ERROR_CODE).to.eq(0)
+        expect(status.changes[0].ERROR_CODE ?? status.changes[1][0].ERROR_CODE).to.eq(0)
         throw new Error('ROLLBACK')
       }).catch((err) => { if (err.message !== 'ROLLBACK') throw err })
 
