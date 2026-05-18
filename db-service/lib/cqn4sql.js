@@ -1823,6 +1823,17 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
               continue
             }
             if (token.ref.length > 1 && token.ref[0] === '$self' && !token.$refLinks[0].definition.kind) {
+              if (inferred.outerQueries) {
+                const outerQuery = inferred.outerQueries[0]
+                const stepToFind = token.ref[1]?.id || token.ref[1]
+                const outerAlias = outerQuery.$combinedElements?.[stepToFind]?.[0].index
+                if (outerAlias) {
+                  let result = copy(token)
+                  result.ref = [outerAlias, token.flatName]
+                  transformedTokenStream.push(result)
+                  continue
+                }
+              }
               const dollarSelfReplacement = [calculateDollarSelfColumn(token, true)]
               transformedTokenStream.push(...getTransformedTokenStream(dollarSelfReplacement))
               continue
