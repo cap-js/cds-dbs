@@ -1178,7 +1178,11 @@ describe('SELECT', () => {
 
   describe('foreach', () => {
     const process = function (row) {
-      for (const prop in row) if (row[prop] != null) (this[prop] ??= []).push(row[prop])
+      try {
+        for (const prop in row) if (row[prop] != null) (this[prop] ??= []).push(row[prop])
+      } catch (err) {
+        debugger
+      }
     }
 
     test('cds/srv.foreach', () => cds.tx(async () => {

@@ -44,12 +44,12 @@ describe('DELETE', () => {
           ]),
         ]
         const insertsResp = await cds.run(inserts)
-        expect(insertsResp[0].affectedRows).to.be.eq(1)
+        expect(insertsResp[0].affected).to.be.eq(1)
       })
 
       test('on root with keys', async () => {
         const deepDelete = await cds.run(DELETE.from(RootPWithKeys).where({ ID: 5 }))
-        expect(deepDelete).to.be.eq(1)
+        expect(deepDelete.affected).to.be.eq(1)
 
         const root = await cds.run(SELECT.one.from(Root).where({ ID: 5 }))
         expect(root).to.not.exist
@@ -64,7 +64,7 @@ describe('DELETE', () => {
       test('on child with where', async () => {
         // only delete entries where fooChild = 'bar'
         const deepDelete = await cds.run(DELETE.from(ChildPWithWhere))
-        expect(deepDelete).to.be.eq(1)
+        expect(deepDelete.affected).to.be.eq(1)
 
         const child = await cds.run(SELECT.from(Child).where({ ID: 6, or: { ID: 7 } }))
         expect(child[0].ID).to.be.eq(7)
@@ -78,7 +78,7 @@ describe('DELETE', () => {
       const { Authors } = cds.entities('complex.associations')
       await INSERT.into(Authors).entries(new Array(9).fill().map((e, i) => ({ ID: 100 + i, name: 'name' + i })))
       const changes = await cds.run(DELETE.from(Authors))
-      expect(changes | 0).to.be.eq(10, 'Ensure that all rows are affected') // 1 from csv, 9 newly added
+      expect(changes.affected).to.be.eq(10, 'Ensure that all rows are affected') // 1 from csv, 9 newly added
     })
   })
 
@@ -89,7 +89,7 @@ describe('DELETE', () => {
   })
 
   test('affected rows', async () => {
-    const affectedRows = await DELETE.from('complex.associations.Books').where('ID = 4712')
-    expect(affectedRows).to.be.eq(0)
+    const del = await DELETE.from('complex.associations.Books').where('ID = 4712')
+    expect(del.affected).to.be.eq(0)
   })
 })

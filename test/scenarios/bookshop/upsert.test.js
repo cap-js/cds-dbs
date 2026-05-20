@@ -10,7 +10,7 @@ describe('Bookshop - Upsert', () => {
     const { Values } = cds.entities
     const upsert = UPSERT({ ID: 201, value: 42 }).into(Values)
     const res = await upsert;
-    expect(res).to.eql(1)
+    expect(res.affected).to.eql(1)
   })
 
 })

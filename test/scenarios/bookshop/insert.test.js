@@ -17,13 +17,13 @@ describe('Bookshop - Insert', () => {
   test('insert with undefined value works', async () => {
     const { Books } = cds.entities('sap.capire.bookshop')
     const resp = await cds.run(INSERT({ stock: undefined, ID: 223, title: 'Harry Potter' }).into(Books))
-    expect(resp | 0).to.be.eq(1)
+    expect(resp.affected).to.be.eq(1)
   })
 
   test('mass insert on unknown entities', async () => {
-    if(cds.env.sql.names === 'quoted') return 'skipped'
+    if (cds.env.sql.names === 'quoted') return 'skipped'
     const books = 'sap_capire_bookshop_Books'
-    let affectedRows = await INSERT.into(books)
+    let ins = await INSERT.into(books)
       .entries([{
         ID: 4711,
         createdAt: (new Date()).toISOString(),
@@ -31,7 +31,7 @@ describe('Bookshop - Insert', () => {
         ID: 4712,
         createdAt: (new Date()).toISOString(),
       }])
-    expect(affectedRows | 0).to.be.eq(2)
+    expect(ins.affected).to.be.eq(2)
 
     const res = await SELECT.from('sap.capire.bookshop.Books').where('ID in', [4711, 4712])
     expect(res).to.have.length(2)
@@ -40,13 +40,13 @@ describe('Bookshop - Insert', () => {
   test('insert with arrayed elements', async () => {
     const { Books } = cds.entities('sap.capire.bookshop')
     const resp = await cds.run(INSERT({ footnotes: ['first', 'second'], ID: 121, title: 'Guiness Book of World Records' }).into(Books))
-    expect(resp | 0).to.be.eq(1)
+    expect(resp.affected).to.be.eq(1)
   })
 
   test('insert with assoc default', async () => {
     const { Books } = cds.entities('sap.capire.bookshop')
     await cds.run(INSERT({ ID: 344, title: 'Faust. Eine Tragödie' }).into(Books))
-    const res = await SELECT.from(Books, {ID: 344})
+    const res = await SELECT.from(Books, { ID: 344 })
     expect(res.genre_ID).to.be.eq(10)
   })
 })
