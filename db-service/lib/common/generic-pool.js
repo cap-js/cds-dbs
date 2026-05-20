@@ -3,11 +3,9 @@ const LOG = cds.log('db')
 
 const use_new_pool = cds.requires.db?.pool?.builtin || cds.env.features.pool === 'builtin'
 const createPool = use_new_pool ? (...args) => new Pool(...args) : require('generic-pool').createPool
-process.stderr.write(`[pool-debug] use_new_pool=${use_new_pool}, features.pool=${cds.env.features.pool}, requires.db.pool=${JSON.stringify(cds.requires.db?.pool)}\n`)
 
 function ConnectionPool (factory, tenant) {
   let bound_factory = { __proto__: factory, create: factory.create.bind(null, tenant) }
-  process.stderr.write(`[pool-debug] ConnectionPool created: tenant=${tenant}, max=${factory.options?.max}\n`)
   return createPool(bound_factory, factory.options)
 }
 
