@@ -6,7 +6,7 @@ const cds = require('@sap/cds')
 const hdb = require('hdb')
 const iconv = hdb.iconv
 
-const { driver, prom, handleLevel } = require('./base')
+const { driver, prom } = require('./base')
 const { resultSetStream } = require('./stream')
 const { wrap_client } = require('./dynatrace')
 
@@ -209,8 +209,6 @@ async function rsIterator(rs, one, objectMode) {
       if (this.buffer.byteLength <= this.reading) {
         return this.next().then(next => {
           if (next.done || next.value.byteLength === 0) {
-            // yield for raw mode
-            this.inject(handleLevel(this.levels, '$', {}))
             if (this.writing) this.stream.push(this.buffer.subarray(0, this.writing))
             return true
           }
@@ -223,7 +221,6 @@ async function rsIterator(rs, one, objectMode) {
         })
           .catch(() => {
             // TODO: check whether the error is early close
-            this.inject(handleLevel(this.levels, '$', {}))
             if (this.writing) this.stream.push(this.buffer.subarray(0, this.writing))
             return true
           })
@@ -332,7 +329,7 @@ async function rsIterator(rs, one, objectMode) {
     },
     readString() {
       this.columnIndex++
-      return readString(this, this.columnIndex === 4)
+      return readString(this, this.columnIndex === 1)
     },
     readBlob() {
       const meta = this.rs.metadata[this.columnIndex]
@@ -428,8 +425,8 @@ const readString = function (state, isJson = false) {
   // Read the string value
   state.read(offset)
   if (isJson) {
-    state.write(length - 1)
-    state.read(1)
+    state.write(length)
+    // state.read(1)
     return length
   }
   return state.slice(length)

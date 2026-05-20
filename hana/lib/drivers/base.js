@@ -209,73 +209,8 @@ const enhanceError = function (err, stack, query, message) {
   })
 }
 
-const handleLevel = function (levels, path, expands) {
-  let buffer = ''
-  path = `${path}`
-  // Find correct level for the current row
-  while (levels.length) {
-    const level = levels[levels.length - 1]
-    // Check if the current row is a child of the current level
-    if (path.indexOf(level.path) === 0 && path != level.path) {
-      // Check if the current row is an expand of the current level
-      const property = `${path.slice(level.path.length + 2, -7)}`
-      if (property && property in level.expands) {
-        const is2Many = level.expands[property]
-        delete level.expands[property]
-        if (level.hasProperties) {
-          buffer += ','
-        } else {
-          level.hasProperties = true
-        }
-        if (is2Many) {
-          buffer += `${JSON.stringify(property)}:[`
-        } else {
-          buffer += `${JSON.stringify(property)}:`
-        }
-        levels.push({
-          index: 1,
-          suffix: is2Many ? ']' : '',
-          path: path.slice(0, -6),
-          result: level.expands[property],
-          expands,
-        })
-      } else {
-        // Current row is on the same level now so incrementing the index
-        // If the index was not 0 it should add a comma
-        if (level.index++) buffer += ','
-      }
-      levels.push({
-        index: 0,
-        suffix: '}',
-        path: path,
-        result: levels.at(-1).result,
-        expands,
-      })
-      break
-    } else {
-      // Step up if it is not a child of the current level
-      const level = levels.pop()
-      if (level.suffix === '}') {
-        const leftOverExpands = Object.keys(level.expands)
-        // Fill in all missing expands
-        if (leftOverExpands.length) {
-          buffer += (level.hasProperties ? ',' : '') + leftOverExpands.map(p => `${JSON.stringify(p)}:${JSON.stringify(level.expands[p])}`).join(',')
-        }
-      }
-      if (level.suffix) buffer += level.suffix
-      if (level.expands) {
-        for (const expand in level.expands) {
-          if (level.expands[expand]?.push) level.expands[expand]?.push(null)
-        }
-      }
-    }
-  }
-  return buffer
-}
-
 module.exports.driver = HANADriver
 module.exports.prom = prom
-module.exports.handleLevel = handleLevel
 
 // REVISIT: Ensure that all credential options are properly mapped by all drivers
 /**
