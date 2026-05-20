@@ -242,6 +242,9 @@ constructor (factory, options = {}) {
         return false
       }
       if (request.state !== RequestState.PENDING) {
+        // request was rejected/timed out before we could fulfil it — return resource to pool
+        resource.idle()
+        this._available.add(resource)
         this.#dispense()
         return false
       }
