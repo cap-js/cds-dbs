@@ -154,6 +154,7 @@ constructor (factory, options = {}) {
     pooledResource.idle()
     this._available.add(pooledResource)
     this.#dispense()
+    this.#notifyDrain()
   }
 
   async destroy(resource) {
@@ -162,6 +163,7 @@ constructor (factory, options = {}) {
       this._loans.delete(resource)
       await this.#destroy(loan.pooledResource)
       this.#dispense()
+      this.#notifyDrain()
       return
     }
     // resource may have been released back to _available before destroy was
@@ -176,10 +178,26 @@ constructor (factory, options = {}) {
     }
   }
 
+  #notifyDrain() {
+    if (this._draining && this._loans.size === 0 && this._drainResolvers) {
+      const resolvers = this._drainResolvers
+      this._drainResolvers = null
+      for (const r of resolvers) r()
+    }
+  }
+
   async drain() {
     this._draining = true
-    for (const request of this._queue.splice(0)) {
-      if (request.state === RequestState.PENDING) request.reject(new Error('Pool is draining and cannot fulfil request'))
+    // Wait for queued acquires to settle (resolved or rejected by other paths) — do not
+    // reject them here; matches generic-pool's "let the request backlog dissipate" semantics.
+    while (this._queue.length > 0) {
+      await this._queue[this._queue.length - 1].promise.catch(() => {})
+    }
+    // Wait for in-flight loans to be returned via release() / destroy()
+    if (this._loans.size > 0) {
+      await new Promise(resolve => {
+        (this._drainResolvers ??= []).push(resolve)
+      })
     }
     clearTimeout(this._scheduledEviction)
   }
