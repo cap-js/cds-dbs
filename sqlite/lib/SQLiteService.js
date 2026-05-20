@@ -27,14 +27,14 @@ const toDate = (d, allowTime = false) => {
 class SQLiteService extends SQLService {
 
   get factory() {
-    const pool = { ...this.options.pool }
-    if (this.url4() === ':memory:') pool.max = 1
+    process.stderr.write(`[pool-debug] SQLiteService.factory: pool=${JSON.stringify(this.options.pool)}, driver=${this.options.driver || 'auto'}\n`)
     return {
-      options: pool,
+      options: this.options.pool || {},
       create: async tenant => {
         try {
           if (!sqlite) loadSQLite(this.options.driver || this.options.credentials?.driver)
           const database = this.url4(tenant)
+          process.stderr.write(`[pool-debug] SQLiteService.create: tenant=${tenant}, database=${database}, sqlite=${sqlite?.name}, stack=${new Error().stack.split('\n').slice(1,4).join(' <- ')}\n`)
           const dbc = new sqlite(database, this.options.client || {})
           await dbc.ready
 
@@ -55,8 +55,8 @@ class SQLiteService extends SQLService {
           await new Promise(() => { })
         }
       },
-      destroy: dbc => dbc.close(),
-      validate: dbc => dbc.open,
+      destroy: dbc => { process.stderr.write(`[pool-debug] SQLiteService.destroy called\n`); dbc.close() },
+      validate: dbc => { const v = dbc.open; process.stderr.write(`[pool-debug] SQLiteService.validate: open=${v} (type=${typeof v})\n`); return v },
     }
   }
 
