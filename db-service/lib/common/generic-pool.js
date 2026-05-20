@@ -156,11 +156,22 @@ constructor (factory, options = {}) {
 
   async destroy(resource) {
     const loan = this._loans.get(resource)
-    if (!loan) return // connection already released (e.g. hdb onclose after release)
-    this._loans.delete(resource)
-    const pooledResource = loan.pooledResource
-    await this.#destroy(pooledResource)
-    this.#dispense()
+    if (loan) {
+      this._loans.delete(resource)
+      await this.#destroy(loan.pooledResource)
+      this.#dispense()
+      return
+    }
+    // resource may have been released back to _available before destroy was
+    // called (e.g. hdb fires Connection.onclose after a successful release).
+    // Evict it so a dead connection doesn't get acquired by the next caller.
+    for (const pooledResource of this._available) {
+      if (pooledResource.obj === resource) {
+        await this.#destroy(pooledResource)
+        this.#dispense()
+        return
+      }
+    }
   }
 
   async drain() {
