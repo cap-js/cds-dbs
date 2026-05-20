@@ -146,7 +146,9 @@ constructor (factory, options = {}) {
 
   async release(resource) {
     const loan = this._loans.get(resource)
-    if (!loan) throw new Error('Resource not currently part of this pool')
+    // resource may have already been released/destroyed (e.g. hdb fires
+    // Connection.onclose → destroy() racing with rollback's release()).
+    if (!loan) return
     this._loans.delete(resource)
     const pooledResource = loan.pooledResource
     pooledResource.idle()
