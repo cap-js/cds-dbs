@@ -2,7 +2,8 @@
 // test the calculation of the elements of the query
 
 const cds = require('@sap/cds')
-const expect = require('@cap-js/cds-test/lib/expect.js') // REVISIT: contain({_type}) doesn't work with jest
+const {expect} = cds.test
+
 const inferred = require('../../lib/infer')
 function _inferred(q, m = cds.model) {
   return inferred(q, m)
@@ -72,7 +73,7 @@ describe('infer elements', () => {
       const inferred = _inferred(cds.ql`
         SELECT 11, 'foo', true, false from bookshop.Books
       `)
-      expect(inferred.elements).to.deep.contain({
+      expect(inferred.elements).to.containSubset({
         11: { _type: 'cds.Integer' },
         foo: { _type: 'cds.String' },
         true: { _type: 'cds.Boolean' },
@@ -205,7 +206,7 @@ describe('infer elements', () => {
         }
       `
       let inferred = _inferred(q)
-      expect(inferred.elements).to.deep.contain({
+      expect(inferred.elements).to.containSubset({
         twoLeapYearsEarlier: { _type: 'cds.Date' },
         twoLeapYearsLater: { _type: 'cds.Date' },
         months_between: {},
@@ -220,7 +221,7 @@ describe('infer elements', () => {
         }
       `
       let inferred = _inferred(q)
-      expect(inferred.elements).to.deep.contain({
+      expect(inferred.elements).to.containSubset({
         twoLeapYearsEarlier: { _type: 'cds.Date' },
         twoLeapYearsLater: { _type: 'cds.Date' },
         calc: {},
@@ -367,7 +368,7 @@ describe('infer elements', () => {
       let inferred = _inferred(query)
       let { Books } = model.entities
       expect(inferred.sources).to.have.nested.property('Books.definition', Books)
-      expect(inferred.elements).to.deep.contain({
+      expect(inferred.elements).to.containSubset({
         price: {
           _type: 'cds.Integer',
         },
@@ -429,7 +430,7 @@ describe('infer elements', () => {
       let inferred = _inferred(query)
       let { Books } = model.entities
       expect(inferred.sources).to.have.nested.property('Books.definition', Books)
-      expect(inferred.elements).to.deep.contain({
+      expect(inferred.elements).to.containSubset({
         price: {
           _type: 'cds.Integer',
         },
@@ -489,7 +490,7 @@ describe('infer elements', () => {
           type: 'bookshop.DerivedFromDerivedString',
         },
       }
-      expect(inferred.elements).to.deep.contain(expectedElements)
+      expect(inferred.elements).to.containSubset(expectedElements)
     })
 
     it('supports a cdl-style cast in the select list', () => {
@@ -623,7 +624,7 @@ describe('infer elements', () => {
         $locale: pseudos.elements.$locale,
         $tenant: pseudos.elements.$tenant,
       }
-      expect(inferred.elements).to.deep.contain(expectedElements)
+      expect(inferred.elements).to.containSubset(expectedElements)
     })
 
     it('$variables in where do not matter for infer', () => {

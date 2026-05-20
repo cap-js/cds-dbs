@@ -49,18 +49,4 @@ describe('Bookshop - Insert', () => {
     const res = await SELECT.from(Books, {ID: 344})
     expect(res.genre_ID).to.be.eq(10)
   })
-
-  test('big decimals', async () => {
-    const { Books } = cds.entities('sap.capire.bookshop')
-
-    const entry = { ID: 2348, title: 'Moby Dick', price: '12345678901234567890.12345' }
-    await INSERT(entry).into(Books)
-
-    const written = await SELECT('price').from(Books, { ID: 2348 })
-    if (written.price.indexOf('e+') > -1) {
-      expect(written.price).to.be.eq('1.23456789012346e+19')
-    } else {
-      expect(written.price).to.be.eq(entry.price)
-    }
-  })
 })

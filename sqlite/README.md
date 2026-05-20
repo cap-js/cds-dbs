@@ -10,7 +10,7 @@ If you want to use SQLite for development, all you need to do is to install the 
 npm add @cap-js/sqlite -D
 ```
 
-Learn more about setup and usage in the [respective database guide](https://cap.cloud.sap/docs/guides/databases-sqlite).
+Learn more about setup and usage in the [respective database guide](https://cap.cloud.sap/docs/guides/databases/sqlite).
 
 ## Support
 
@@ -18,7 +18,7 @@ This project is open to feature requests/suggestions, bug reports etc. via [GitH
 
 ## Contribution
 
-Contribution and feedback are encouraged and always welcome. For more information about how to contribute, the project structure, as well as additional contribution information, see our [Contribution Guidelines](CONTRIBUTING.md).
+Contribution and feedback are encouraged and always welcome. For more information about how to contribute, the project structure, as well as additional contribution information, see our [Contribution Guidelines](../CONTRIBUTING.md).
 
 ## Versioning
 
@@ -27,7 +27,7 @@ All notable changes are documented in [CHANGELOG.md](CHANGELOG.md).
 
 ## Code of Conduct
 
-We as members, contributors, and leaders pledge to make participation in our community a harassment-free experience for everyone. By participating in this project, you agree to abide by its [Code of Conduct](CODE_OF_CONDUCT.md) at all times.
+We as members, contributors, and leaders pledge to make participation in our community a harassment-free experience for everyone. By participating in this project, you agree to abide by its [Code of Conduct](../CODE_OF_CONDUCT.md) at all times.
 
 ## Licensing
 

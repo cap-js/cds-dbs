@@ -5,7 +5,7 @@ const project = require('path').resolve(__dirname, 'beershop')
 process.env.DEBUG && jest.setTimeout(100000)
 
 describe('QL to PostgreSQL', () => {
-  const { expect, data } = cds.test('serve', '--project', project).verbose()
+  const { expect, data } = cds.test('serve', '--project', project)
 
   data.autoIsolation(true)
   data.autoReset(true)
