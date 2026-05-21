@@ -73,8 +73,8 @@ class HANAService extends SQLService {
               try {
                 await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true, invalidCredentials: credentials, retryUntil: deadline })
               } catch (smErr) {
-                 smErr.cause = err
-                 throw new Error(`Failed connecting to pool - could not get valid credentials from Service Manager`, { cause: smErr })
+                smErr.cause = err
+                throw new Error(`Failed connecting to pool - could not get valid credentials from Service Manager`, { cause: smErr })
               }
               if (Date.now() < deadline) return create(tenant, start)
               else throw new Error(`Pool exceeded for '${tenant}' within ${acquireTimeoutMillis}ms`, { cause: err })
@@ -162,7 +162,7 @@ class HANAService extends SQLService {
     let sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
     const { hints } = query.SELECT
     if (hints) sqlScript += ` WITH HINT (${hints.join(',')})`
-    
+
     let rows
     if (values?.length || blobs.length > 0 || isStream) {
       const ps = await this.prepare(sqlScript, blobs.length)
@@ -176,20 +176,20 @@ class HANAService extends SQLService {
       const resultQuery = query.clone()
       resultQuery.SELECT.forUpdate = undefined
       resultQuery.SELECT.forShareLock = undefined
-      
+
       const keys = Object.keys(req.target?.keys || {})
-      
+
       if (keys.length && query.SELECT.forUpdate?.ignoreLocked) {
         // Exit early when no row was found in the inital query
         if (rows.length === 0) return isOne ? undefined : []
-        
+
         // Filter for those rows that were locked by the initial query
         const left = { list: keys.map(k => ({ ref: [k] })) }
         const right = { list: rows.map(r => ({ list: keys.map(k => ({ val: r[k.toUpperCase()] })) })) }
         resultQuery.SELECT.limit = undefined
         resultQuery.SELECT.where = [left, 'in', right]
       }
-      
+
       return this.onSELECT({ query: resultQuery, __proto__: req })
     }
 
@@ -208,12 +208,14 @@ class HANAService extends SQLService {
     if (!sql) return // Do nothing when there is nothing to be done
     const ps = await this.prepare(sql)
     // HANA driver supports batch execution
-    const results = await (entries
+    let results = await (entries
       ? this.server.major <= 2
         ? entries.reduce((l, c) => l.then(() => this.ensureDBC() && ps.run(c)), Promise.resolve(0))
         : entries.length > 1 ? this.ensureDBC() && await ps.runBatch(entries) : this.ensureDBC() && await ps.run(entries[0])
       : this.ensureDBC() && ps.run())
-    return new this.class.InsertResults(cqn, results)
+    if (Array.isArray(results.changes) && Array.isArray(results.changes[1])) results = Object.assign(results.changes[1], { affected: results.changes[1].length })
+    else results = Object.assign([], { affected: results.changes })
+    return results
   }
 
   async onNOTFOUND(req, next) {
@@ -603,7 +605,7 @@ class HANAService extends SQLService {
               // if (col.ref?.length === 1) { col.ref.unshift(parent.as) }
               if (col.ref?.length > 1) {
                 const colName = this.column_name(col)
-                
+
                 const isSource = from => {
                   if (from.as === col.ref[0]) return true
                   return from.args?.some(a => {
@@ -817,9 +819,10 @@ class HANAService extends SQLService {
       // With the buffer table approach the data is processed in chunks of a configurable size
       // Which allows even smaller HANA systems to process large datasets
       // But the chunk size determines the maximum size of a single row
-      return (this.sql = `INSERT INTO ${this.quote(entity)} (${this.columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))
+      this._new = `JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON ERROR)`
+      return (this.sql = this.returning(`INSERT INTO ${this.quote(entity)} (${this.columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))
         }) WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
-      SELECT ${converter} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON ERROR) AS NEW`)
+      SELECT ${converter} FROM ${this._new} AS NEW`, INSERT.returning, q))
     }
 
     INSERT_rows(q) {
@@ -888,8 +891,9 @@ class HANAService extends SQLService {
 
       let sql
       if (UPSERT.entries || UPSERT.rows || UPSERT.values) {
+        this._old = `JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON ERROR) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
         sql = `WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
-SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON ERROR) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+SELECT ${mixing} FROM ${this._old}`
       } else {
         const src = this.cqn4sql(UPSERT.from || UPSERT.as)
         if (this.values) this.values = []
@@ -898,7 +902,8 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
             .map((c, i) => ({ ref: [this.column_name(c)], as: this.columns[i] }))
           )
           .from(src)
-        sql = `SELECT ${mixing} FROM (${this.SELECT(aliasedQuery)}) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+        this._old = `(${this.SELECT(aliasedQuery)}) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+        sql = `SELECT ${mixing} FROM ${this._old}`
         this.entries = [this.values]
       }
 
@@ -1220,6 +1225,34 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
       if (this.withclause?.length) this.withclause = [...prefix.map(p => p.sql), ...this.withclause]
       else this.sql = `WITH ${prefix.map(p => p.sql)} ${sql}`
       this.values = [...prefix.map(p => p.values).flat(), ...values]
+    }
+
+    returning(sql, cols, q) {
+      if (cols && cols.length) {
+        // INSERT.from NEW has to be snapshotted before doing the INSERT
+        //   Has to be joined back with actual entity (impossible for entities without keys)
+        // INSERT.entries NEW should be snapshotted before doing the INSERT
+        //   So that the actual INSERT can use the snapshot
+        //   As the snapshot can then also be joined back with the actual entity (also impossible for entities without keys)
+
+
+        // INSERT only NEW
+        // DELETE only OLD
+        // UPSERT, UPDATE both NEW and OLD
+        // TODO: ensure that OLD and NEW are generated based upon the data targeted by the query
+        const _q = q[q.kind]
+        // this._old ??= this.SELECT(cds.ql({ SELECT: { __proto__: _q, from: _q.entity } }))
+        this._new ??= `(${this.SELECT(q.INSERT.from)})`
+        return `DO (${q.INSERT?.entries ? 'IN JSON NCLOB => ?' : ''}) BEGIN
+        -- OLD = ${this._old};
+        NEW = SELECT * FROM ${this._new};
+        ${sql};
+        SELECT ${cols.map(c => this.column_expr(c, q))} FROM :NEW;
+END`
+          .replace(/WITH SRC AS.*/, '')
+          .replaceAll('JSON_TABLE(SRC.JSON', 'JSON_TABLE(:JSON')
+      }
+      return sql
     }
 
     // Loads a static result from the query `SELECT * FROM RESERVED_KEYWORDS`
