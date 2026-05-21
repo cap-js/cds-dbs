@@ -920,8 +920,9 @@ class CQN2SQLRenderer {
     }
 
     const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), elements)
-    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))
-      }) SELECT ${extractions.slice(0, columns.length).map(c => c.insert)} FROM json_each(?)`)
+
+    return (this.sql = this.returning(`INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))
+      }) SELECT ${extractions.slice(0, columns.length).map(c => c.insert)} FROM json_each(?)`, INSERT.returning, q))
   }
 
   async *INSERT_entries_stream(entries, binaryEncoding = 'base64') {
@@ -1053,8 +1054,8 @@ class CQN2SQLRenderer {
       .map(c => c.converter(c.extract))
 
     const transitions = this.srv.resolve.transitions(q)
-    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))
-      }) SELECT ${extraction} FROM json_each(?)`)
+    return (this.sql = this.returning(`INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))
+      }) SELECT ${extraction} FROM json_each(?)`, INSERT.returning, q))
   }
 
   /**
@@ -1091,7 +1092,7 @@ class CQN2SQLRenderer {
       ? `SELECT ${extractions.map(c => `${c.insert} AS ${this.quote(c.name)}`)} FROM (${this.SELECT(src)}) AS NEW`
       : this.SELECT(src)
     if (extractions.length > columns.length) columns = this.columns = extractions.map(c => c.name)
-    this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))}) ${sql}`
+    this.sql = this.returning(`INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))}) ${sql}`, INSERT.returning, q)
     this.entries = [this.values]
     return this.sql
   }
@@ -1182,8 +1183,9 @@ class CQN2SQLRenderer {
     }).map(c => `${this.quote(c)} = excluded.${this.quote(c)}`)
 
     const transitions = this.srv.resolve.transitions(q)
-    return (this.sql = `INSERT INTO ${this.quote(entity)} (${columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))}) ${sql
-      } WHERE TRUE ON CONFLICT(${keys.map(c => this.quote(c))}) DO ${updateColumns.length ? `UPDATE SET ${updateColumns}` : 'NOTHING'}`)
+    return (this.sql = this.returning(`INSERT INTO ${this.quote(entity)} (${columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))}) ${sql
+      } WHERE TRUE ON CONFLICT(${keys.map(c => this.quote(c))}) DO ${updateColumns.length ? `UPDATE SET ${updateColumns}` : 'NOTHING'
+      }`, UPSERT.returning, q))
   }
 
   // UPDATE Statements ------------------------------------------------
@@ -1194,7 +1196,7 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   UPDATE(q) {
-    const { entity, with: _with, data, where } = q.UPDATE
+    const { entity, with: _with, data, where, returning } = q.UPDATE
     const transitions = this.srv.resolve.transitions(q)
     const elements = q._target?.elements
     let sql = `UPDATE ${this.quote(this.table_name(q))}`
@@ -1225,6 +1227,7 @@ class CQN2SQLRenderer {
 
     sql += ` SET ${extraction}`
     if (where) sql += ` WHERE ${this.where_resolved(entity.as, where, q)}`
+    if (returning) sql = this.returning(sql, returning, q)
     return (this.sql = sql)
   }
 
@@ -1236,10 +1239,11 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   DELETE(q) {
-    const { DELETE: { where, from } } = q
+    const { DELETE: { where, from, returning } } = q
     let sql = `DELETE FROM ${this.quote(this.table_name(q))}`
     if (from.as) sql += ` AS ${this.quote(from.as)}`
     if (where) sql += ` WHERE ${this.where(where)}`
+    if (returning) sql = this.returning(sql, returning, q)
     return (this.sql = sql)
   }
 
@@ -1483,6 +1487,11 @@ class CQN2SQLRenderer {
     if (s.includes('"')) return '"' + s.replace(/"/g, '""') + '"'
     if (s in this.class.ReservedWords || !/^[A-Za-z_][A-Za-z_$0-9]*$/.test(s)) return '"' + s + '"'
     return s
+  }
+
+  returning(sql, cols, q) {
+    if (cols && cols.length) return `${sql} RETURNING ${cols.map(c => this.column_expr(c, q))}`
+    return sql
   }
 
   /**

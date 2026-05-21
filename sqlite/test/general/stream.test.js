@@ -85,7 +85,7 @@ describe('streaming', () => {
           { ID: ID1, data: stream1, data2: stream2 },
           { ID: ID2, data: stream3, data2: stream4 },
           { ID: ID3, data: stream5, data2: stream6 }
-        ] = await SELECT.from(Images).columns(['ID', 'data', 'data2'])
+        ] = await SELECT.from(Images).columns(['ID', 'data', 'data2']).orderBy`ID`
         await checkSize(stream1)
         await checkSize(stream2)
         expect(stream3).to.be.null
@@ -107,7 +107,7 @@ describe('streaming', () => {
 
       test('READ multiple entries ignore stream properties if columns = all', async () => cds.tx(async () => {
         const { Images } = cds.entities('test')
-        const result = await SELECT.from(Images)
+        const result = await SELECT.from(Images).orderBy`ID`
         expect(result[0].ID).equals(1)
         expect(result[0].data).to.be.undefined
         expect(result[0].data2).to.be.undefined
@@ -160,7 +160,7 @@ describe('streaming', () => {
         const stream = fs.createReadStream(path.join(__dirname, 'samples/test.jpg'))
 
         const changes = await UPDATE(Images).with({ data2: stream }).where({ ID: 3 })
-        expect(changes).to.equal(1)
+        expect(changes.affected).to.equal(1)
 
         const [{ data2: stream_ }] = await SELECT.from(Images).columns('data2').where({ ID: 3 })
         await checkSize(stream_)
@@ -172,7 +172,7 @@ describe('streaming', () => {
         const stream2 = fs.createReadStream(path.join(__dirname, 'samples/test.jpg'))
 
         const changes = await UPDATE(Images).with({ data: stream1, data2: stream2 }).where({ ID: 4 })
-        expect(changes).to.equal(1)
+        expect(changes.affected).to.equal(1)
 
         const [{
           data: stream1_, data2: stream2_
@@ -189,7 +189,7 @@ describe('streaming', () => {
 
         const insert = async () => {
           const changes = await UPDATE(Images).with({ data2: stream }).where({ ID: 3 })
-          expect(changes).to.equal(1)
+          expect(changes.affected).to.equal(1)
         }
         if(cds.db.pools._factory.options.max > 1) await cds.tx(insert) // Stream over multiple transaction for `hdb` limitation
         else await insert()
@@ -204,7 +204,7 @@ describe('streaming', () => {
         const blob2 = fs.readFileSync(path.join(__dirname, 'samples/test.jpg'))
 
         const changes = await UPDATE(Images).with({ data: blob1, data2: blob2 }).where({ ID: 4 })
-        expect(changes).to.equal(1)
+        expect(changes.affected).to.equal(1)
 
         const [{
           data: stream1_,
@@ -221,7 +221,7 @@ describe('streaming', () => {
         const stream = fs.createReadStream(path.join(__dirname, 'samples/test.jpg'))
 
         const changes = await UPDATE(ImagesView).with({ renamedData: stream }).where({ ID: 1 })
-        expect(changes).to.equal(1)
+        expect(changes.affected).to.equal(1)
 
         const [{ renamedData: stream_ }] = await SELECT.from(ImagesView).columns('renamedData').where({ ID: 1 })
         await checkSize(stream_)
@@ -238,7 +238,7 @@ describe('streaming', () => {
         const changes = await INSERT.into(Images).entries(json)
 
         try {
-          expect(changes).toEqual(2)
+          expect(changes.affected).toEqual(2)
         } catch {
           // @sap/hana-client does not allow for returning the number of affected rows
         }

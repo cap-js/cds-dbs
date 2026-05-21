@@ -166,17 +166,18 @@ describe('INSERT', () => {
     test('transform', async () => {
       const { cuid, keys } = cds.entities('basic.common')
       // fill other table first
-      await cds.run(INSERT([
+      const changes = await cds.run(INSERT([
         { id: 1 },
         { id: 1, default: 'overwritten' },
       ]).into(keys))
+      const subselect = await cds.ql`SELECT id || '-' || default as ID FROM ${keys} WHERE id = ${1}`
       await INSERT.into(cuid)
         .columns(['ID'])
         .from(cds.ql`SELECT id || '-' || default as ID FROM ${keys} WHERE id = ${1}`)
       const select = await SELECT.from(cuid).orderBy('ID')
       expect(select).deep.eq([
-        {ID:'1-defaulted'},
-        {ID:'1-overwritten'},
+        { ID: '1-defaulted' },
+        { ID: '1-overwritten' },
       ])
     })
 
@@ -196,13 +197,38 @@ describe('INSERT', () => {
     })
   })
 
+  describe('returning', () => {
+    let genCount = 0
+    const gen = function* () {
+      for (var i = 0; i < 100; i++)
+        yield { uuid: cds.utils.uuid() }
+      genCount += i
+    }
+
+    test('array', async () => {
+      const { uuid } = cds.entities('basic.literals')
+
+      const cqn = INSERT([...gen()]).into(uuid).returning`uuid`
+      // cqn.INSERT.returning = cds.ql.columns`uuid`
+      const result = await cqn
+      expect(result.length).to.eq(genCount)
+    })
+
+    test('from', async () => {
+      const { uuid } = cds.entities('basic.literals')
+
+      const [{ count }] = await cds.ql`SELECT count(1) FROM ${uuid}`
+      const cqn = INSERT(cds.ql`SELECT current_timestamp as uuid FROM ${uuid}`).into(uuid).returning`uuid`
+      // cqn.INSERT.returning = cds.ql.columns`uuid`
+      const result = await cqn
+      expect(result.length).to.eq(count)
+    })
+  })
+
   test('InsertResult', async () => {
     const insert = INSERT.into('complex.associations.Books').entries({ ID: 5 })
-    const affectedRows = await cds.db.run(insert)
-    // affectedRows is an InsertResult, so we need to do lose comparison here, as strict will not work due to InsertResult
-    expect(affectedRows == 1).to.be.eq(true)
-    // InsertResult
-    expect(affectedRows).not.to.include({ _affectedRows: 1 }) // lastInsertRowid not available on postgres
+    const results = await cds.db.run(insert)
+    expect(results.affected).to.be.eq(1)
   })
 
   test('default $now adds current tx timestamp in correct format', async () => {

@@ -87,10 +87,10 @@ class SQLiteService extends SQLService {
     try {
       const stmt = this.dbc.prepare(sql)
       return {
-        run: (..._) => this._run(stmt, ..._),
-        get: (..._) => stmt.get(..._),
-        all: (..._) => stmt.all(..._),
-        stream: (..._) => this._allStream(stmt, ..._),
+        run: async (_) => stmt.run(await this._streams(_)),
+        get: async (_) => stmt.get(await this._streams(_)),
+        all: async (_) => stmt.all(await this._streams(_)),
+        stream: async (args, one, objectMode) => this._allStream(stmt, args, one, objectMode),
       }
     } catch (e) {
       e.message += ' in:\n' + (e.query = sql)
@@ -98,17 +98,19 @@ class SQLiteService extends SQLService {
     }
   }
 
-  async _run(stmt, binding_params) {
+  async _streams(binding_params) {
+    if (!binding_params.length) return [{}]
     for (let i = 0; i < binding_params.length; i++) {
       const val = binding_params[i]
       if (val instanceof Readable) {
+        if (val.type !== 'json') val.setEncoding('base64')
         binding_params[i] = await convStrm[val.type === 'json' ? 'text' : 'buffer'](val)
       }
       if (Buffer.isBuffer(val)) {
         binding_params[i] = Buffer.from(val.toString('base64'))
       }
     }
-    return stmt.run(binding_params)
+    return binding_params
   }
 
   async *_iteratorRaw(rs, one) {
@@ -167,23 +169,6 @@ class SQLiteService extends SQLService {
 
   exec(sql) {
     return this.dbc.exec(sql)
-  }
-
-  _prepareStreams(values) {
-    let any
-    values.forEach((v, i) => {
-      if (v instanceof Readable) {
-        any = values[i] = convStrm.buffer(v)
-      }
-    })
-    return any ? Promise.all(values) : values
-  }
-
-  async onSIMPLE({ query, data }) {
-    const { sql, values } = this.cqn2sql(query, data)
-    let ps = await this.prepare(sql)
-    const vals = await this._prepareStreams(values)
-    return (await ps.run(vals)).changes
   }
 
   onPlainSQL({ query, data }, next) {
@@ -272,9 +257,9 @@ class SQLiteService extends SQLService {
       // Reading decimal as string to not loose precision
       Decimal: cds.env.features.ieee754compatible
         ? (expr, elem) =>
-            elem?.scale
-              ? `CASE WHEN ${expr} IS NULL THEN NULL ELSE format('%.${elem.scale}f', ${expr}) END`
-              : `CASE WHEN ${expr} IS NULL THEN NULL ELSE rtrim(rtrim(format('%.999f', ${expr}), '0'), '.') END`
+          elem?.scale
+            ? `CASE WHEN ${expr} IS NULL THEN NULL ELSE format('%.${elem.scale}f', ${expr}) END`
+            : `CASE WHEN ${expr} IS NULL THEN NULL ELSE rtrim(rtrim(format('%.999f', ${expr}), '0'), '.') END`
         : undefined,
       // Binary is not allowed in json objects
       Binary: expr => `${expr} || ''`,
