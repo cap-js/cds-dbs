@@ -59,8 +59,6 @@ module.exports = class InsertResult extends Array {
       return this
     }
 
-    
-
     const { INSERT } = this.query
     const k0 = keys[0]
 
