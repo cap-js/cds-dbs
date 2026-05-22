@@ -20,7 +20,7 @@ jobs:
       packages: write
 
     env:
-      # cds_features_pool: builtin
+      cds_features_pool: builtin
       FORCE_COLOR: true
 
     strategy:
