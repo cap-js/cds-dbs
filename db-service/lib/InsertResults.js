@@ -36,7 +36,7 @@ module.exports = class InsertResult {
 
     const target = this.query._target
     if (!target?.keys) return (super[iterator] = this.results[iterator])
-    const keys = Object.keys(target.keys).filter(k => !target.keys[k].isAssociation),
+    const keys = Object.keys(target.keys).filter(k => !target.keys[k].virtual && !target.keys[k].value && !target.keys[k].isAssociation),
       [k1] = keys
 
     // For INSERT.entries() with generated keys in there return these keys
