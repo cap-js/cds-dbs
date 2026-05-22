@@ -50,7 +50,7 @@ class HANAService extends SQLService {
     }
     const isMultitenant = !!service.options.credentials.sm_url || !!service.options.credentials.baseurl || ('multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy)
     const acquireTimeoutMillis = this.options.pool?.acquireTimeoutMillis || (cds.env.profiles.includes('production') ? 1000 : 10000)
-    const maxRetries = 5
+    const maxRetries = 3
     return {
       options: this.options.pool || {},
       create: async function create(tenant, start = Date.now(), attempt = 1) {
