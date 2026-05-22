@@ -79,8 +79,8 @@ class HANAService extends SQLService {
               try {
                 await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { invalidCredentials: credentials, retryUntil: deadline })
               } catch (smErr) {
-                 smErr.cause = err
-                 throw new Error(`Failed connecting to pool - could not get valid credentials from Service Manager`, { cause: smErr })
+                smErr.cause = err
+                throw new Error(`Failed connecting to pool - could not get valid credentials from Service Manager`, { cause: smErr })
               }
               if (Date.now() < deadline) return create(tenant, start)
               else throw new Error(`Pool exceeded for '${tenant}' within ${acquireTimeoutMillis}ms`, { cause: err })
@@ -168,7 +168,7 @@ class HANAService extends SQLService {
     let sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
     const { hints } = query.SELECT
     if (hints) sqlScript += ` WITH HINT (${hints.join(',')})`
-    
+
     let rows
     if (values?.length || blobs.length > 0 || isStream) {
       const ps = await this.prepare(sqlScript, blobs.length)
@@ -182,20 +182,20 @@ class HANAService extends SQLService {
       const resultQuery = query.clone()
       resultQuery.SELECT.forUpdate = undefined
       resultQuery.SELECT.forShareLock = undefined
-      
+
       const keys = Object.keys(req.target?.keys || {})
-      
+
       if (keys.length && query.SELECT.forUpdate?.ignoreLocked) {
         // Exit early when no row was found in the inital query
         if (rows.length === 0) return isOne ? undefined : []
-        
+
         // Filter for those rows that were locked by the initial query
         const left = { list: keys.map(k => ({ ref: [k] })) }
         const right = { list: rows.map(r => ({ list: keys.map(k => ({ val: r[k.toUpperCase()] })) })) }
         resultQuery.SELECT.limit = undefined
         resultQuery.SELECT.where = [left, 'in', right]
       }
-      
+
       return this.onSELECT({ query: resultQuery, __proto__: req })
     }
 
@@ -609,7 +609,7 @@ class HANAService extends SQLService {
               // if (col.ref?.length === 1) { col.ref.unshift(parent.as) }
               if (col.ref?.length > 1) {
                 const colName = this.column_name(col)
-                
+
                 const isSource = from => {
                   if (from.as === col.ref[0]) return true
                   return from.args?.some(a => {
@@ -1313,7 +1313,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     const { sql, values } = this.cqn2sql(query, data)
     try {
       let ps = await this.prepare(sql)
-      return (this.ensureDBC() && await ps.run(values)).changes
+      return this._return_affected((this.ensureDBC() && await ps.run(values)).changes)
     } catch (err) {
       // Allow drop to fail when the view or table does not exist
       if (event === 'DROP ENTITY' && (err.code === 259 || err.code === 321)) {
