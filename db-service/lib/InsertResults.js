@@ -35,11 +35,12 @@ module.exports = class InsertResult {
     }
 
     const target = this.query._target
-    if (!target?.keys) return (super[iterator] = function* () {
+    const keys = target?.keys && Object.keys(target.keys).filter(k => !target.keys[k].virtual && !target.keys[k].value && !target.keys[k].isAssociation)
+    if (!keys?.length) return (super[iterator] = function* () {
         for (let i = 0; i < this.affectedRows; i++) yield {}
       })
-    const keys = Object.keys(target.keys).filter(k => !target.keys[k].virtual && !target.keys[k].value && !target.keys[k].isAssociation),
-      [k1] = keys
+
+    const [k1] = keys
 
     // For INSERT.entries() with generated keys in there return these keys
     const { entries } = INSERT
