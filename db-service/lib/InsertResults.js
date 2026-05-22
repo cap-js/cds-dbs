@@ -1,4 +1,3 @@
-const iterator = Symbol.iterator
 
 // eslint-disable-next-line no-unused-vars
 const USAGE_SAMPLE = async () => {
@@ -11,98 +10,86 @@ const USAGE_SAMPLE = async () => {
   ])
 }
 
-module.exports = class InsertResult {
+module.exports = class InsertResult extends Array {
+
   /**
    * @param {import('@sap/cds/apis/cqn').INSERT} query
    * @param {unknown[]} results
    */
-  constructor(query, results) {
-    // Storing query as non-enumerable property to avoid polluting trace output
-    Object.defineProperty(this, 'query', { value: query })
-    this.results = results
-  }
-
-  /**
-   * Lazy access to auto-generated keys.
-   */
-  get [iterator]() {
-    // For INSERT.from(SELECT.from(...)) return a dummy iterator with correct length
-    const { INSERT } = this.query
-    if (INSERT.from || INSERT.as) {
-      return (super[iterator] = function* () {
-        for (let i = 0; i < this.affectedRows; i++) yield {}
-      })
-    }
-
-    const target = this.query._target
-    if (!target?.keys) return (super[iterator] = this.results[iterator])
-    const keys = Object.keys(target.keys),
-      [k1] = keys
-
-    // For INSERT.entries() with generated keys in there return these keys
-    const { entries } = INSERT
-    if (entries && k1 in entries[0]) {
-      return (super[iterator] = function* () {
-        for (const each of entries)
-          yield keys.reduce((p, k) => {
-            p[k] = each[k]
-            return p
-          }, {})
-      })
-    }
-
-    // For INSERT.rows/values() with generated keys in there return these keys
-    const { columns } = INSERT
-    if (columns && columns.includes(k1)) {
-      return (super[iterator] = function* () {
-        const indices = keys.reduce((p, k) => {
-          let i = columns.indexOf(k)
-          if (i >= 0) p[k] = i
-          return p
-        }, {})
-        for (const each of INSERT.rows || [INSERT.values])
-          yield keys.reduce((p, k) => {
-            p[k] = each[indices[k]]
-            return p
-          }, {})
-      })
-    }
-
-    // If no generated keys in entries/rows/values we might have database-generated keys
-    return (super[iterator] = function* () {
-      for (const row of this.results) {
-        const affectedRows = this.affectedRows4(row) - 1
-        const lastInsertRowid = this.insertedRowId4(row)
-        for (let i = lastInsertRowid - affectedRows; i<=lastInsertRowid;i++) yield { [k1]: i }
-      }
+  constructor (query, results) {
+    Object.defineProperties (super(), { // using non-enumerable properties to avoid polluting trace output
+      results: { value: results },
+      query: { value: query },
     })
   }
 
-  /**
-   * the number of inserted (root) entries or the number of affectedRows in case of INSERT into SELECT
-   * @return {number}
+  /** Legacy alias for compatibility */
+  get affectedRows() { return this.affected }
+
+  /** The number of affected rows is determined as follows:
+   * - For INSERTs with entries/rows/values the number of these entries/rows/values is returned
+   * - For other INSERTs the number of affected rows as returned by the database is returned
+   * - For other statements the number of affected rows as returned by the database is returned
    */
-  get affectedRows() {
-    const { INSERT: _ } = this.query
-    if (_.from || _.as) return (super.affectedRows = this.affectedRows4(this.results[0] || this.results))
-    else return (super.affectedRows = _.entries?.length || _.rows?.length || this.results.length || 1)
+  get affected() {
+    const { INSERT } = this.query
+    if (INSERT.from || INSERT.as) return super.affected = this.affectedRows4 (this.results[0] || this.results)
+    else return super.affected = INSERT.entries?.length || INSERT.rows?.length || this.results.length || 1
+  }
+
+  [Symbol.iterator]() {
+    if (!this.length) this.#materialize() // materialize on first access, e.g. for [...results]
+    return super[Symbol.iterator]()
+  }
+
+  toJSON(){
+    if (!this.length) this.#materialize() // ensure materialized keys for JSON.stringify
+    return this
   }
 
   /**
-   * for checks such as res > 2
-   * @return {number}
+   * Lazy materialization of auto-generated keys.
    */
-  valueOf() {
-    return this.affectedRows
-  }
+  #materialize() {
 
-  /**
-   * The last id of the auto incremented key column
-   * @param {unknown[]} result
-   * @returns {number}
-   */
-  insertedRowId4(result) {
-    return result.lastInsertRowid
+    const target = this.query._target
+    const keys = target?.keys && Object.keys(target.keys).filter(k => !target.keys[k].virtual && !target.keys[k].value && !target.keys[k].isAssociation)
+    if (!keys?.length) {
+      return this
+    }
+
+    const { INSERT } = this.query
+    const k0 = keys[0]
+
+    // For INSERT.entries() with generated keys in there return these keys
+    if (INSERT.entries && k0 in INSERT.entries[0]) {
+      for (const d of INSERT.entries) {
+        this.push (keys.reduce((p,k) => (p[k] = d[k], p), {}))
+      }
+    }
+
+    // For INSERT.rows/values() with generated keys in there return these keys
+    else if (INSERT.columns && INSERT.columns.includes(k0)) {
+      const indices = keys.reduce((p, k) => {
+        let i = INSERT.columns.indexOf(k)
+        if (i >= 0) p[k] = i
+        return p
+      }, {})
+      for (const d of INSERT.rows || [INSERT.values]) {
+        this.push (keys.reduce((p,k) => (p[k] = d[indices[k]], p), {}))
+      }
+    }
+
+    // If no generated keys in entries/rows/values we might have database-generated keys
+    else for (const row of this.results) {
+      const affectedRows = this.affectedRows4(row) - 1
+      const lastInsertRowid = this.insertedRowId4(row)
+      for (let i = lastInsertRowid - affectedRows; i<=lastInsertRowid;i++) {
+        this.push ({ [k0]: i })
+      }
+    }
+
+    return this
   }
 
   /**
@@ -112,5 +99,20 @@ module.exports = class InsertResult {
    */
   affectedRows4(result) {
     return result.changes
+  }
+
+  /**
+   * The last id of auto-incremented key columns
+   */
+  insertedRowId4(result) {
+    return result.lastInsertRowid
+  }
+
+  /**
+   * for checks such as res > 2
+   * @return {number}
+   */
+  valueOf() {
+    return this.affected
   }
 }
