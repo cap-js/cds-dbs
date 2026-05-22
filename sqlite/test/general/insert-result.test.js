@@ -26,14 +26,14 @@ describe('insert from select', () => {
     assert.deepStrictEqual([...insertResult],expected, 'The iterator should resolve the generated keys')
   })
 
-  test('insert result works for keyless entities', async () => {
-    let insertResult = await cds.run(INSERT({ name: 'Foo' }).into('Keyless'))
+  test.each(['Keyless', 'VirtualKey'])('insert result works for %s entity', async (entity) => {
+    let insertResult = await cds.run(INSERT({ name: 'Foo' }).into(entity))
     assert.strictEqual(insertResult.affectedRows, 1, 'One row should have been inserted')
     assert.equal(insertResult, 1, 'Lose equality should work for InsertResult')
     assert.deepStrictEqual([...insertResult],[{}], 'The iterator should resolve to emtpy object')
 
     const entries = Array(10).fill().map((_, idx) => ({ name: `Foo${idx+1}` }))
-    insertResult = await cds.run(INSERT(entries).into('Keyless'))
+    insertResult = await cds.run(INSERT(entries).into(entity))
     assert.strictEqual(insertResult.affectedRows, 10, 'One row should have been inserted')
     assert.equal(insertResult, 10, 'Lose equality should work for InsertResult')
     const expected = Array(10).fill({})

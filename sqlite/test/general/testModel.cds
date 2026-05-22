@@ -17,6 +17,11 @@ entity Keyless {
   name: String
 }
 
+entity VirtualKey {
+  virtual ID: Integer;
+  name: String
+}
+
 entity Books  {
   key ID   : Integer;
   author : Composition of Author ;
