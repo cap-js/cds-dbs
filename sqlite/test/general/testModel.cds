@@ -13,6 +13,10 @@ entity Foo2 {
   virtual something : String(11);
 }
 
+entity Keyless {
+  name: String
+}
+
 entity Books  {
   key ID   : Integer;
   author : Composition of Author ;
