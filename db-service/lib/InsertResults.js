@@ -54,9 +54,12 @@ module.exports = class InsertResult extends Array {
 
     const target = this.query._target
     const keys = target?.keys && Object.keys(target.keys).filter(k => !target.keys[k].virtual && !target.keys[k].value && !target.keys[k].isAssociation)
-    if (!keys?.length) return (super[iterator] = function* () {
-        for (let i = 0; i < this.affectedRows; i++) yield {}
-      })
+    if (!keys?.length) {
+      Array.isArray(this.results) ? this.push(...this.results) : this.push(this.results)
+      return this
+    }
+
+    
 
     const { INSERT } = this.query
     const k0 = keys[0]
