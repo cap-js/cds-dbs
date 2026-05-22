@@ -61,8 +61,13 @@ module.exports = class InsertResult extends Array {
     const { INSERT } = this.query
     const k0 = keys[0]
 
+    // For INSERT.from(SELECT.from(...)) return a dummy iterator with correct length
+    if (INSERT.from || INSERT.as) {
+      for (let i = 0; i < this.affectedRows; i++) this.push({})
+    }
+
     // For INSERT.entries() with generated keys in there return these keys
-    if (INSERT.entries && k0 in INSERT.entries[0]) {
+    else if (INSERT.entries && k0 in INSERT.entries[0]) {
       for (const d of INSERT.entries) {
         this.push (keys.reduce((p,k) => (p[k] = d[k], p), {}))
       }
