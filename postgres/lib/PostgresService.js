@@ -606,11 +606,10 @@ GROUP BY k
     try {
       const con = await this.factory.create(system)
       this.dbc = con
+      await this.exec(`SELECT pg_advisory_lock(hashtext('${creds.database}'))`)
       const exists = await this.exec(`SELECT datname FROM pg_catalog.pg_database WHERE datname='${creds.database}'`)
 
       if (exists.rowCount) return
-      // REVISIT: cleanup database for local development
-      if (!process._send) await this.exec(`DROP DATABASE IF EXISTS "${creds.database}"`)
       await this.exec(`
         DROP GROUP IF EXISTS "${creds.usergroup}";
         DROP USER IF EXISTS "${creds.user}";
