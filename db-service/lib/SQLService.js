@@ -202,7 +202,7 @@ class SQLService extends DatabaseService {
     const ps = await this.prepare(sql)
     const results = entries ? await Promise.all(entries.map(e => ps.run(e))) : await ps.run()
     // REVISIT: results isn't an array, when no entries -> how could that work? when do we have no entries?
-    return results.reduce((total, affectedRows) => total + affectedRows.changes, 0)
+    return this._return_affected(results.reduce((total, affectedRows) => total + affectedRows.changes, 0))
   }
 
   /**
@@ -227,7 +227,7 @@ class SQLService extends DatabaseService {
   async onSIMPLE({ query, data }) {
     const { sql, values } = this.cqn2sql(query, data)
     let ps = await this.prepare(sql)
-    return (await ps.run(values)).changes
+    return this._return_affected((await ps.run(values)).changes)
   }
 
   get onDELETE() {
@@ -300,7 +300,7 @@ class SQLService extends DatabaseService {
    * @type {Handler}
    */
   async onEVENT({ event }) {
-    if(DEBUG._debug) DEBUG.debug(event) // in the other cases above DEBUG happens in cqn2sql
+    if (DEBUG._debug) DEBUG.debug(event) // in the other cases above DEBUG happens in cqn2sql
     return await this.exec(event)
   }
 
@@ -310,7 +310,7 @@ class SQLService extends DatabaseService {
    */
   async onPlainSQL({ query, data }, next) {
     if (typeof query === 'string') {
-      if(DEBUG._debug) DEBUG.debug(query, data)
+      if (DEBUG._debug) DEBUG.debug(query, data)
       const ps = await this.prepare(query)
       const exec = this.hasResults(query) ? d => ps.all(d) : d => ps.run(d)
       if (Array.isArray(data) && Array.isArray(data[0])) return await Promise.all(data.map(exec))
@@ -415,7 +415,7 @@ class SQLService extends DatabaseService {
    * @param {import('@sap/cds/apis/cqn').Query} q
    * @returns {import('./infer/cqn').Query}
    */
-  cqn4sql(q, useTechnicalAlias=true) {
+  cqn4sql(q, useTechnicalAlias = true) {
     if (
       !cds.env.features.db_strict &&
       !q.SELECT?.from?.join &&
@@ -517,7 +517,7 @@ const DEBUG_PQL = cds.log('pql')
 if (DEBUG_PQL._debug || cds.repl) {
 
   // Add helper method to convert CQN to PQL, used below...
-  SQLService.prototype.cqn2pql = function cqn2pql (query, values) {
+  SQLService.prototype.cqn2pql = function cqn2pql(query, values) {
     const CQN2PQL = cqn2pql.renderer ??= require('./cqn2pql')
     return new CQN2PQL(this).render(query, values)
   }
@@ -568,7 +568,7 @@ if (DEBUG_PQL._debug || cds.repl) {
      * if no real SQL service is available yet through cds.db. 
      */
     class db extends SQLService {
-      /** @returns {SQLService} */ 
+      /** @returns {SQLService} */
       static get srv() { return cds.db || (this.singleton ??= new this) }
       get factory() { return null }
       get model() { return cds.model }
