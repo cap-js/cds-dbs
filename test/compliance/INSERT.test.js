@@ -205,6 +205,19 @@ describe('INSERT', () => {
     expect(affectedRows).not.to.include({ _affectedRows: 1 }) // lastInsertRowid not available on postgres
   })
 
+  test.each(['Keyless', 'VirtualKey'])('insert result works for %s entity', async (entity) => {
+    let insertResult = await cds.run(INSERT({ name: 'Foo' }).into(`edge.${entity}`))
+    expect(insertResult.affectedRows).to.eq(1)
+    expect(insertResult == 1).to.be.true // lose equality
+    expect(() => [...insertResult]).to.not.throw
+
+    const entries = Array(10).fill().map((_, idx) => ({ name: `Foo${idx+1}` }))
+    insertResult = await cds.run(INSERT(entries).into(`edge.${entity}`))
+    expect(insertResult.affectedRows).to.eq(10)
+    expect(insertResult == 10).to.be.true // lose equality
+    expect(() => [...insertResult]).to.not.throw
+  })
+
   test('default $now adds current tx timestamp in correct format', async () => {
     await cds.tx(async tx => {
       // the statements are run explicitly in sequential order to ensure current_timestamp would create different timestamps

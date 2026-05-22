@@ -53,13 +53,12 @@ module.exports = class InsertResult extends Array {
   #materialize() {
 
     const target = this.query._target
-    if (!target?.keys) {
-      Array.isArray(this.results) ? this.push(...this.results) : this.push(this.results)
+    const keys = target?.keys && Object.keys(target.keys).filter(k => !target.keys[k].virtual && !target.keys[k].value && !target.keys[k].isAssociation)
+    if (!keys?.length) {
       return this
     }
 
     const { INSERT } = this.query
-    const keys = Object.keys(target.keys).filter(k => !target.keys[k].virtual && !target.keys[k].value && !target.keys[k].isAssociation)
     const k0 = keys[0]
 
     // For INSERT.entries() with generated keys in there return these keys
