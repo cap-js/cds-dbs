@@ -18,7 +18,7 @@ const BINARY_TYPES = {
 /**
  * Checks if parameter is an object that at least contains one property.
  *
- * @param {*} obj 
+ * @param {*} obj
  * @returns Boolean
  */
 const _hasProps = (obj) => {
@@ -199,10 +199,10 @@ class SQLService extends DatabaseService {
   async onUPSERT({ query, data }) {
     const { sql, entries } = this.cqn2sql(query, data)
     if (!sql) return // Do nothing when there is nothing to be done // REVISIT: When does this happen?
-    const ps = await this.prepare(sql)
-    const results = entries ? await Promise.all(entries.map(e => ps.run(e))) : await ps.run()
-    // REVISIT: results isn't an array, when no entries -> how could that work? when do we have no entries?
-    return this._return_affected(results.reduce((total, affectedRows) => total + affectedRows.changes, 0))
+    let ps = await this.prepare(sql)
+    let results = entries ? await Promise.all(entries.map(e => ps.run(e))) : await ps.run()
+    let changes = results.reduce?.((total,r) => total + r.changes) ?? results.changes
+    return this._return_affected(changes)
   }
 
   /**
@@ -216,7 +216,7 @@ class SQLService extends DatabaseService {
       !_hasProps(req.query.UPDATE.with) &&
       !Object.values(req.target?.elements || {}).some(e => e['@cds.on.update'])
     )
-      return 0
+      return this._return_affected(0)
     return this.onSIMPLE(req)
   }
 
@@ -227,7 +227,8 @@ class SQLService extends DatabaseService {
   async onSIMPLE({ query, data }) {
     const { sql, values } = this.cqn2sql(query, data)
     let ps = await this.prepare(sql)
-    return this._return_affected((await ps.run(values)).changes)
+    let { changes } = await ps.run(values)
+    return this._return_affected(changes)
   }
 
   get onDELETE() {
@@ -533,7 +534,7 @@ if (DEBUG_PQL._debug || cds.repl) {
     }
   }
 
-  // If running in the REPL, extend cds.ql.Query with helpers to inspect queries. 
+  // If running in the REPL, extend cds.ql.Query with helpers to inspect queries.
   if (cds.repl) {
 
     cds.extend(cds.ql.Query).with(
@@ -563,9 +564,9 @@ if (DEBUG_PQL._debug || cds.repl) {
       }
     )
 
-    /** 
-     * Dummy SQL service used in extensions to cds.ql above, 
-     * if no real SQL service is available yet through cds.db. 
+    /**
+     * Dummy SQL service used in extensions to cds.ql above,
+     * if no real SQL service is available yet through cds.db.
      */
     class db extends SQLService {
       /** @returns {SQLService} */
