@@ -59,15 +59,14 @@ module.exports = class InsertResult extends Array {
     }
 
     const { INSERT } = this.query
+
+    // For INSERT.from(SELECT.from(...)), we can't return keys
+    if (INSERT.from || INSERT.as) return this
+
     const k0 = keys[0]
 
-    // For INSERT.from(SELECT.from(...)) return empty objects
-    if (INSERT.from || INSERT.as) {
-      for (let i = 0; i < this.affected; i++) this.push({})
-    }
-
     // For INSERT.entries() with generated keys in there return these keys
-    else if (INSERT.entries && k0 in INSERT.entries[0]) {
+    if (INSERT.entries && k0 in INSERT.entries[0]) {
       for (const d of INSERT.entries) {
         this.push (keys.reduce((p,k) => (p[k] = d[k], p), {}))
       }
