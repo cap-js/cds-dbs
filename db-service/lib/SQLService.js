@@ -201,7 +201,7 @@ class SQLService extends DatabaseService {
     if (!sql) return // Do nothing when there is nothing to be done // REVISIT: When does this happen?
     let ps = await this.prepare(sql)
     let results = entries ? await Promise.all(entries.map(e => ps.run(e))) : await ps.run()
-    let changes = results.reduce?.((total,r) => total + r.changes) ?? results.changes
+    let changes = results.reduce?.((total,r) => total + r.changes, 0) ?? results.changes
     return this._return_affected(changes)
   }
 
