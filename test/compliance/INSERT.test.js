@@ -196,26 +196,48 @@ describe('INSERT', () => {
     })
   })
 
-  test('InsertResult', async () => {
-    const insert = INSERT.into('complex.associations.Books').entries({ ID: 5 })
-    const affectedRows = await cds.db.run(insert)
-    // affectedRows is an InsertResult, so we need to do lose comparison here, as strict will not work due to InsertResult
-    expect(affectedRows == 1).to.be.eq(true)
-    // InsertResult
-    expect(affectedRows).not.to.include({ _affectedRows: 1 }) // lastInsertRowid not available on postgres
+  test('InsertResult for INSERT.entries', async () => {
+    const insertResult = await cds.db.run(INSERT.into('complex.associations.Books').entries({ ID: 5 }))
+    expect(insertResult == 1).to.be.eq(true) // lose comparison as otherwise .valueOf is not invoked
+    expect(insertResult.affected).to.be.eq(1)
+    expect([...insertResult]).to.be.deep.eq([{ID: 5}]) // spread operator can determine the keys from payload
   })
 
-  test.each(['Keyless', 'VirtualKey'])('insert result works for %s entity', async (entity) => {
+  test('InsertResult for INSERT.values', async () => {
+    const insertResult = await cds.db.run(INSERT.into('complex.associations.Books').columns('ID').values([6]))
+    expect(insertResult == 1).to.be.eq(true) // lose comparison as otherwise .valueOf is not invoked
+    expect(insertResult.affected).to.be.eq(1)
+    expect([...insertResult]).to.be.deep.eq([{ID: 6}]) // spread operator can determine the keys from payload
+  })
+
+
+  test('InsertResult for INSERT.rows', async () => {
+    const insertResult = await cds.db.run(INSERT.into('complex.associations.Books').columns('ID').rows([[7],[8]]))
+    expect(insertResult == 2).to.be.eq(true) // lose comparison as otherwise .valueOf is not invoked
+    expect(insertResult.affected).to.be.eq(2)
+    expect([...insertResult]).to.be.deep.eq([{ID: 7},{ID: 8}]) // spread operator can determine the keys from payload
+  })
+
+  test('InsertResult for INSERT.from', async () => {
+    const insertResult = await cds.db.run(
+      INSERT.into('complex.associations.Books').columns('ID').from(
+        SELECT.from('complex.associations.Authors').columns`ID + 4711 as ID`))
+    expect(insertResult == 1).to.be.eq(true) // lose comparison as otherwise .valueOf is not invoked
+    expect(insertResult.affected).to.be.eq(1)
+    expect(() => [...insertResult]).to.not.throw // spreadable, but content not yet defined
+  })
+
+  test.each(['Keyless', 'VirtualKey'])('InsertResult edge case: %s entity', async (entity) => {
     let insertResult = await cds.run(INSERT({ name: 'Foo' }).into(`edge.${entity}`))
-    expect(insertResult.affectedRows).to.eq(1)
-    expect(insertResult == 1).to.be.true // lose equality
-    expect(() => [...insertResult]).to.not.throw
+    expect(insertResult == 1).to.be.eq(true) // lose comparison as otherwise .valueOf is not invoked
+    expect(insertResult.affected).to.be.eq(1)
+    expect(() => [...insertResult]).to.not.throw // spreadable, but content not yet defined
 
     const entries = Array(10).fill().map((_, idx) => ({ name: `Foo${idx+1}` }))
     insertResult = await cds.run(INSERT(entries).into(`edge.${entity}`))
-    expect(insertResult.affectedRows).to.eq(10)
-    expect(insertResult == 10).to.be.true // lose equality
-    expect(() => [...insertResult]).to.not.throw
+    expect(insertResult == 10).to.be.eq(true) // lose comparison as otherwise .valueOf is not invoked
+    expect(insertResult.affected).to.be.eq(10)
+    expect(() => [...insertResult]).to.not.throw // spreadable, but content not yet defined
   })
 
   test('default $now adds current tx timestamp in correct format', async () => {
