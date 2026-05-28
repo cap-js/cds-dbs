@@ -183,7 +183,8 @@ class SQLiteService extends SQLService {
     const { sql, values } = this.cqn2sql(query, data)
     let ps = await this.prepare(sql)
     const vals = await this._prepareStreams(values)
-    return (await ps.run(vals)).changes
+    const { changes } = await ps.run(vals)
+    return this._return_affected (changes)
   }
 
   onPlainSQL({ query, data }, next) {
