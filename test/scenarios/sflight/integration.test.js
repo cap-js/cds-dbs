@@ -2,11 +2,6 @@ const childProcess = require('child_process')
 const path = require('path')
 const cds = require('../../cds')
 
-// REVISIT: sflight tests don't expect IEEE754 compliant responses, but do send the IEEE754 header according to the test
-// As it is not possible to configure the IEEE754 flag for @cap-js/hana it is required to inject this configurable:true
-// As the cqn2sql output converter injection doesn't allow for it to be overwritten at a later stage, but configurable will stay true
-Object.defineProperty(cds.builtin.types.Decimal.constructor.prototype, "CQN2HANA:convertOutput", { get: () => a => a, configurable: true })
-
 const sflightPath = path.resolve(__dirname,'../../../test/sflight')
 
 // Set the test project to the sflight project
@@ -17,9 +12,6 @@ describe('Integration', () => {
   describe('Jest', () => {
     require(path.resolve(sflightPath, 'test/odata.test.js'))
 
-    beforeAll(() => {
-      Object.defineProperty(cds.builtin.types.Decimal.constructor.prototype, "CQN2HANA:convertOutput", { value: a => a })
-    })
   })
 
   describe.skip.each(dirs)('%s', dir => {

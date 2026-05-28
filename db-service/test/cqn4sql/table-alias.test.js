@@ -593,6 +593,96 @@ describe('table alias access', () => {
         }`
       expect(JSON.parse(JSON.stringify(transformed))).to.deep.equal(expectation)
     })
+    it('$self in infix filter alongside path expression', () => {
+      const q = cds.ql`
+        SELECT from bookshop.Books as Books {
+          title,
+          exists author.books[ author.name = title and title = $self.title ] as s
+        }`
+      const transformed = cqn4sql(q, model)
+      const expected = cds.ql`
+        SELECT from bookshop.Books as Books {
+          Books.title,
+          exists (
+            SELECT 1 from bookshop.Authors as $a where $a.ID = Books.author_ID and exists (
+              SELECT 1 from bookshop.Books as $b
+                inner join bookshop.Authors as author on author.ID = $b.author_ID
+                where $b.author_ID = $a.ID and author.name = $b.title and $b.title = Books.title
+            )
+          ) as s
+        }`
+      expect(JSON.parse(JSON.stringify(transformed))).to.deep.equal(expected)
+    })
+    it('$self in nested exists infix filter', () => {
+      const q = cds.ql`
+        SELECT from bookshop.Books as Books {
+          title,
+          exists author.books[ exists author.books[ title = $self.title ] ] as s
+        }`
+      const transformed = cqn4sql(q, model)
+      const expected = cds.ql`
+        SELECT from bookshop.Books as Books {
+          Books.title,
+          exists (
+            SELECT 1 from bookshop.Authors as $a where $a.ID = Books.author_ID and exists (
+              SELECT 1 from bookshop.Books as $b where $b.author_ID = $a.ID and exists (
+                SELECT 1 from bookshop.Authors as $a2 where $a2.ID = $b.author_ID and exists (
+                  SELECT 1 from bookshop.Books as $b2 where $b2.author_ID = $a2.ID and $b2.title = Books.title
+                )
+              )
+            )
+          ) as s
+        }`
+      expect(JSON.parse(JSON.stringify(transformed))).to.deep.equal(expected)
+    })
+    it('$self in deeply nested infix filter with multiple path expressions', () => {
+      const q = cds.ql`
+        SELECT from bookshop.Books as Books {
+          title,
+          exists author.books[ author.name = title and exists author.books[ author.name = title and title = $self.title ] ] as s
+        }`
+      const transformed = cqn4sql(q, model)
+      const expected = cds.ql`
+        SELECT from bookshop.Books as Books {
+          Books.title,
+          exists (
+            SELECT 1 from bookshop.Authors as $a where $a.ID = Books.author_ID and exists (
+              SELECT 1 from bookshop.Books as $b
+                inner join bookshop.Authors as author on author.ID = $b.author_ID
+                where $b.author_ID = $a.ID and author.name = $b.title and exists (
+                  SELECT 1 from bookshop.Authors as $a2 where $a2.ID = $b.author_ID and exists (
+                    SELECT 1 from bookshop.Books as $b2
+                      inner join bookshop.Authors as author2 on author2.ID = $b2.author_ID
+                      where $b2.author_ID = $a2.ID and author2.name = $b2.title and $b2.title = Books.title
+                  )
+                )
+            )
+          ) as s
+        }`
+      expect(JSON.parse(JSON.stringify(transformed))).to.deep.equal(expected)
+    })
+    it('$self in subquery refers to own projection, not outer query', () => {
+      const q = cds.ql`
+        SELECT from bookshop.Authors as Authors {
+          ID,
+          1+1 as foo
+        } where exists (
+          SELECT from bookshop.Books { 2+2 as foo, $self.foo as bar }
+          where author[$self.foo = 4].ID = 42
+        )`
+      const transformed = cqn4sql(q, model)
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as Authors {
+          Authors.ID,
+          1+1 as foo
+        } where exists (
+          SELECT from bookshop.Books as $B
+            left outer join bookshop.Authors as author on author.ID = $B.author_ID and (2+2) = 4
+          { 2+2 as foo, 2+2 as bar }
+          where author.ID = 42
+        )`
+      expect(JSON.parse(JSON.stringify(transformed))).to.deep.equal(expected)
+    })
   })
 
   describe('in ORDER BY', () => {
