@@ -58,69 +58,69 @@ describe('Bookshop - Update', () => {
     if(cds.env.sql.names === 'quoted') return 'skipped'
     const books = 'sap_capire_bookshop_Books'
     const ID = 999
-    let affectedRows = await INSERT.into(books)
+    let res = await INSERT.into(books)
       .entries({
         ID,
         createdAt: (new Date()).toISOString(),
       })
-    expect(affectedRows | 0).to.be.eq(1)
+    expect(res.affected).to.be.eq(1)
 
-    affectedRows = await DELETE(books)
+    res = await DELETE(books)
       .where({ ID })
-    expect(affectedRows | 0).to.be.eq(1)
+    expect(res.affected).to.be.eq(1)
 
-    affectedRows = await INSERT.into(books)
+    res = await INSERT.into(books)
       .columns(['ID', 'createdAt'])
       .values([ID, (new Date()).toISOString()])
-    expect(affectedRows | 0).to.be.eq(1)
+    expect(res.affected).to.be.eq(1)
 
-    affectedRows = await UPDATE(books)
+    res = await UPDATE(books)
       .with({ modifiedAt: (new Date()).toISOString() })
       .where({ ID })
-    expect(affectedRows | 0).to.be.eq(1)
+    expect(res.affected).to.be.eq(1)
 
-    affectedRows = await DELETE(books)
+    res = await DELETE(books)
       .where({ ID })
-    expect(affectedRows | 0).to.be.eq(1)
+    expect(res.affected).to.be.eq(1)
 
     // UPSERT fallback to an INSERT
-    affectedRows = await UPSERT.into(books)
+    res = await UPSERT.into(books)
       .entries({
         ID,
         createdAt: (new Date()).toISOString(),
       })
-    expect(affectedRows | 0).to.be.eq(1)
+    expect(res.affected).to.be.eq(1)
 
     // UPSERT fallback to an INSERT (throws on secondary call)
-    affectedRows = UPSERT.into(books)
+    res = UPSERT.into(books)
       .entries({
         ID,
         createdAt: (new Date()).toISOString(),
       })
-    await expect(affectedRows).rejected
+    await expect(res).rejected
 
     const result = await SELECT.from(books)
       .where({ ID })
     expect(result.length).to.be.eq(1)
 
-    affectedRows = await DELETE(books)
+    res = await DELETE(books)
       .where({ ID })
-    expect(affectedRows | 0).to.be.eq(1)
+    expect(res.affected).to.be.eq(1)
   })
 
   test('programmatic update without body incl. managed', async () => {
     const { Books } = cds.entities('sap.capire.bookshop')
     const { modifiedAt } = await SELECT.from(Books, { ID: 251 })
-    const affectedRows = await UPDATE(Books, { ID: 251 })
-    expect(affectedRows).to.be.eq(1)
+    const res = await UPDATE(Books, { ID: 251 })
+    expect(res.affected).to.be.eq(1)
     const { modifiedAt: newModifiedAt } = await SELECT.from(Books, { ID: 251 })
     expect(newModifiedAt).not.to.be.eq(modifiedAt)
   })
 
   test('programmatic update without body excl. managed', async () => {
     const { Genres } = cds.entities('sap.capire.bookshop')
-    const affectedRows = await UPDATE(Genres, { ID: 10 })
-    expect(affectedRows).to.be.eq(0)
+    const res = await UPDATE(Genres, { ID: 10 })
+    expect(res.affected).to.be.eq(0)
   })
 
   test('programmatic update with unique constraint conflict', async () => {
@@ -184,7 +184,7 @@ describe('Bookshop - Update', () => {
 
   test('Upsert draft enabled entity', async () => {
     const res = await UPSERT.into('DraftService.DraftEnabledBooks').entries({ ID: 42, title: 'Foo' })
-    expect(res).to.equal(1)
+    expect(res.affected).to.equal(1)
   })
 
   test('with path expressions on draft enabled service entity', async () => {

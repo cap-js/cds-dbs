@@ -110,7 +110,7 @@ describe('QL to PostgreSQL', () => {
 
       const beers = await cds.run(INSERT.into(Beers).entries([{ name: 'Test' }, { name: 'Test1' }]))
 
-      expect(beers.affectedRows).to.equal(2)
+      expect(beers.affected).to.equal(2)
 
       const beer = await cds.run(SELECT.one(Beers).where({ name: 'Test1' }))
       expect(beer).to.have.property('name', 'Test1')
@@ -125,7 +125,7 @@ describe('QL to PostgreSQL', () => {
           .rows([cds.utils.uuid(), 'Beer 1'], [cds.utils.uuid(), 'Beer 2'], [cds.utils.uuid(), 'Beer 3']),
       )
 
-      expect(beers.affectedRows).to.equal(3)
+      expect(beers.affected).to.equal(3)
 
       const beer = await cds.run(SELECT.one(Beers).where({ name: 'Beer 2' }))
       expect(beer).to.have.property('name', 'Beer 2')
@@ -136,7 +136,7 @@ describe('QL to PostgreSQL', () => {
 
       const beers = await cds.run(INSERT.into(Beers).columns(['ID', 'name']).values([cds.utils.uuid(), 'Test']))
 
-      expect(beers.affectedRows).to.equal(1)
+      expect(beers.affected).to.equal(1)
 
       const beer = await cds.run(SELECT.one(Beers).where({ name: 'Test' }))
       expect(beer).to.have.property('name', 'Test')
@@ -155,9 +155,9 @@ describe('QL to PostgreSQL', () => {
       const uuidRegex = /[\d|a-f]{8}-[\d|a-f]{4}-[\d|a-f]{4}-[\d|a-f]{4}-[\d|a-f]{12}/
 
       const insertResult = await cds.run(INSERT.into(Beers).entries(entries))
-      expect(insertResult.affectedRows).to.equal(3)
+      expect(insertResult.affected).to.equal(3)
       expect(insertResult == 3).to.equal(true)
-      expect(insertResult.valueOf()).to.equal(insertResult.affectedRows)
+      expect(insertResult.valueOf()).to.equal(insertResult.affected)
 
       const beers = [...insertResult] //> this calls the [Symbol.iterator] method of the insert result
       expect(beers.length).to.equal(3)
@@ -170,16 +170,16 @@ describe('QL to PostgreSQL', () => {
   describe('UPDATE', () => {
     test('-> Get affected rows ', async () => {
       const { Beers } = cds.entities('csw')
-      const affectedRows = await cds.run(
+      const res = await cds.run(
         UPDATE(Beers).set({ name: 'TEST' }).where({ ID: '9e1704e3-6fd0-4a5d-bfb1-13ac47f7976b' }),
       )
-      expect(affectedRows).to.equal(1)
+      expect(res.affected).to.equal(1)
     })
 
     test('-> multiple rows', async () => {
       const { Beers } = cds.entities('csw')
-      const affectedRows = await cds.run(UPDATE(Beers).set({ abv: 1.0 }))
-      expect(affectedRows).to.equal(11)
+      const res = await cds.run(UPDATE(Beers).set({ abv: 1.0 }))
+      expect(res.affected).to.equal(11)
     })
   })
 })

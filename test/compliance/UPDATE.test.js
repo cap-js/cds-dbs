@@ -10,8 +10,8 @@ describe('UPDATE', () => {
   describe('entity', () => {
     test('string', async () => {
       const { string } = cds.entities('basic.literals')
-      const changes = await UPDATE.entity(string)
-      expect(changes).to.equal(0)
+      const res = await UPDATE.entity(string)
+      expect(res.affected).to.equal(0)
     })
   })
 
@@ -127,14 +127,14 @@ describe('UPDATE', () => {
           { ID: 6, title: 'bar' },
         ]),
       )
-      expect(insert.affectedRows).to.equal(2)
+      expect(insert.affected).to.equal(2)
 
       const update = await cds.run(
         UPDATE.entity(Books)
           .set({ title: 'foo' })
           .where({ ID: 5, or: { ID: 6 } }),
       )
-      expect(update).to.equal(2)
+      expect(update.affected).to.equal(2)
     })
   })
 
@@ -174,7 +174,7 @@ describe('UPDATE', () => {
   test('affected rows', async () => {
     const { count } = await SELECT.one`count(*)`.from('complex.associations.Books')
 
-    const affectedRows = await UPDATE.entity('complex.associations.Books').data({ title: 'Book' })
-    expect(affectedRows).to.be.eq(count)
+    const res = await UPDATE.entity('complex.associations.Books').data({ title: 'Book' })
+    expect(res.affected).to.be.eq(count)
   })
 })

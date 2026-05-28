@@ -159,8 +159,8 @@ describe('streaming', () => {
         const { Images } = cds.entities('test')
         const stream = fs.createReadStream(path.join(__dirname, 'samples/test.jpg'))
 
-        const changes = await UPDATE(Images).with({ data2: stream }).where({ ID: 3 })
-        expect(changes).to.equal(1)
+        const res = await UPDATE(Images).with({ data2: stream }).where({ ID: 3 })
+        expect(res.affected).to.equal(1)
 
         const [{ data2: stream_ }] = await SELECT.from(Images).columns('data2').where({ ID: 3 })
         await checkSize(stream_)
@@ -171,8 +171,8 @@ describe('streaming', () => {
         const stream1 = fs.createReadStream(path.join(__dirname, 'samples/test.jpg'))
         const stream2 = fs.createReadStream(path.join(__dirname, 'samples/test.jpg'))
 
-        const changes = await UPDATE(Images).with({ data: stream1, data2: stream2 }).where({ ID: 4 })
-        expect(changes).to.equal(1)
+        const res = await UPDATE(Images).with({ data: stream1, data2: stream2 }).where({ ID: 4 })
+        expect(res.affected).to.equal(1)
 
         const [{
           data: stream1_, data2: stream2_
@@ -188,8 +188,8 @@ describe('streaming', () => {
         const { data: stream } = await SELECT.one.from(Images).columns('data').where({ ID: 1 })
 
         const insert = async () => {
-          const changes = await UPDATE(Images).with({ data2: stream }).where({ ID: 3 })
-          expect(changes).to.equal(1)
+          const res = await UPDATE(Images).with({ data2: stream }).where({ ID: 3 })
+          expect(res.affected).to.equal(1)
         }
         if(cds.db.pools._factory.options.max > 1) await cds.tx(insert) // Stream over multiple transaction for `hdb` limitation
         else await insert()
@@ -203,8 +203,8 @@ describe('streaming', () => {
         const blob1 = fs.readFileSync(path.join(__dirname, 'samples/test.jpg'))
         const blob2 = fs.readFileSync(path.join(__dirname, 'samples/test.jpg'))
 
-        const changes = await UPDATE(Images).with({ data: blob1, data2: blob2 }).where({ ID: 4 })
-        expect(changes).to.equal(1)
+        const res = await UPDATE(Images).with({ data: blob1, data2: blob2 }).where({ ID: 4 })
+        expect(res.affected).to.equal(1)
 
         const [{
           data: stream1_,
@@ -220,8 +220,8 @@ describe('streaming', () => {
         const { ImagesView } = cds.entities('test')
         const stream = fs.createReadStream(path.join(__dirname, 'samples/test.jpg'))
 
-        const changes = await UPDATE(ImagesView).with({ renamedData: stream }).where({ ID: 1 })
-        expect(changes).to.equal(1)
+        const res = await UPDATE(ImagesView).with({ renamedData: stream }).where({ ID: 1 })
+        expect(res.affected).to.equal(1)
 
         const [{ renamedData: stream_ }] = await SELECT.from(ImagesView).columns('renamedData').where({ ID: 1 })
         await checkSize(stream_)

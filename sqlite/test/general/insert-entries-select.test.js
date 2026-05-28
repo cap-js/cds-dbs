@@ -16,7 +16,7 @@ describe('insert from select', () => {
       )
     // insert from select
     const insertRes = await cds.run(insert)
-    assert.strictEqual(insertRes.affectedRows, 1, 'One row should have been inserted')
+    assert.strictEqual(insertRes.affected, 1, 'One row should have been inserted')
     // select the inserted column
     const selectRes = await cds.run(SELECT.from('Foo').where({ ref: ['ID'] }, '=', { val: 42 }))
     assert.strictEqual(selectRes.length, 1, 'One row should have been inserted')
