@@ -316,13 +316,8 @@ function loadSQLite(driver) {
 
   if (driver) {
     sqlite = require(drivers[driver])
-    return
-  }
-
-  try { sqlite = require(drivers['better-sqlite3']) }
-  catch {
-    try { sqlite = require(drivers.node) }
-    catch { sqlite = require(drivers['sql.js']) }
+  } else {
+    sqlite = require(drivers.node)
   }
 }
 
