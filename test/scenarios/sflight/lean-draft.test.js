@@ -5,21 +5,7 @@ const cds = require('../../cds.js'), { path } = cds.utils
 const sflight = path.resolve(__dirname, '../../../test/sflight')
 
 describe('draft tests', () => {
-
-  // Had to be moved before for cds-test might break jest
-  beforeAll(() => {
-    process.env.cds_features_ieee754compatible = 'true'
-  })
-
   const { GET, POST, PATCH, DELETE, expect } = cds.test(sflight)
-  // NOTE: all access to cds.env has to go after the call to cds.test() or cds.test.in()
-  // (see https://cap.cloud.sap/docs/node.js/cds-test#cds-test-env-check)
-  cds.env.requires.db.kind = 'better-sqlite'
-  cds.env.requires.auth.kind = 'mocked-auth'
-  cds.env.features.ieee754compatible = true
-
-  if (cds.env.fiori) cds.env.fiori.lean_draft = cds.env.fiori.draft_compat = true
-  else cds.env.features.lean_draft = cds.env.features.lean_draft_compatibility = true
 
   cds.requires.auth.users = {
     user1: { password: 'user1', roles: ['processor'] },
