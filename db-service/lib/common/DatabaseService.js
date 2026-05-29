@@ -174,6 +174,6 @@ DatabaseService._always_return_arrays = on_off => {
   if (on_off === undefined) return DatabaseService.prototype._return_affected === _as_array
   DatabaseService.prototype._return_affected = on_off ? _as_array : _as_number
 }
-DatabaseService._always_return_arrays (cds.env.features.legacy_srv_results === false) // TODO: invert default value
+DatabaseService._always_return_arrays (cds.env.features.legacy_db_results === false) // TODO: invert default value
 DatabaseService.prototype.isDatabaseService = true
 module.exports = exports = DatabaseService
