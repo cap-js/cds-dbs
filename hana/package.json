@@ -34,10 +34,14 @@
   },
   "peerDependencies": {
     "@sap/hana-client": "^2",
-    "@sap/cds": ">=9.8"
+    "@sap/cds": ">=9.8",
+    "@opentelemetry/api": "^1"
   },
   "peerDependenciesMeta": {
     "@sap/hana-client": {
+      "optional": true
+    },
+    "@opentelemetry/api": {
       "optional": true
     }
   },
