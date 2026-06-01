@@ -145,6 +145,10 @@ constructor (factory, options = {}) {
   }
 
   async release(resource) {
+    if (this._draining) {
+      LOG.debug('Pool is already draining. Resource cannot be returned to pool')
+      return
+    }
     const loan = this._loans.get(resource)
     if (!loan) throw new Error('Resource not currently part of this pool')
     this._loans.delete(resource)
@@ -155,6 +159,10 @@ constructor (factory, options = {}) {
   }
 
   async destroy(resource) {
+    if (this._draining) {
+      LOG.debug('Pool is already draining. Resource will be destroyed anyway')
+      return
+    }
     const loan = this._loans.get(resource)
     if (!loan) throw new Error('Resource not currently part of this pool')
     this._loans.delete(resource)
