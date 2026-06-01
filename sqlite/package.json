@@ -30,7 +30,6 @@
   },
   "peerDependencies": {
     "@sap/cds": "^10",
-    "sql.js": "^1.13.0"
     "sql.js": "^1.13.0",
     "better-sqlite3": "^12.0.0"
   },
