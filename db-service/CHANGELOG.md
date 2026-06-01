@@ -6,6 +6,7 @@
 
 ## [3.0.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.11.0...db-service-v3.0.0) (2026-06-01)
 
+
 ### ⚠ BREAKING CHANGES
 
 * require cds10 ([#1628](https://github.com/cap-js/cds-dbs/issues/1628))
