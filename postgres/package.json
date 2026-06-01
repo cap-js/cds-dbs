@@ -31,8 +31,8 @@
     "pg": "^8"
   },
   "peerDependencies": {
-    "@sap/cds": ">=9.8",
-    "@sap/cds-dk": ">=9"
+    "@sap/cds": "^10",
+    "@sap/cds-dk": "^10"
   },
   "peerDependenciesMeta": {
     "@sap/cds-dk": {

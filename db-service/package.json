@@ -24,7 +24,7 @@
     "test": "cds-test"
   },
   "peerDependencies": {
-    "@sap/cds": ">=9.8",
+    "@sap/cds": "^10",
     "generic-pool": "^3.9.0"
   },
   "peerDependenciesMeta": {
