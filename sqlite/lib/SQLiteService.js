@@ -276,8 +276,6 @@ class SQLiteService extends SQLService {
             elem?.scale
               ? `CASE WHEN ${expr} IS NULL THEN NULL ELSE format('%.${elem.scale}f', ${expr}) END`
               : `CAST(${expr} as TEXT)` // or: `(''||${expr})`
-              // REVISIT: thinking twice, should we really attempt to guarantee the scale-padding here?
-              // For whom / which use cases do we need that? -> cross-database tests only?
         : undefined,
       // Binary is not allowed in json objects
       Binary: expr => `${expr} || ''`,
