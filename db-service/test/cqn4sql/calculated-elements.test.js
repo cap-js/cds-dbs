@@ -1227,28 +1227,10 @@ describe('calculated elements in draft enabled entities', () => {
       cds.ql`SELECT from CalcService.Orders as Orders { ID, expensive }`,
       model,
     )
-    const expected = { SELECT: {
-          from: { ref: [ 'CalcService.Orders' ], as: 'Orders' },
-          columns: [
-            { ref: [ 'Orders', 'ID' ] },
-            {
-              xpr: [
-                'case',
-                'when',
-                { ref: [ 'Orders', 'amount' ] },
-                '>',
-                { val: 10 },
-                'then',
-                { val: 1 },
-                'else',
-                { val: 0 },
-                'end'
-              ],
-              as: 'expensive'
-            }
-          ]
-        }
-    }
+    const expected = cds.ql`SELECT from CalcService.Orders as Orders {
+      Orders.ID,
+      case when Orders.amount > 10 then 1 else 0 end as expensive
+    }`
     expectCqn(transformed).to.equal(expected)
     expect(transformed.SELECT.columns[1].xpr[4].param).to.be.false
     expect(transformed.SELECT.columns[1].xpr[6].param).to.be.false
@@ -1260,28 +1242,10 @@ describe('calculated elements in draft enabled entities', () => {
       cds.ql`SELECT from CalcService.Orders.drafts as Orders { ID, expensive }`,
       model,
     )
-    const expected = { SELECT: {
-          from: { ref: [ 'CalcService.Orders.drafts' ], as: 'Orders' },
-          columns: [
-            { ref: [ 'Orders', 'ID' ] },
-            {
-              xpr: [
-                'case',
-                'when',
-                { ref: [ 'Orders', 'amount' ] },
-                '>',
-                { val: 10 },
-                'then',
-                { val: 1 },
-                'else',
-                { val: 0 },
-                'end'
-              ],
-              as: 'expensive'
-            }
-          ]
-        }
-    }
+    const expected = cds.ql`SELECT from CalcService.Orders.drafts as Orders {
+      Orders.ID,
+      case when Orders.amount > 10 then 1 else 0 end as expensive
+    }`
     expectCqn(transformed).to.equal(expected)
     expect(transformed.SELECT.columns[1].xpr[4].param).to.be.false
     expect(transformed.SELECT.columns[1].xpr[6].param).to.be.false
