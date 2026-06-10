@@ -1812,8 +1812,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
           // reject virtual elements in expressions as they will lead to a sql error down the line
           if (lhsDef?.virtual) throw new Error(`Virtual elements are not allowed in expressions`)
 
-          let result = is_regexp(token?.val) ? token : copy(token) // REVISIT: too expensive!
-          // REVISIT: required because we copy the token above and lose the not enumerable "param: false"
+          let result = typeof token !== 'object' || is_regexp(token?.val) ? token : { ...token }
           if (typeof token === 'object' && 'val' in token && 'param' in token) Object.defineProperty(result, 'param', { value: token.param })
           if (token.ref) {
             const { definition } = token.$refLinks.at(-1)
@@ -1830,7 +1829,6 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
                 const stepToFind = token.ref[1]?.id || token.ref[1]
                 const outerAlias = outerQuery.$combinedElements?.[stepToFind]?.[0].index
                 if (outerAlias) {
-                  let result = copy(token)
                   result.ref = [outerAlias, token.flatName]
                   transformedTokenStream.push(result)
                   continue
