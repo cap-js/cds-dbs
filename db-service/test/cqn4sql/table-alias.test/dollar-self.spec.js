@@ -2,7 +2,7 @@
 
 const cds = require('@sap/cds')
 const { loadModel } = require('../helpers/model')
-const { expect } = require('../helpers/expectCqn')
+const { expectCqn } = require('../helpers/expectCqn')
 
 let cqn4sql = require('../../../lib/cqn4sql')
 
@@ -14,8 +14,7 @@ describe('table alias access - replace $self references', () => {
   })
 
   it('escaped identifier does not hurt', () => {
-    let query = cqn4sql(
-      cds.ql`
+    const transformed = cqn4sql(cds.ql`
     SELECT FROM bookshop.Books as ![FROM]
     {
       ![FROM].title as group,
@@ -24,9 +23,8 @@ describe('table alias access - replace $self references', () => {
     group by $self.group
     having $self.group = 'foo'
     order by $self.group
-    `,
-    )
-    expect(query).to.deep.equal(cds.ql`
+    `)
+    const expected = cds.ql`
     SELECT from bookshop.Books as ![FROM]
     {
       ![FROM].title as group,
@@ -35,10 +33,12 @@ describe('table alias access - replace $self references', () => {
     group by ![FROM].title
     having ![FROM].title = 'foo'
     order by ![FROM].title
-    `)
+    `
+    expectCqn(transformed).to.equal(expected)
   })
+
   it('refer to other query element', () => {
-    const q = cds.ql`SELECT from bookshop.Books as Books {
+    const transformed = cqn4sql(cds.ql`SELECT from bookshop.Books as Books {
     Books.title,
     title as title2,
     dedication as struct,
@@ -50,10 +50,8 @@ describe('table alias access - replace $self references', () => {
     $self.dedication as dedication2,
     $self.expression as selfXpr,
     $self.value as selfVal,
-  }`
-    const transformed = cqn4sql(q)
-
-    expect(JSON.parse(JSON.stringify(transformed))).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books {
+  }`)
+    const expected = cds.ql`SELECT from bookshop.Books as Books {
     Books.title,
     Books.title as title2,
     Books.dedication_addressee_ID as struct_addressee_ID,
@@ -68,115 +66,106 @@ describe('table alias access - replace $self references', () => {
     Books.dedication_text as dedication2,
     1 + 1 as selfXpr,
     42 as selfVal
-  }`)
+  }`
+    expectCqn(transformed).to.equal(expected)
   })
+
   it('late replace join relevant paths', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from bookshop.Authors as Authors {
-          Authors.name as author,
-          $self.book as dollarSelfBook,
-          books.title as book,
-        } group by $self.book
-       `,
-    )
-    expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.Authors as Authors left join bookshop.Books as books on books.author_ID = Authors.ID {
+    const transformed = cqn4sql(cds.ql`SELECT from bookshop.Authors as Authors {
         Authors.name as author,
-        books.title as dollarSelfBook,
-        books.title as book
-      } group by books.title
-     `,
-    )
+        $self.book as dollarSelfBook,
+        books.title as book,
+      } group by $self.book
+     `)
+    const expected = cds.ql`SELECT from bookshop.Authors as Authors left join bookshop.Books as books on books.author_ID = Authors.ID {
+      Authors.name as author,
+      books.title as dollarSelfBook,
+      books.title as book
+    } group by books.title
+   `
+    expectCqn(transformed).to.equal(expected)
   })
+
   it('in aggregation', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from bookshop.Authors as Authors {
-          name as author,
-          1+1 as xpr,
-          years_between(dateOfBirth, dateOfDeath) as age
-        }
-        group by $self.author, $self.xpr
-        order by $self.author, $self.xpr
-       `,
-    )
-    expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.Authors as Authors {
-        Authors.name as author,
+    const transformed = cqn4sql(cds.ql`SELECT from bookshop.Authors as Authors {
+        name as author,
         1+1 as xpr,
-        years_between(Authors.dateOfBirth, Authors.dateOfDeath) as age
+        years_between(dateOfBirth, dateOfDeath) as age
       }
-      group by Authors.name, 1+1
-      order by Authors.name, 1+1
-     `,
-    )
+      group by $self.author, $self.xpr
+      order by $self.author, $self.xpr
+     `)
+    const expected = cds.ql`SELECT from bookshop.Authors as Authors {
+      Authors.name as author,
+      1+1 as xpr,
+      years_between(Authors.dateOfBirth, Authors.dateOfDeath) as age
+    }
+    group by Authors.name, 1+1
+    order by Authors.name, 1+1
+   `
+    expectCqn(transformed).to.equal(expected)
   })
+
   it('in having', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from bookshop.Authors {
-          name as author,
-          1+1 as xpr,
-        }
-        having $self.xpr = 2
-       `,
-    )
-    expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.Authors as $A {
-        $A.name as author,
+    const transformed = cqn4sql(cds.ql`SELECT from bookshop.Authors {
+        name as author,
         1+1 as xpr,
       }
-      having (1+1) = 2
-     `,
-    )
+      having $self.xpr = 2
+     `)
+    const expected = cds.ql`SELECT from bookshop.Authors as $A {
+      $A.name as author,
+      1+1 as xpr,
+    }
+    having (1+1) = 2
+   `
+    expectCqn(transformed).to.equal(expected)
   })
+
   it('in having with func', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from bookshop.Books {
-          author.name as author,
-          count(*) as numberOfBooks,
-        }
-        group by author.name
-        having $self.numberOfBooks > 1
-       `,
-    )
-    expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.Books as $B
-        left join bookshop.Authors as author on author.ID = $B.author_ID
-       {
+    const transformed = cqn4sql(cds.ql`SELECT from bookshop.Books {
         author.name as author,
         count(*) as numberOfBooks,
       }
       group by author.name
-      having count(*) > 1
-     `,
-    )
+      having $self.numberOfBooks > 1
+     `)
+    const expected = cds.ql`SELECT from bookshop.Books as $B
+      left join bookshop.Authors as author on author.ID = $B.author_ID
+     {
+      author.name as author,
+      count(*) as numberOfBooks,
+    }
+    group by author.name
+    having count(*) > 1
+   `
+    expectCqn(transformed).to.equal(expected)
   })
+
   it('in where', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from bookshop.Authors {
-          name as author,
-          1+1 as xpr,
-        }
-        where 2 / $self.xpr = 1
-       `,
-    )
-    expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.Authors as $A {
-        $A.name as author,
+    const transformed = cqn4sql(cds.ql`SELECT from bookshop.Authors {
+        name as author,
         1+1 as xpr,
       }
-      where 2 / (1+1) = 1
-     `,
-    )
+      where 2 / $self.xpr = 1
+     `)
+    const expected = cds.ql`SELECT from bookshop.Authors as $A {
+      $A.name as author,
+      1+1 as xpr,
+    }
+    where 2 / (1+1) = 1
+   `
+    expectCqn(transformed).to.equal(expected)
   })
+
   it('refer to my own column in function expression', () => {
-    const q = cds.ql`
+    const transformed = cqn4sql(cds.ql`
       SELECT from bookshop.Books as Books {
         cast('2007-07-07' as Date) as twoLeapYearsEarlier,
         cast('2013-07-06' as Date) as twoLeapYearsLater,
         months_between($self.twoLeapYearsEarlier, $self.twoLeapYearsLater)
-      }`
-    const transformed = cqn4sql(q)
-    const expectation = cds.ql`
+      }`)
+    const expected = cds.ql`
       SELECT from bookshop.Books as Books {
         cast('2007-07-07' as cds.Date) as twoLeapYearsEarlier,
         cast('2013-07-06' as cds.Date) as twoLeapYearsLater,
@@ -184,36 +173,35 @@ describe('table alias access - replace $self references', () => {
       }`
     // cast expression inside argument is parsed without surrounding "xpr"
     // hence we need to adjust the expectation
-    expectation.SELECT.columns[2].args = [
-      { xpr: expectation.SELECT.columns[0].xpr },
-      { xpr: expectation.SELECT.columns[1].xpr },
+    expected.SELECT.columns[2].args = [
+      { xpr: expected.SELECT.columns[0].xpr },
+      { xpr: expected.SELECT.columns[1].xpr },
     ]
-
-    expect(JSON.parse(JSON.stringify(transformed))).to.deep.equal(expectation)
+    expectCqn(transformed).to.equal(expected)
   })
+
   it('refer to my own column in calc expression', () => {
-    const q = cds.ql`
+    const transformed = cqn4sql(cds.ql`
       SELECT from bookshop.Books as Books {
         (cast('2007-07-07' as Date) + 1) as twoLeapYearsEarlier,
         (cast('2013-07-06' as Date) + 1) as twoLeapYearsLater,
         $self.twoLeapYearsEarlier +  months_between($self.twoLeapYearsEarlier + 15) as calc
-      }`
-    const transformed = cqn4sql(q)
-    const expectation = cds.ql`
+      }`)
+    const expected = cds.ql`
       SELECT from bookshop.Books as Books {
         (cast('2007-07-07' as cds.Date) + 1) as twoLeapYearsEarlier,
         (cast('2013-07-06' as cds.Date) + 1) as twoLeapYearsLater,
         (cast('2007-07-07' as cds.Date) + 1) + months_between((cast('2007-07-07' as cds.Date) + 1) + 15) as calc
       }`
-    expect(JSON.parse(JSON.stringify(transformed))).to.deep.equal(expectation)
+    expectCqn(transformed).to.equal(expected)
   })
+
   it('$self in infix filter alongside path expression', () => {
-    const q = cds.ql`
+    const transformed = cqn4sql(cds.ql`
       SELECT from bookshop.Books as Books {
         title,
         exists author.books[ author.name = title and title = $self.title ] as s
-      }`
-    const transformed = cqn4sql(q)
+      }`)
     const expected = cds.ql`
       SELECT from bookshop.Books as Books {
         Books.title,
@@ -225,15 +213,15 @@ describe('table alias access - replace $self references', () => {
           )
         ) as s
       }`
-    expect(JSON.parse(JSON.stringify(transformed))).to.deep.equal(expected)
+    expectCqn(transformed).to.equal(expected)
   })
+
   it('$self in nested exists infix filter', () => {
-    const q = cds.ql`
+    const transformed = cqn4sql(cds.ql`
       SELECT from bookshop.Books as Books {
         title,
         exists author.books[ exists author.books[ title = $self.title ] ] as s
-      }`
-    const transformed = cqn4sql(q)
+      }`)
     const expected = cds.ql`
       SELECT from bookshop.Books as Books {
         Books.title,
@@ -247,15 +235,15 @@ describe('table alias access - replace $self references', () => {
           )
         ) as s
       }`
-    expect(JSON.parse(JSON.stringify(transformed))).to.deep.equal(expected)
+    expectCqn(transformed).to.equal(expected)
   })
+
   it('$self in deeply nested infix filter with multiple path expressions', () => {
-    const q = cds.ql`
+    const transformed = cqn4sql(cds.ql`
       SELECT from bookshop.Books as Books {
         title,
         exists author.books[ author.name = title and exists author.books[ author.name = title and title = $self.title ] ] as s
-      }`
-    const transformed = cqn4sql(q)
+      }`)
     const expected = cds.ql`
       SELECT from bookshop.Books as Books {
         Books.title,
@@ -273,18 +261,18 @@ describe('table alias access - replace $self references', () => {
           )
         ) as s
       }`
-    expect(JSON.parse(JSON.stringify(transformed))).to.deep.equal(expected)
+    expectCqn(transformed).to.equal(expected)
   })
+
   it('$self in subquery refers to own projection, not outer query', () => {
-    const q = cds.ql`
+    const transformed = cqn4sql(cds.ql`
       SELECT from bookshop.Authors as Authors {
         ID,
         1+1 as foo
       } where exists (
         SELECT from bookshop.Books { 2+2 as foo, $self.foo as bar }
         where author[$self.foo = 4].ID = 42
-      )`
-    const transformed = cqn4sql(q)
+      )`)
     const expected = cds.ql`
       SELECT from bookshop.Authors as Authors {
         Authors.ID,
@@ -295,6 +283,6 @@ describe('table alias access - replace $self references', () => {
         { 2+2 as foo, 2+2 as bar }
         where author.ID = 42
       )`
-    expect(JSON.parse(JSON.stringify(transformed))).to.deep.equal(expected)
+    expectCqn(transformed).to.equal(expected)
   })
 })
