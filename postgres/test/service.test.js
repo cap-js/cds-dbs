@@ -1,7 +1,5 @@
 const { resolve } = require('path')
 const cds = require('../../test/cds.js')
-if (cds.env.fiori) cds.env.fiori.lean_draft = true
-else cds.env.features.lean_draft = true
 
 const project = resolve(__dirname, 'beershop')
 

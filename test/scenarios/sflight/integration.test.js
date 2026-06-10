@@ -36,10 +36,7 @@ const npm = (dir, args) => {
     env: {
       ...process.env,
       // Cascade prepared deployment to child process
-      CDS_CONFIG: JSON.stringify({ requires: { db: cds.db.options } }),
-      // Ensure that lean draft is enabled
-      CDS_FIORI_LEAN__DRAFT: true,
-      CDS_FIORI_DRAFT__COMPAT: true,
+      CDS_CONFIG: JSON.stringify({ requires: { db: cds.db.options } })
     },
   })
 
