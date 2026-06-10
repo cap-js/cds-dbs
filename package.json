@@ -11,8 +11,13 @@
   ],
   "devDependencies": {
     "@cap-js/cds-test": "^1.0.1",
-    "sql.js": "^1.13.0",
-    "better-sqlite3": "^12.0.0"
+    "better-sqlite3": "^12.0.0",
+    "sql.js": "^1.13.0"
+  },
+  "overrides": {
+    "@sap/cds": {
+      "@sap/cds-compiler": "6"
+    }
   },
   "scripts": {
     "test": "npm t -w db-service -w sqlite",

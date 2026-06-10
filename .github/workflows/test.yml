@@ -20,7 +20,6 @@ jobs:
       packages: write
 
     env:
-      cds_features_pool: builtin
       FORCE_COLOR: true
 
     strategy:
@@ -36,7 +35,6 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npm install -g @sap/cds-dk
-      - run: npm ci
       - run: npm run lint
       - id: hxe
         uses: ./.github/actions/hxe

@@ -1216,3 +1216,39 @@ describe('calculated elements with exists accessed through association', () => {
   })
 })
 
+describe('calculated elements in draft enabled entities', () => {
+  let model
+  beforeAll(async () => {
+    model = cds.model = cds.compile.for.nodejs(await cds.load(__dirname + '/../bookshop/srv/calc-elem-service'))
+  })
+
+  it('keeps param: false for query against active entries', () => {
+    const transformed = cqn4sql(
+      cds.ql`SELECT from CalcService.Orders as Orders { ID, expensive }`,
+      model,
+    )
+    const expected = cds.ql`SELECT from CalcService.Orders as Orders {
+      Orders.ID,
+      case when Orders.amount > 10 then 1 else 0 end as expensive
+    }`
+    expectCqn(transformed).to.equal(expected)
+    expect(transformed.SELECT.columns[1].xpr[4].param).to.be.false
+    expect(transformed.SELECT.columns[1].xpr[6].param).to.be.false
+    expect(transformed.SELECT.columns[1].xpr[8].param).to.be.false
+  })
+
+    it('keeps param: false for query against draft entries', () => {
+    const transformed = cqn4sql(
+      cds.ql`SELECT from CalcService.Orders.drafts as Orders { ID, expensive }`,
+      model,
+    )
+    const expected = cds.ql`SELECT from CalcService.Orders.drafts as Orders {
+      Orders.ID,
+      case when Orders.amount > 10 then 1 else 0 end as expensive
+    }`
+    expectCqn(transformed).to.equal(expected)
+    expect(transformed.SELECT.columns[1].xpr[4].param).to.be.false
+    expect(transformed.SELECT.columns[1].xpr[6].param).to.be.false
+    expect(transformed.SELECT.columns[1].xpr[8].param).to.be.false
+  })
+})

@@ -4,6 +4,31 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.0.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.11.0...db-service-v3.0.0) (2026-06-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* require cds10 ([#1628](https://github.com/cap-js/cds-dbs/issues/1628))
+
+### Added
+
+* own flag for db service results ([#1630](https://github.com/cap-js/cds-dbs/issues/1630)) ([3946e59](https://github.com/cap-js/cds-dbs/commit/3946e59b19ca11afda999d44babeeff835c23817))
+* **pool:** make builtin pool the default ([#1537](https://github.com/cap-js/cds-dbs/issues/1537)) ([919dfe6](https://github.com/cap-js/cds-dbs/commit/919dfe6c5d0cf0ee37a695d2edcc870c1353a93d))
+* require cds10 ([#1628](https://github.com/cap-js/cds-dbs/issues/1628)) ([93e8305](https://github.com/cap-js/cds-dbs/commit/93e83053679f9ef94293caa08917855404db880d))
+
+
+### Fixed
+
+* **builtin-pool:** ignore released/destroyed resource if already draining ([#1631](https://github.com/cap-js/cds-dbs/issues/1631)) ([de37489](https://github.com/cap-js/cds-dbs/commit/de37489bb80b25be1d292a284119c1c0f6405970))
+* calc element with exists through association ([#1608](https://github.com/cap-js/cds-dbs/issues/1608)) ([0d24b28](https://github.com/cap-js/cds-dbs/commit/0d24b285ae8eb71eeca0c6f4bf811a729a8cff4b))
+* InsertResult for keyless entities ([#1617](https://github.com/cap-js/cds-dbs/issues/1617)) ([2efe922](https://github.com/cap-js/cds-dbs/commit/2efe922e2eb4b0c750eb09a74dfd155e8febc9bc))
+* InsertResult is broken if entity has assoc keys ([#1616](https://github.com/cap-js/cds-dbs/issues/1616)) ([9925d22](https://github.com/cap-js/cds-dbs/commit/9925d22236846081e1013381f79249ab0f8f9447))
+* query results fixed gaps ([#1625](https://github.com/cap-js/cds-dbs/issues/1625)) ([5d60e7f](https://github.com/cap-js/cds-dbs/commit/5d60e7f15b4f0a9e7859b0662e690a1790b350ad))
+* resolve `$self` in infix filters with path expressions and nested exists ([#1604](https://github.com/cap-js/cds-dbs/issues/1604)) ([baa3528](https://github.com/cap-js/cds-dbs/commit/baa3528aa735cc3707c4c2a128cf6b57feaf913b))
+* resolve nested assoc-into-assoc inline path resolution ([#1602](https://github.com/cap-js/cds-dbs/issues/1602)) ([ec6fba0](https://github.com/cap-js/cds-dbs/commit/ec6fba0597c75bb206c859bea4e50ce61be40b40))
+* we can't return keys for `INSERT.from(SELECT.from(...))` ([#1622](https://github.com/cap-js/cds-dbs/issues/1622)) ([ccc9f88](https://github.com/cap-js/cds-dbs/commit/ccc9f881adc62cbc16f1feef13da7c658b27d551))
+
 ## [2.11.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.10.1...db-service-v2.11.0) (2026-04-29)
 
 
