@@ -643,7 +643,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
         if (col.cast) ret.cast = resolveEnumCastType(col.cast)
         return ret
       }
-      return copy(col)
+      return { ...col }
     }
 
     function handleEmptyColumns(columns) {
@@ -1322,7 +1322,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
         else if (col.xpr) transformedColumn = { xpr: getTransformedTokenStream(col.xpr) }
         else if (col.func) transformedColumn = { args: getTransformedFunctionArgs(col.args), func: col.func }
         // val
-        else transformedColumn = copy(col)
+        else transformedColumn = { ...col }
         if (col.sort) transformedColumn.sort = col.sort
         if (col.nulls) transformedColumn.nulls = col.nulls
         res.push(transformedColumn)
@@ -2014,7 +2014,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
    */
   function getTransformedFrom(from, existingWhere = []) {
     const transformedWhere = []
-    let transformedFrom = copy(from) // REVISIT: too expensive!
+    let transformedFrom = { ...from }
     if (from.$refLinks) defineProperty(transformedFrom, '$refLinks', [...from.$refLinks])
     if (from.args) {
       transformedFrom.args = []
