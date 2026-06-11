@@ -6,7 +6,7 @@ const { expectCqn } = require('../helpers/expectCqn')
 
 let cqn4sql = require('../../../lib/cqn4sql')
 
-describe('Unfolding calculated elements in other places', () => {
+describe('Unfolding calculated elements outside the select list', () => {
   before(async () => {
     const model = await loadModel()
     const orig = cqn4sql
@@ -237,5 +237,38 @@ describe('Unfolding calculated elements in other places', () => {
         ) as authorAlive
       }`
     expectCqn(transformed).to.equal(expected)
+  })
+
+  describe('calculated elements with exists accessed through association', () => {
+    it('accessing parent calc element with exists through association produces correct JOIN', () => {
+      const transformed = cqn4sql(cds.ql`SELECT from existsInCalcElement.Tasks as Tasks { ID, isUserNotMember }`)
+      const expected = cds.ql`
+        SELECT from existsInCalcElement.Tasks as Tasks
+        left join existsInCalcElement.Projects as project on project.ID = Tasks.project_ID
+        {
+          Tasks.ID,
+          (case when (case when not exists (
+            SELECT 1 from existsInCalcElement.Members as $m
+              where $m.project_ID = project.ID
+              and $m.userID = $user.id
+          ) then true else false end) = true then true else false end) as isUserNotMember
+        }`
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('parent calc element with exists directly on entity needs no JOIN', () => {
+      const transformed = cqn4sql(cds.ql`SELECT from existsInCalcElement.Projects as Projects { ID, isUserNotMember }`)
+      const expected = cds.ql`
+        SELECT from existsInCalcElement.Projects as Projects
+        {
+          Projects.ID,
+          (case when not exists (
+            SELECT 1 from existsInCalcElement.Members as $m
+              where $m.project_ID = Projects.ID
+              and $m.userID = $user.id
+          ) then true else false end) as isUserNotMember
+        }`
+      expectCqn(transformed).to.equal(expected)
+    })
   })
 })
