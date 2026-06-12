@@ -6,7 +6,7 @@ const { expectCqn } = require('../helpers/expectCqn')
 
 let cqn4sql = require('../../../lib/cqn4sql')
 
-describe('Unfolding calculated elements outside the select list', () => {
+describe('Unfolding calculated elements - placements (where, from, group by, having, order by, subquery)', () => {
   before(async () => {
     const model = await loadModel()
     const orig = cqn4sql
@@ -80,18 +80,6 @@ describe('Unfolding calculated elements outside the select list', () => {
     expectCqn(transformed).to.equal(expected)
   })
 
-  it('in filter in where exists', () => {
-    const transformed = cqn4sql(cds.ql`SELECT from booksCalc.Authors { ID } where exists books[area < 13]`)
-    const expected = cds.ql`
-      SELECT from booksCalc.Authors as $A { $A.ID }
-      where exists (
-        select 1 from booksCalc.Books as $b where $b.author_ID = $A.ID
-          and ($b.length * $b.width) < 13
-      )
-    `
-    expectCqn(transformed).to.equal(expected)
-  })
-
   it('in group by & having', () => {
     const transformed = cqn4sql(cds.ql`SELECT from booksCalc.Books as Books { ID, sum(price) as tprice }
       group by ctitle having ctitle like 'A%'`)
@@ -114,19 +102,6 @@ describe('Unfolding calculated elements outside the select list', () => {
     expectCqn(transformed).to.equal(expected)
   })
 
-  it('in filter in path in FROM', () => {
-    const transformed = cqn4sql(cds.ql`SELECT from booksCalc.Authors[name like 'A%'].books[storageVolume < 4] { ID }`)
-    const expected = cds.ql`
-      SELECT from booksCalc.Books as $b {
-        $b.ID
-      } where exists (select 1 from booksCalc.Authors as $A
-                        where $A.ID = $b.author_ID
-                          and ($A.firstName || ' ' || $A.lastName) like 'A%')
-                          and ($b.stock * (($b.length * $b.width) * $b.height)) < 4
-    `
-    expectCqn(transformed).to.equal(expected)
-  })
-
   it('in a subquery', () => {
     const transformed = cqn4sql(cds.ql`SELECT from booksCalc.Books as Books {
       ID,
@@ -142,39 +117,6 @@ describe('Unfolding calculated elements outside the select list', () => {
                  = (Books.length * Books.width) + substring(Books.title, 3, Books.stock)
         ) as f
       }`
-    expectCqn(transformed).to.equal(expected)
-  })
-
-  it('in a function, args are join relevant', () => {
-    const transformed = cqn4sql(cds.ql`SELECT from booksCalc.Books as Books {
-      ID,
-      authorAge
-    }`)
-    const expected = cds.ql`
-      SELECT from booksCalc.Books as Books
-        left join booksCalc.Authors as author on author.ID = Books.author_ID
-      {
-        Books.ID,
-        years_between( author.sortCode, author.sortCode ) as authorAge
-      }
-    `
-    expectCqn(transformed).to.equal(expected)
-  })
-
-  it('calculated element has other calc element in infix filter', () => {
-    const transformed = cqn4sql(cds.ql`SELECT from booksCalc.Books as Books {
-      ID,
-      youngAuthorName
-    }`)
-    const expected = cds.ql`
-      SELECT from booksCalc.Books as Books
-        left join booksCalc.Authors as author on author.ID = Books.author_ID
-                  and years_between(author.dateOfBirth, author.dateOfDeath) < 50
-      {
-        Books.ID,
-        author.firstName || ' ' || author.lastName as youngAuthorName
-      }
-    `
     expectCqn(transformed).to.equal(expected)
   })
 
@@ -196,79 +138,5 @@ describe('Unfolding calculated elements outside the select list', () => {
         ) as f
       }`
     expectCqn(transformed).to.equal(expected)
-  })
-
-  it('variable replacements are left untouched in calc element navigation', () => {
-    const transformed = cqn4sql(cds.ql`SELECT from booksCalc.VariableReplacements as VariableReplacements { ID, authorAlive.firstName }`)
-    const expected = cds.ql`
-      SELECT from booksCalc.VariableReplacements as VariableReplacements
-      left join booksCalc.Authors as authorAlive on ( authorAlive.ID = VariableReplacements.author_ID )
-      and ( authorAlive.dateOfBirth <= $now and authorAlive.dateOfDeath >= $now and $user.unknown.foo.bar = 'Bob' )
-      {
-        VariableReplacements.ID,
-        authorAlive.firstName as authorAlive_firstName
-      }`
-    expectCqn(transformed).to.equal(expected)
-  })
-
-  it('variable replacements are left untouched in calc elements via wildcard', () => {
-    const transformed = cqn4sql(cds.ql`SELECT from booksCalc.VariableReplacements as VariableReplacements { * }`)
-    const expected = cds.ql`
-      SELECT from booksCalc.VariableReplacements as VariableReplacements
-      {
-        VariableReplacements.ID,
-        VariableReplacements.author_ID
-      }`
-    expectCqn(transformed).to.equal(expected)
-  })
-
-  it('with expand', () => {
-    const transformed = cqn4sql(cds.ql`SELECT from booksCalc.VariableReplacements as VariableReplacements { ID, authorAlive { ID }  }`)
-    const expected = cds.ql`
-      SELECT from booksCalc.VariableReplacements as VariableReplacements {
-        VariableReplacements.ID,
-        (
-          SELECT from booksCalc.Authors as $a
-          {
-            $a.ID,
-          }
-          where ($a.ID = VariableReplacements.author_ID)
-          and ( $a.dateOfBirth <= $now and $a.dateOfDeath >= $now and $user.unknown.foo.bar = 'Bob' )
-        ) as authorAlive
-      }`
-    expectCqn(transformed).to.equal(expected)
-  })
-
-  describe('calculated elements with exists accessed through association', () => {
-    it('accessing parent calc element with exists through association produces correct JOIN', () => {
-      const transformed = cqn4sql(cds.ql`SELECT from existsInCalcElement.Tasks as Tasks { ID, isUserNotMember }`)
-      const expected = cds.ql`
-        SELECT from existsInCalcElement.Tasks as Tasks
-        left join existsInCalcElement.Projects as project on project.ID = Tasks.project_ID
-        {
-          Tasks.ID,
-          (case when (case when not exists (
-            SELECT 1 from existsInCalcElement.Members as $m
-              where $m.project_ID = project.ID
-              and $m.userID = $user.id
-          ) then true else false end) = true then true else false end) as isUserNotMember
-        }`
-      expectCqn(transformed).to.equal(expected)
-    })
-
-    it('parent calc element with exists directly on entity needs no JOIN', () => {
-      const transformed = cqn4sql(cds.ql`SELECT from existsInCalcElement.Projects as Projects { ID, isUserNotMember }`)
-      const expected = cds.ql`
-        SELECT from existsInCalcElement.Projects as Projects
-        {
-          Projects.ID,
-          (case when not exists (
-            SELECT 1 from existsInCalcElement.Members as $m
-              where $m.project_ID = Projects.ID
-              and $m.userID = $user.id
-          ) then true else false end) as isUserNotMember
-        }`
-      expectCqn(transformed).to.equal(expected)
-    })
   })
 })
