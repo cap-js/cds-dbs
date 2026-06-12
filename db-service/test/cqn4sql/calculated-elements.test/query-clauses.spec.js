@@ -6,7 +6,7 @@ const { expectCqn } = require('../helpers/expectCqn')
 
 let cqn4sql = require('../../../lib/cqn4sql')
 
-describe('Unfolding calculated elements - placements (where, from, group by, having, order by, subquery)', () => {
+describe('Unfolding calculated elements - query clauses (where, from, group by, having, order by, subquery)', () => {
   before(async () => {
     const model = await loadModel()
     const orig = cqn4sql
