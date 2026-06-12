@@ -65,7 +65,7 @@ class HANAService extends SQLService {
           return dbc
         } catch (err) {
           if (isMultitenant) {
-            if (cds.requires.db?.pool?.builtin || cds.env.features.pool === 'builtin') {
+            if (cds.requires.db?.pool?.builtin !== false && cds.env.features.pool !== 'generic-pool') {
               if (err.status === 404 || err.status === 429) {
                 throw new Error(`Pool failed connecting to '${tenant}'`, { cause: err })
               }
