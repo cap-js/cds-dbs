@@ -2,6 +2,7 @@
   "plugins": [
     "node-workspace"
   ],
+  "pull-request-title-pattern": "chore(v2): release downport",
   "packages": {
     "db-service": {},
     "sqlite": {},
