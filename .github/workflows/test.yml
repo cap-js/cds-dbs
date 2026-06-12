@@ -2,11 +2,11 @@ name: Tests
 
 on:
   push:
-    branches: [main]
+    branches: [release/v2]
   pull_request:
     types: [opened, synchronize, reopened, auto_merge_enabled]
 
-# Allow parallel jobs on `main`, so that each commit is tested. For PRs, run only the latest commit.
+# Allow parallel jobs on `release/v2`, so that each commit is tested. For PRs, run only the latest commit.
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
@@ -20,7 +20,6 @@ jobs:
       packages: write
 
     env:
-      cds_features_pool: true # TODO: make it work with Postgres test setup
       FORCE_COLOR: true
 
     strategy:
@@ -29,14 +28,13 @@ jobs:
         node: [22]
 
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: ${{ matrix.node }}
           cache: 'npm'
       - run: npm ci
       - run: npm install -g @sap/cds-dk
-      - run: npm ci
       - run: npm run lint
       - id: hxe
         uses: ./.github/actions/hxe
@@ -47,10 +45,10 @@ jobs:
         env:
           TAG: ${{ steps.hxe.outputs.TAG }}
           IMAGE_ID: ${{ steps.hxe.outputs.IMAGE_ID }}
-      - name: sqlite driver (node:sqlite)
+      - name: sqlite driver (better-sqlite3))
         run: npm test -w sqlite
         env:
-          CDS_REQUIRES_DB_DRIVER: 'node'
+          CDS_REQUIRES_DB_DRIVER: 'better-sqlite3'
       - name: sqlite driver (sql.js)
         run: npm test -w sqlite
         env:
