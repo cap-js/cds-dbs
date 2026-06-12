@@ -175,8 +175,8 @@ describe('INSERT', () => {
         .from(cds.ql`SELECT id || '-' || default as ID FROM ${keys} WHERE id = ${1}`)
       const select = await SELECT.from(cuid).orderBy('ID')
       expect(select).deep.eq([
-        {ID:'1-defaulted'},
-        {ID:'1-overwritten'},
+        { ID: '1-defaulted' },
+        { ID: '1-overwritten' },
       ])
     })
 
@@ -193,6 +193,49 @@ describe('INSERT', () => {
         )
       const select = await SELECT.from(Alter).where('number = 42')
       expect(select[0]).to.eql({ ID: 1, number: 42, order_ID: null })
+    })
+
+    test('defaults', async () => {
+      const { cuid, keys, default: _default } = cds.entities('basic.common')
+
+      // fill other table first
+      const ID = '1234'
+      await cds.run(INSERT([{ ID }]).into(cuid))
+      await INSERT.into(keys).from(cds.ql`SELECT cast(ID as Integer) as id FROM ${cuid} WHERE ID = ${ID}`)
+      await INSERT.into(keys).from(cds.ql`SELECT cast(ID as Integer) as id, 'overwritten' as default FROM ${cuid} WHERE ID = ${ID}`)
+
+      // default key column
+      const select = await SELECT.from(keys).where`id = ${ID}`.orderBy('default')
+      expect(select).deep.eq([
+        { id: 1234, default: 'defaulted', data: null },
+        { id: 1234, default: 'overwritten', data: null },
+      ])
+
+      // default column
+      await INSERT.into(_default).from(cds.ql`SELECT ID FROM ${cuid} WHERE ID = ${ID}`)
+      const defaultInsert = await SELECT.from(_default).where`ID = ${ID}`
+      expect(defaultInsert).deep.eq([{
+        ID,
+        uuidDflt: '00000000-0000-0000-4000-000000000000',
+        bool: false,
+        integer8: 8,
+        integer16: 9,
+        integer32: 10,
+        integer64: '11',
+        double: 1.1,
+        float: '1.1',
+        decimal: '1.1111',
+        string: 'default',
+        char: 'd',
+        short: 'default',
+        medium: 'default',
+        large: 'default',
+        date: '1970-01-01',
+        date_lit: '2021-05-05',
+        time: '01:02:03',
+        dateTime: '1970-01-01T01:02:03Z',
+        timestamp: '1970-01-01T01:02:03.123Z',
+      }])
     })
   })
 

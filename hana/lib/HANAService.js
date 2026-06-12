@@ -893,12 +893,12 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
       } else {
         const src = this.cqn4sql(UPSERT.from || UPSERT.as)
         if (this.values) this.values = []
-        const aliasedQuery = cds.ql.SELECT
-          .columns(src.SELECT.columns
-            .map((c, i) => ({ ref: [this.column_name(c)], as: this.columns[i] }))
-          )
-          .from(src)
-        sql = `SELECT ${mixing} FROM (${this.SELECT(aliasedQuery)}) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+        const aliasedQuery = `SELECT ${[
+          ...src.SELECT.columns.map((c, i) => this.column_expr({ ref: [this.column_name(c)], as: this.columns[i] })),
+          ...managed.slice(src.SELECT.columns.length).map(c => `${elements[c.name].key ? c.onInsert : 'NULL'} AS ${this.quote(c.name)}`), // fill in missing default values
+        ]} FROM (${this.SELECT(src)})`
+
+        sql = `SELECT ${mixing} FROM (${aliasedQuery}) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
         this.entries = [this.values]
       }
 
@@ -1206,7 +1206,9 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     }
 
     managed_default(name, managed, src) {
-      return `(CASE WHEN ${this.quote('$.' + name)} IS NULL THEN ${managed} ELSE ${src} END)`
+      const { UPSERT, INSERT } = this.cqn
+      const isJson = INSERT?.entries || UPSERT?.entries || INSERT?.rows || UPSERT?.rows
+      return `(CASE WHEN ${isJson ? this.quote('$.' + name) : `NEW.${this.quote(name)}`} IS NULL THEN ${managed} ELSE ${src} END)`
     }
 
     render_with() {

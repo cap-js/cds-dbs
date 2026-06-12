@@ -125,6 +125,26 @@ describe('Managed thingies', () => {
     expect(updateTime).to.be.greaterThan(insertTime)
   })
 
+  test('INSERT.into().from(SELECT) applies managed and default values', async () => {
+    await INSERT.into('test.foo').entries({ ID: 99, defaultValue: 50 })
+
+    // INSERT.from(SELECT) with only a subset of columns
+    await INSERT.into('test.foo').from(
+      cds.ql`SELECT ID + 900 as ID from test.foo where ID = 99`,
+    )
+
+    const result = await SELECT.from('test.foo').where({ ID: 999 })
+    expect(result).to.have.length(1)
+    expect(result[0]).to.containSubset({
+      ID: 999,
+      defaultValue: 100, // default applied, not carried over from source
+      createdBy: 'anonymous',
+      modifiedBy: 'anonymous',
+    })
+    expect(result[0].createdAt).to.be.a('string')
+    expect(result[0].modifiedAt).to.be.a('string')
+  })
+
   test('managed attributes are shared within a transaction', async () => {
     const db = await cds.connect.to('db')
     const tx = db.tx({ user: { id: 'tom' } })
