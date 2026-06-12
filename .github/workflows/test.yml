@@ -45,10 +45,10 @@ jobs:
         env:
           TAG: ${{ steps.hxe.outputs.TAG }}
           IMAGE_ID: ${{ steps.hxe.outputs.IMAGE_ID }}
-      - name: sqlite driver (better-sqlite3))
+      - name: sqlite driver (node:sqlite))
         run: npm test -w sqlite
         env:
-          CDS_REQUIRES_DB_DRIVER: 'better-sqlite3'
+          CDS_REQUIRES_DB_DRIVER: 'node'
       - name: sqlite driver (sql.js)
         run: npm test -w sqlite
         env:
