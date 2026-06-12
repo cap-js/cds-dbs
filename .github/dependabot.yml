@@ -1,0 +1,40 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directories:
+      - /
+      - /db-service
+      - /sqlite
+      - /postgres
+      - /hana
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 3
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+      dependencies-major:
+        patterns:
+          - "*"
+        update-types:
+          - major
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 3
+    ignore:
+      - dependency-name: saplabs/hanaexpress
+      - dependency-name: amannn/action-semantic-pull-request
+      - dependency-name: martinbeentjes/npm-get-version-action
+    groups:
+      github-actions:
+        patterns:
+          - "*"
