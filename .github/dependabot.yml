@@ -33,7 +33,6 @@ updates:
     ignore:
       - dependency-name: saplabs/hanaexpress
       - dependency-name: amannn/action-semantic-pull-request
-      - dependency-name: martinbeentjes/npm-get-version-action
     groups:
       github-actions:
         patterns:
