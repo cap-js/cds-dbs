@@ -5,6 +5,8 @@ const crypto = require('crypto')
 const { Writable, Readable } = require('stream')
 const sessionVariableMap = require('./session.json')
 
+const LOG = cds.log('sql|db')
+
 class PostgresService extends SQLService {
   init() {
     if (!this.options.independentDeploy) {
@@ -18,10 +20,12 @@ class PostgresService extends SQLService {
   }
 
   get factory() {
+    const service = this
+    const maxRetries = 3
     return {
       options: this.options.pool || {},
-      create: async () => {
-        const { credentials: cr = {}, client: clientOptions = {} } = this.options
+      create: async function create(tenant, attempt = 1) {
+        const { credentials: cr = {}, client: clientOptions = {} } = service.options
         const credentials = {
           // Cloud Foundry provides the user in the field username the pg npm module expects user
           user: cr.username || cr.user,
@@ -42,11 +46,17 @@ class PostgresService extends SQLService {
               ca: cr.sslrootcert,
             }),
         }
-        const dbc = new Client({ ...credentials, ...clientOptions })
-        await dbc.connect()
-        dbc.open = true
-        dbc.on('end', () => { dbc.open = false })
-        return dbc
+        try {
+          const dbc = new Client({ ...credentials, ...clientOptions })
+          await dbc.connect()
+          dbc.open = true
+          dbc.on('end', () => { dbc.open = false })
+          return dbc
+        } catch (err) {
+          if (attempt >= maxRetries) throw err
+          LOG.debug('connection failed:', err, '- retrying attempt', attempt, 'of', maxRetries)
+          return create(tenant, attempt + 1)
+        }
       },
       destroy: dbc => dbc.end(),
       validate: dbc => dbc.open,
