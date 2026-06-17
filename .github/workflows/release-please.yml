@@ -13,8 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: npm
     steps:
-      # v4.4.0
-      - uses: googleapis/release-please-action@8bb7a2ed0f90c9802c83129a9488d235a1f31a7c
+      # v5.0.0
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7
         id: release
         with:
           token: ${{secrets.CDS_DBS_TOKEN}}
