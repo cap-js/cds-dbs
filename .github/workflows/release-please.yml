@@ -20,6 +20,7 @@ jobs:
         id: release
         with:
           token: ${{ github.token }}
+          target-branch: release/v2
 
   publish:
     needs: release-please
