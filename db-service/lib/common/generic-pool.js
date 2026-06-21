@@ -1,7 +1,7 @@
 const cds = require('@sap/cds')
 const LOG = cds.log('db')
 
-const use_new_pool = cds.requires.db?.pool?.builtin === false || cds.env.features.pool === 'generic-pool' ? false : true
+const use_new_pool = !cds.env.features.use_generic_pool
 const createPool = use_new_pool ? (...args) => new Pool(...args) : require('generic-pool').createPool
 
 function ConnectionPool (factory, tenant) {

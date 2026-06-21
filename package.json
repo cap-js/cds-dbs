@@ -11,7 +11,7 @@
   ],
   "devDependencies": {
     "@cap-js/cds-test": "^1.0.1",
-    "better-sqlite3": "^12.0.0",
+    "better-sqlite3": "^12.11.1",
     "sql.js": "^1.13.0"
   },
   "overrides": {
