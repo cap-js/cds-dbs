@@ -4,6 +4,20 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.0.1](https://github.com/cap-js/cds-dbs/compare/postgres-v3.0.0...postgres-v3.0.1) (2026-06-21)
+
+
+### Fixed
+
+* transient retries before invalidating credentials in built-in connection pool ([#1646](https://github.com/cap-js/cds-dbs/issues/1646)) ([9833ecf](https://github.com/cap-js/cds-dbs/commit/9833ecf954923109a427b2077d3731aa41800071))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^3.0.0 to ^3.0.1
+
 ## [3.0.0](https://github.com/cap-js/cds-dbs/compare/postgres-v2.3.0...postgres-v3.0.0) (2026-06-01)
 
 
