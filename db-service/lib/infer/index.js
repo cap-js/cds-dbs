@@ -453,7 +453,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
           arg.$refLinks.push({ definition: pseudos.elements[id], target: pseudos })
           pseudoPath = true // only first path step must be well defined
           nameSegments.push(id)
-        } else if ($baseLink) {
+        } else if ($baseLink && !firstStepIsSelf) {
           const { definition, target } = $baseLink
           const elements = getDefinition(definition.target)?.elements || definition.elements
           if (elements && id in elements) {
@@ -484,7 +484,15 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
             target: getDefinitionFromSources(sources, id),
           })
         } else if (firstStepIsSelf) {
-          arg.$refLinks.push({ definition: { elements: queryElements }, target: { elements: queryElements } })
+          const nextStep = arg.ref[1]?.id || arg.ref[1]
+          let elements = queryElements
+          if (nextStep && (!queryElements || !(nextStep in queryElements)) && inferred.outerQueries) {
+            const outerQuery = inferred.outerQueries[0]
+            if (outerQuery?.elements && nextStep in outerQuery.elements) {
+              elements = outerQuery.elements
+            }
+          }
+          arg.$refLinks.push({ definition: { elements }, target: { elements } })
         } else if (arg.ref.length > 1 && inferred.outerQueries?.find(outer => id in outer.sources)) {
           // outer query accessed via alias
           const outerAlias = inferred.outerQueries.find(outer => id in outer.sources)
