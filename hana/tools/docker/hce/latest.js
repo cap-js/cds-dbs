@@ -5,7 +5,7 @@ const host = 'repositories.cloud.sap'
 
 const hasAccess = () => {
   dns.lookup(host, { all: true }, (err, res) => {
-    if (err || res.length < 4) return process.exit(1)
+    if (err) return process.exit(1)
     fetchLatest()
   })
 }
