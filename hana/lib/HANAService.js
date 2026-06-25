@@ -261,8 +261,8 @@ class HANAService extends SQLService {
       if (q.SELECT.expand === 'root') {
         return `${sql} FOR JSON ('omitnull'='no','binary_encoding'='base64') RETURNS NVARCHAR(2147483647)`
       }
-      const one = q.element.is2one
-      return `${one ? 'JSON_QUERY((' : ''}${sql} FOR JSON ('omitnull'='no','binary_encoding'='base64') RETURNS JSON${one ? "),'$[0]' RETURNING JSON)" : ''}`
+      const one = q.element.is2one // TODO: double check support of 'arraywrap' with RETURNS JSON to always return an Array or single Object
+      return `${one ? 'JSON_QUERY((' : 'COALESCE(('}${sql} FOR JSON ('omitnull'='no','binary_encoding'='base64') RETURNS JSON${one ? "),'$[0]' RETURNING JSON)" : `), JSON_QUERY('[]', '$' RETURNING JSON))`}`
     }
 
     SELECT_count(q) {
