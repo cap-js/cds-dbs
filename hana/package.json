@@ -20,7 +20,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "test": "(([ -z \"${HANA_HOST}\" ] && npm start) || true) && sh -c 'if [ $# -gt 0 ]; then cds-test -- \"$@\"; else npm run cds-test && npm run test:bookshop:quoted; fi' --",
+    "test": "(([ -z \"${HANA_HOST}\" ] && npm start) || true) && sh -c 'if [ $# -gt 0 ]; then cds-test -- \"$@\"; else cds-test && npm run test:bookshop:quoted; fi' --",
     "test:bookshop:quoted": "cds_sql_names=quoted cds-test bookshop",
     "start": "./tools/hce/start.sh",
     "build": "./tools/hce/build.sh"
