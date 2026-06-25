@@ -42,6 +42,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # testing
       - run: npm test -ws
+        env:
+          HANA_HOST: 'localhost'
       - name: sqlite driver (better-sqlite3))
         run: npm test -w sqlite
         env:
