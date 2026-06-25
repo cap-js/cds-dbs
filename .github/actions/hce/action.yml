@@ -18,7 +18,7 @@ runs:
         GH_TOKEN: ${{ inputs.GITHUB_TOKEN }}
       run: |
         echo "$GH_TOKEN" | docker login ghcr.io -u $ --password-stdin
-        docker run -d --name hana --hostname hcehost -p 30041:30041 "$IMAGE"
+        docker run -d --name hana --hostname buildkitsandbox -p 30041:30041 "$IMAGE"
         docker logs -f hana &
         LOGS_PID=$!
         trap 'kill "$LOGS_PID" 2>/dev/null || true' EXIT
