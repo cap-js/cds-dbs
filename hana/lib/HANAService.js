@@ -156,7 +156,8 @@ class HANAService extends SQLService {
     }
     if (!query._target || query._target._unresolved) return super.onSELECT(req)
 
-    query.SELECT.expand = 'root'
+    const isLockQuery = query.SELECT.forUpdate || query.SELECT.forShareLock
+    if (!isLockQuery) query.SELECT.expand = 'root'
     let { cqn, sql, values } = this.cqn2sql(query, data)
     delete query.SELECT.expand
 
@@ -172,6 +173,29 @@ class HANAService extends SQLService {
     } else {
       rows = await this.exec(sql)
     }
+
+    if (isLockQuery) {
+      // Fetch actual locked results
+      const resultQuery = query.clone()
+      resultQuery.SELECT.forUpdate = undefined
+      resultQuery.SELECT.forShareLock = undefined
+
+      const keys = Object.keys(req.target?.keys || {})
+
+      if (keys.length && query.SELECT.forUpdate?.ignoreLocked) {
+        // Exit early when no row was found in the inital query
+        if (rows.length === 0) return isOne ? undefined : []
+
+        // Filter for those rows that were locked by the initial query
+        const left = { list: keys.map(k => ({ ref: [k] })) }
+        const right = { list: rows.map(r => ({ list: keys.map(k => ({ val: r[k.toUpperCase()] })) })) }
+        resultQuery.SELECT.limit = undefined
+        resultQuery.SELECT.where = [left, 'in', right]
+      }
+
+      return this.onSELECT({ query: resultQuery, __proto__: req })
+    }
+
     if (Array.isArray(rows)) {
       rows = JSON.parse(rows[0]?.JSONRESULT || '[]')
       this._changeToStreams(cqn.SELECT.columns, rows, query.SELECT.one) // TODO: improve for all databases
