@@ -131,63 +131,79 @@ class HDBDriver extends driver {
       const connection = stmt._connection
       const socket = connection._socket
 
-      const ondata = socket._events.data
-      async function* slice(stream) {
+      let ondata
+      async function* slice(queue, stream) {
         // Wait for the connection queue to have arrived at the stream
-        await new Promise(resolve => { connection._queue.push({ run: (next) => { resolve(); next() } }) })
+        await queue
 
+        ondata = socket._events.data
         socket.off('data', ondata) //  take full control over the tcp connection
-
-        let segment
-        let packetLength
-        let packetRead = 0
-        let rssize
-        let streamsize
-        let streamRead = 0
-        const it = stream.iterator({ destroyOnReturn: false })
-        for await (const chunk of it) {
-          let offset = 0
-          packetRead += chunk.length
-          if (packetLength == null) {
-            packetLength = chunk.readUInt32LE(12) + 32
-            offset += 32
-          }
-          if (!segment) { // TODO: double check this is really needed
-            segment = message.Segment.create(chunk.subarray(offset), 0)
-            const rs = segment.parts.at(-1)
-            rssize = rs.buffer?.length ?? 0
-            rs.buffer = null // release buffer memory allocation again
-            offset = segment.parts.reduce((l, c) => l + c.byteLength, 24 + offset)
-          }
-          if (offset < chunk.length && !streamsize) {
-            let length = chunk[offset++]
-            switch (length) {
-              case 0xff:
-                return null
-              case 0xf6:
-                length = chunk.readInt16LE(offset)
-                offset += 2
-                break
-              case 0xf7:
-                length = chunk.readInt32LE(offset)
-                offset += 4
-                break
-              default:
+        try {
+          let segment
+          let packetLength
+          let packetRead = 0
+          let rssize
+          let streamsize
+          let streamRead = 0
+          const it = stream.iterator({ destroyOnReturn: false })
+          for await (const chunk of it) {
+            let offset = 0
+            packetRead += chunk.length
+            if (packetLength == null) {
+              packetLength = chunk.readUInt32LE(12) + 32
+              offset += 32
             }
-            streamsize = length
+
+            if (!segment) { // handle headers
+              function alignLength(length, alignment) {
+                if (length % alignment === 0) return length
+                return length + alignment - length % alignment
+              }
+
+              const parts = chunk.readInt16LE(offset + 8)
+              offset += 24
+              for (let i = 0; i < parts; i++) {
+                offset += alignLength(chunk.readInt32LE(offset + 8), 8) + 16
+              }
+              if (offset <= chunk.length) throw new Error(/HY\d*([\x20-\x7E]+)/.exec(`${chunk}`)[1])
+              segment = true
+            }
+
+            if (offset < chunk.length && !streamsize) {
+              let length = chunk[offset++]
+              switch (length) {
+                case 0xff:
+                  return null
+                case 0xf6:
+                  length = chunk.readInt16LE(offset)
+                  offset += 2
+                  break
+                case 0xf7:
+                  length = chunk.readInt32LE(offset)
+                  offset += 4
+                  break
+                default:
+              }
+              streamsize = length
+            }
+            if (offset < chunk.length && streamsize) {
+              const part = chunk.subarray(offset)
+              streamRead += part.length
+              yield part // iconv.decode(part, 'cesu8')
+            }
+            if (packetRead >= packetLength) break
           }
-          if (offset < chunk.length && streamsize) {
-            const part = chunk.subarray(offset)
-            streamRead += part.length
-            yield part
-          }
-          if (packetRead >= packetLength) break
+          if (!streamRead) yield 'null'
+        } finally {
+          connection._queue.busy = false
+          connection._queue.dequeue()
         }
-        if (!streamRead) yield 'null'
       }
 
-      const stream = Readable.from(slice(socket), { objectMode: false })
-      stmt.execute(values || [], (err, res) => {
+      const stream = Readable.from(slice(new Promise(resolve => {
+        connection._queue.push({ run: (next) => { resolve(); next() } })
+      }), socket), { objectMode: false })
+      stmt.exec(values || [], (err, res) => {
         if (err) { return }
         res.close()
       })

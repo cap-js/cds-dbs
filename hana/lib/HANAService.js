@@ -172,7 +172,10 @@ class HANAService extends SQLService {
     } else {
       rows = await this.exec(sql)
     }
-    if (Array.isArray(rows)) rows = JSON.parse(rows[0]?.JSONRESULT || '[]')
+    if (Array.isArray(rows)) {
+      rows = JSON.parse(rows[0]?.JSONRESULT || '[]')
+      this._changeToStreams(cqn.SELECT.columns, rows, query.SELECT.one) // TODO: improve for all databases
+    }
 
     if (cqn.SELECT.count) {
       // REVISIT: the runtime always expects that the count is preserved with .map, required for renaming in mocks
@@ -256,10 +259,10 @@ class HANAService extends SQLService {
 
     SELECT_expand(q, sql) {
       if (q.SELECT.expand === 'root') {
-        return `${sql} FOR JSON ('omitnull'='no','binary_encoding'= 'base64') RETURNS NVARCHAR(2147483647)`
+        return `${sql} FOR JSON ('omitnull'='no','binary_encoding'='base64') RETURNS NVARCHAR(2147483647)`
       }
       const one = q.element.is2one
-      return `${one ? 'JSON_QUERY((' : ''}${sql} FOR JSON ('omitnull'='no','binary_encoding'= 'base64') RETURNS JSON${one ? "),'$[0]' RETURNING JSON)" : ''}`
+      return `${one ? 'JSON_QUERY((' : ''}${sql} FOR JSON ('omitnull'='no','binary_encoding'='base64') RETURNS JSON${one ? "),'$[0]' RETURNING JSON)" : ''}`
     }
 
     SELECT_count(q) {
@@ -832,7 +835,6 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
       ...super.OutputConverters,
       LargeString: cds.env.features.sql_simple_queries > 0 ? e => `TO_NVARCHAR(${e})` : undefined,
       // REVISIT: binaries should use BASE64_ENCODE, but this results in BASE64_ENCODE(BINTONHEX(${e}))
-      Binary: e => `BINTONHEX(${e})`,
       Date: e => `to_char(${e}, 'YYYY-MM-DD')`,
       Time: e => `to_char(${e}, 'HH24:MI:SS')`,
       DateTime: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`,
