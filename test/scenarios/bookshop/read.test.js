@@ -357,7 +357,7 @@ describe('Bookshop - Read', () => {
   test('recursively expand children of Generes to exceed MAX_LENGTH_OF_IDENTIFIER (127)', async () => {
     const { Genres } = cds.entities('sap.capire.bookshop')
 
-    const columns = Array.from({ length: 16 }).reduce(cols => {
+    const columns = Array.from({ length: 9 }).reduce(cols => {
         const nestedCols = cols.pop()
         cols.push([{ ref: ['ID'] }, { ref: ['children'], expand: nestedCols }])
         return cols

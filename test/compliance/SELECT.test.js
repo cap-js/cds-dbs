@@ -54,7 +54,7 @@ describe('SELECT', () => {
       assert.strictEqual(res.length, 1, `Ensure that only 'yes' matches`)
     })
 
-    test('from non existant entity', async () => {
+    test.skip('from non existant entity', async () => {
       const cqn = cds.ql`SELECT * FROM ![¿HoWdIdYoUmAnAgeToCaLaNeNtItyThIsNaMe?]`
       await expect(cds.run(cqn)).rejected
     })

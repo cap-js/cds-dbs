@@ -14,7 +14,7 @@ const hanaKeywords = keywords.reduce((prev, curr) => {
   return prev
 }, {})
 
-const DEBUG = cds.debug('sql|db')
+const LOG = cds.log('sql|db'), DEBUG = cds.debug('sql|db')
 const SYSTEM_VERSIONED = '@hana.systemversioned'
 
 /**
@@ -50,7 +50,6 @@ class HANAService extends SQLService {
       try {
         const dbc = new driver({ ...service.options.credentials, ...clientOptions })
         await dbc.connect()
-        service.server.major = dbc.server.major || service.server.major
         return dbc
       } catch (err) {
         if (err.code === 10) return // authentication error, see error handler below
@@ -69,7 +68,6 @@ class HANAService extends SQLService {
         credentials = smTenant.credentials
         const dbc = new driver({ ...credentials, ...clientOptions })
         await dbc.connect()
-        service.server.major = dbc.server.major || service.server.major
         return dbc
       } catch (err) {
         if (!cds.env.features.use_generic_pool) {

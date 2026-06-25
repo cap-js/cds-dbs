@@ -1,0 +1,22 @@
+name: 'Start HANA'
+description: 'Starts a pre-initialized HANA container for isolated testing'
+inputs:
+  GITHUB_TOKEN:
+    description: 'Token used to pull from ghcr.io'
+    required: true
+  image:
+    description: 'Image reference to pull and run'
+    required: false
+    default: 'ghcr.io/cap-js/hana:latest'
+runs:
+  using: "composite"
+  steps:
+    - name: Start HANA
+      shell: bash
+      env:
+        IMAGE: ${{ inputs.image }}
+        GH_TOKEN: ${{ inputs.GITHUB_TOKEN }}
+      run: |
+        echo "$GH_TOKEN" | docker login ghcr.io -u $ --password-stdin
+        docker run -d --name hana --restart always --hostname hcehost -p 30041:30041 "$IMAGE"
+        until docker exec hana ./check_hana_health >/dev/null 2>&1; do sleep 10; done
