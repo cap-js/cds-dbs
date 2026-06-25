@@ -10,16 +10,6 @@ const { driver, prom, handleLevel } = require('./base')
 const { resultSetStream } = require('./stream')
 const { wrap_client } = require('./dynatrace')
 
-if (cds.env.features.sql_simple_queries === 3) {
-  // Make hdb return true / false
-  const Reader = require('hdb/lib/protocol/Reader.js')
-  Reader.prototype._readTinyInt = Reader.prototype.readTinyInt
-  Reader.prototype.readTinyInt = function () {
-    const ret = this._readTinyInt()
-    return ret == null ? ret : !!ret
-  }
-}
-
 const credentialMappings = [
   { old: 'certificate', new: 'ca' },
   { old: 'encrypt', new: 'useTLS' },
