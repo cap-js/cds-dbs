@@ -285,11 +285,6 @@ class HANAService extends SQLService {
         : this.expr(c)
     }
 
-    having(xpr, q) {
-      // TODO: make sure it works with output columns
-      return this.xpr({ xpr })
-    }
-
     groupBy(clause, q) {
       return clause.map(q.SELECT.expand
         ? c => this.hasStrictRef(c, q)
@@ -492,6 +487,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     }
 
     having(xpr) {
+      // TODO: make sure it works with output columns
       return this.where(xpr)
     }
 
