@@ -14,7 +14,7 @@ const hanaKeywords = keywords.reduce((prev, curr) => {
   return prev
 }, {})
 
-const DEBUG = cds.debug('sql|db')
+const LOG = cds.log('sql|db'), DEBUG = cds.debug('sql|db')
 const SYSTEM_VERSIONED = '@hana.systemversioned'
 
 /**
@@ -50,47 +50,68 @@ class HANAService extends SQLService {
     }
     const isMultitenant = !!service.options.credentials.sm_url || !!service.options.credentials.baseurl || ('multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy)
     const acquireTimeoutMillis = this.options.pool?.acquireTimeoutMillis || (cds.env.profiles.includes('production') ? 1000 : 10000)
+    const maxRetries = 3
+
+    async function createSingleTenant(tenant, attempt = 1) {
+      try {
+        const dbc = new driver({ ...service.options.credentials, ...clientOptions })
+        await dbc.connect()
+        service.server.major = dbc.server.major || service.server.major
+        return dbc
+      } catch (err) {
+        if (err.code === 10) return // authentication error, see error handler below
+        if (attempt < maxRetries) {
+          LOG.debug('connection failed:', err, '- retrying attempt', attempt, 'of', maxRetries)
+          return createSingleTenant(tenant, attempt + 1)
+        }
+        throw err
+      }
+    }
+
+    async function createMultiTenant(tenant, start = Date.now(), attempt = 1) {
+      let credentials
+      try {
+        const smTenant = await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: false })
+        credentials = smTenant.credentials
+        const dbc = new driver({ ...credentials, ...clientOptions })
+        await dbc.connect()
+        service.server.major = dbc.server.major || service.server.major
+        return dbc
+      } catch (err) {
+        if (!cds.env.features.use_generic_pool) {
+          if (err.status === 404 || err.status === 429) {
+            throw new Error(`Pool failed connecting to '${tenant}'`, { cause: err })
+          }
+          const deadline = start + acquireTimeoutMillis
+          if (attempt <= maxRetries && Date.now() < deadline) {
+            // Retry transient connection failures before invalidating credentials
+            LOG.debug('connection failed:', err, '- retrying attempt', attempt, 'of', maxRetries)
+            return createMultiTenant(tenant, start, attempt + 1)
+          }
+          try {
+            await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { invalidCredentials: credentials, retryUntil: deadline })
+          } catch (smErr) {
+            smErr.cause = err
+            throw new Error(`Failed connecting to pool - could not get valid credentials from Service Manager`, { cause: smErr })
+          }
+          if (Date.now() < deadline) return createMultiTenant(tenant, start)
+          else throw new Error(`Pool exceeded for '${tenant}' within ${acquireTimeoutMillis}ms`, { cause: err })
+        } else {
+          // Stop trying when the tenant does not exist or is rate limited
+          if (err.status == 404 || err.status == 429) {
+            return new Promise(function (_, reject) { // break retry loop for generic-pool
+              setTimeout(() => reject(err), acquireTimeoutMillis)
+            })
+          }
+          await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true })
+          throw new Error(`Pool failed connecting to'${tenant}'`, { cause: err }) // generic-pool will retry on errors
+        }
+      }
+    }
+
     return {
       options: this.options.pool || {},
-      create: async function create(tenant, start = Date.now()) {
-        let credentials
-        try {
-          const smTenant = isMultitenant
-            ? await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: false })
-            : service.options
-          credentials = smTenant.credentials
-          const dbc = new driver({ ...credentials, ...clientOptions })
-          await dbc.connect()
-          service.server.major = dbc.server.major || service.server.major
-          return dbc
-        } catch (err) {
-          if (isMultitenant) {
-            if (cds.requires.db?.pool?.builtin || cds.env.features.pool === 'builtin') {
-              if (err.status === 404 || err.status === 429) {
-                throw new Error(`Pool failed connecting to '${tenant}'`, { cause: err })
-              }
-              const deadline = start + acquireTimeoutMillis
-              try {
-                await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true, invalidCredentials: credentials, retryUntil: deadline })
-              } catch (smErr) {
-                smErr.cause = err
-                throw new Error(`Failed connecting to pool - could not get valid credentials from Service Manager`, { cause: smErr })
-              }
-              if (Date.now() < deadline) return create(tenant, start)
-              else throw new Error(`Pool exceeded for '${tenant}' within ${acquireTimeoutMillis}ms`, { cause: err })
-            } else {
-              // Stop trying when the tenant does not exist or is rate limited
-              if (err.status == 404 || err.status == 429) {
-                return new Promise(function (_, reject) { // break retry loop for generic-pool
-                  setTimeout(() => reject(err), acquireTimeoutMillis)
-                })
-              }
-              await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true })
-              throw new Error(`Pool failed connecting to'${tenant}'`, { cause: err }) // generic-pool will retry on errors
-            }
-          } else if (err.code !== 10) throw err
-        }
-      },
+      create: isMultitenant ? createMultiTenant : createSingleTenant,
       error: (err /*, tenant*/) => {
         // Check whether the connection error was an authentication error
         if (err.code === 10) {
