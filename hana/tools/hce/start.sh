@@ -26,6 +26,6 @@ else
     echo "hana image not found";
     exit 1;
   fi
-  ./start.sh;
+  ./start.sh "$@";
 fi
 
