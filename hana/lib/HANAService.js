@@ -320,7 +320,7 @@ class HANAService extends SQLService {
 
     // TODO: order by has a conflict with the output converter order causing incorrect sorting results
     orderBy(orderBy, localized, q) {
-      const expr = q.SELECT.expand
+      const expr = q?.SELECT?.expand
         ? c => this.hasStrictRef(c, q)
         : c => this.expr(c)
       return orderBy.map(c => {
