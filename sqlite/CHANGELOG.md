@@ -4,6 +4,34 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.0.1](https://github.com/cap-js/cds-dbs/compare/sqlite-v3.0.0...sqlite-v3.0.1) (2026-06-29)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^3.0.0 to ^3.0.1
+
+## [3.0.0](https://github.com/cap-js/cds-dbs/compare/sqlite-v2.4.0...sqlite-v3.0.0) (2026-06-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* require cds10 ([#1628](https://github.com/cap-js/cds-dbs/issues/1628))
+
+### Added
+
+* require cds10 ([#1628](https://github.com/cap-js/cds-dbs/issues/1628)) ([93e8305](https://github.com/cap-js/cds-dbs/commit/93e83053679f9ef94293caa08917855404db880d))
+* **sqlite:** use node:sqlite as default driver ([#1598](https://github.com/cap-js/cds-dbs/issues/1598)) ([b386996](https://github.com/cap-js/cds-dbs/commit/b3869961640543d55f39cc27620a4396fb7924d1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.11.0 to ^3.0.0
+
 ## [2.4.0](https://github.com/cap-js/cds-dbs/compare/sqlite-v2.3.0...sqlite-v2.4.0) (2026-04-29)
 
 

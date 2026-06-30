@@ -643,7 +643,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
         if (col.cast) ret.cast = resolveEnumCastType(col.cast)
         return ret
       }
-      return copy(col)
+      return { ...col }
     }
 
     function handleEmptyColumns(columns) {
@@ -1322,7 +1322,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
         else if (col.xpr) transformedColumn = { xpr: getTransformedTokenStream(col.xpr) }
         else if (col.func) transformedColumn = { args: getTransformedFunctionArgs(col.args), func: col.func }
         // val
-        else transformedColumn = copy(col)
+        else transformedColumn = { ...col }
         if (col.sort) transformedColumn.sort = col.sort
         if (col.nulls) transformedColumn.nulls = col.nulls
         res.push(transformedColumn)
@@ -1812,7 +1812,8 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
           // reject virtual elements in expressions as they will lead to a sql error down the line
           if (lhsDef?.virtual) throw new Error(`Virtual elements are not allowed in expressions`)
 
-          let result = is_regexp(token?.val) ? token : copy(token) // REVISIT: too expensive! //
+          let result = typeof token !== 'object' || is_regexp(token?.val) ? token : { ...token }
+          if (typeof token === 'object' && 'val' in token && 'param' in token) Object.defineProperty(result, 'param', { value: token.param })
           if (token.ref) {
             const { definition } = token.$refLinks.at(-1)
             // Add definition to result
@@ -1823,6 +1824,16 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
               continue
             }
             if (token.ref.length > 1 && token.ref[0] === '$self' && !token.$refLinks[0].definition.kind) {
+              if (inferred.outerQueries) {
+                const outerQuery = inferred.outerQueries[0]
+                const stepToFind = token.ref[1]?.id || token.ref[1]
+                const outerAlias = outerQuery.$combinedElements?.[stepToFind]?.[0].index
+                if (outerAlias) {
+                  result.ref = [outerAlias, token.flatName]
+                  transformedTokenStream.push(result)
+                  continue
+                }
+              }
               const dollarSelfReplacement = [calculateDollarSelfColumn(token, true)]
               transformedTokenStream.push(...getTransformedTokenStream(dollarSelfReplacement))
               continue
@@ -2003,7 +2014,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
    */
   function getTransformedFrom(from, existingWhere = []) {
     const transformedWhere = []
-    let transformedFrom = copy(from) // REVISIT: too expensive!
+    let transformedFrom = { ...from }
     if (from.$refLinks) defineProperty(transformedFrom, '$refLinks', [...from.$refLinks])
     if (from.args) {
       transformedFrom.args = []

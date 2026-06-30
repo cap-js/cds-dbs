@@ -6,6 +6,8 @@ using from './A2J/TargetSideReferences';
 using from './cap_issue';
 using from './collaborations';
 using from './enums';
+using from './existsInCalcElement';
+using from './inlineAssoc';
 using from './keyless';
 using from './nestedProjections';
 using from './update';

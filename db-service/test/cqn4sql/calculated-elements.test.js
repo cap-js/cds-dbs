@@ -3,6 +3,8 @@
 const cqn4sql = require('../../lib/cqn4sql')
 const cds = require('@sap/cds')
 const { expect } = cds.test
+const { loadModel } = require('./helpers/model')
+const { expectCqn } = require('./helpers/expectCqn')
 
 describe('Unfolding calculated elements in select list', () => {
   let model
@@ -1172,3 +1174,81 @@ describe('Unfolding calculated elements and localized', () => {
   })
 })
 
+describe('calculated elements with exists accessed through association', () => {
+  let model
+  beforeAll(async () => {
+    model = await loadModel()
+  })
+
+  it('accessing parent calc element with exists through association produces correct JOIN', () => {
+    const transformed = cqn4sql(
+      cds.ql`SELECT from existsInCalcElement.Tasks as Tasks { ID, isUserNotMember }`,
+      model,
+    )
+    const expected = cds.ql`SELECT from existsInCalcElement.Tasks as Tasks
+      left join existsInCalcElement.Projects as project on project.ID = Tasks.project_ID
+      {
+        Tasks.ID,
+        (case when (case when not exists (
+          SELECT 1 from existsInCalcElement.Members as $m
+            where $m.project_ID = project.ID
+            and $m.userID = $user.id
+        ) then true else false end) = true then true else false end) as isUserNotMember
+      }`
+    expectCqn(transformed).to.equal(expected)
+  })
+
+  it('parent calc element with exists directly on entity needs no JOIN', () => {
+    const transformed = cqn4sql(
+      cds.ql`SELECT from existsInCalcElement.Projects as Projects { ID, isUserNotMember }`,
+      model,
+    )
+    const expected = cds.ql`SELECT from existsInCalcElement.Projects as Projects
+      {
+        Projects.ID,
+        (case when not exists (
+          SELECT 1 from existsInCalcElement.Members as $m
+            where $m.project_ID = Projects.ID
+            and $m.userID = $user.id
+        ) then true else false end) as isUserNotMember
+      }`
+    expectCqn(transformed).to.equal(expected)
+  })
+})
+
+describe('calculated elements in draft enabled entities', () => {
+  let model
+  beforeAll(async () => {
+    model = cds.model = cds.compile.for.nodejs(await cds.load(__dirname + '/../bookshop/srv/calc-elem-service'))
+  })
+
+  it('keeps param: false for query against active entries', () => {
+    const transformed = cqn4sql(
+      cds.ql`SELECT from CalcService.Orders as Orders { ID, expensive }`,
+      model,
+    )
+    const expected = cds.ql`SELECT from CalcService.Orders as Orders {
+      Orders.ID,
+      case when Orders.amount > 10 then 1 else 0 end as expensive
+    }`
+    expectCqn(transformed).to.equal(expected)
+    expect(transformed.SELECT.columns[1].xpr[4].param).to.be.false
+    expect(transformed.SELECT.columns[1].xpr[6].param).to.be.false
+    expect(transformed.SELECT.columns[1].xpr[8].param).to.be.false
+  })
+
+    it('keeps param: false for query against draft entries', () => {
+    const transformed = cqn4sql(
+      cds.ql`SELECT from CalcService.Orders.drafts as Orders { ID, expensive }`,
+      model,
+    )
+    const expected = cds.ql`SELECT from CalcService.Orders.drafts as Orders {
+      Orders.ID,
+      case when Orders.amount > 10 then 1 else 0 end as expensive
+    }`
+    expectCqn(transformed).to.equal(expected)
+    expect(transformed.SELECT.columns[1].xpr[4].param).to.be.false
+    expect(transformed.SELECT.columns[1].xpr[6].param).to.be.false
+    expect(transformed.SELECT.columns[1].xpr[8].param).to.be.false
+  })
+})
