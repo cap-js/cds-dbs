@@ -4,6 +4,14 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.0.1](https://github.com/cap-js/cds-dbs/compare/db-service-v3.0.0...db-service-v3.0.1) (2026-06-29)
+
+
+### Fixed
+
+* calculated elements in drafts ([#1635](https://github.com/cap-js/cds-dbs/issues/1635)) ([cf42350](https://github.com/cap-js/cds-dbs/commit/cf42350a4a65756773eb877c360c43f27dee0141))
+* consolidated flags to cds.features.use_generic_pool ([#1653](https://github.com/cap-js/cds-dbs/issues/1653)) ([1dc0e61](https://github.com/cap-js/cds-dbs/commit/1dc0e6185c9068a53f454aa8c91b19a48190bbf8))
+
 ## [3.0.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.11.0...db-service-v3.0.0) (2026-06-01)
 
 
