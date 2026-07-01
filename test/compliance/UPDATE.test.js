@@ -119,6 +119,16 @@ describe('UPDATE', () => {
     })
   })
 
+
+  test('Date object for Date field', async () => {
+    const { date } = cds.entities('basic.literals')
+    await UPDATE(date).with({date: new Date("2025-01-02")})
+
+    const result = await SELECT.from(date)
+    expect(result.length).to.eq(1)
+    expect(result[0].date).to.be.equal('2025-01-02')
+  })
+
   describe('where', () => {
     test('flat with or on key', async () => {
       const insert = await cds.run(
