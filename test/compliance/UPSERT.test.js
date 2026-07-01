@@ -62,6 +62,7 @@ describe('UPSERT', () => {
         { id: 1 },
         { id: 1, default: 'overwritten' },
       ]).into(keys)
+
       await UPSERT.into(cuid)
         .columns(['ID'])
         .from(cds.ql`SELECT id || '-' || default as ![something that is not "ID"] FROM ${keys} WHERE id = ${1}`)
@@ -79,6 +80,7 @@ describe('UPSERT', () => {
         { id: 1 },
         { id: 1, default: 'overwritten' },
       ]).into(keys)
+
       await UPSERT.into(cuid)
         .columns(['ID'])
         .from(cds.ql`SELECT id || '-' || default as ![something that is not "ID"] FROM ${keys} WHERE id = ${1}`)
@@ -86,6 +88,47 @@ describe('UPSERT', () => {
       expect(select).deep.eq([
         { ID: '1-defaulted' },
         { ID: '1-overwritten' },
+      ])
+    })
+
+    test('default key', async () => {
+      const { keys } = cds.entities('basic.projection')
+      // fill other table first
+      await UPSERT([
+        { id: 1 },
+        { id: 1, default: 'overwritten' },
+      ]).into(keys)
+      let select
+
+      await UPSERT.into(keys)
+        .columns(['id', 'default'])
+        .from(cds.ql`SELECT 2, default FROM ${keys} WHERE id = ${1}`)
+      select = await SELECT.from(keys).where`id = ${2}`.orderBy('default')
+      expect(select).deep.eq([
+        { id: 2, default: 'defaulted', data: null },
+        { id: 2, default: 'overwritten', data: null },
+      ])
+
+      await UPSERT.into(keys)
+        .columns(['id'])
+        // FYI: default check is required to ensure only a single row is produced for HANA
+        .from(cds.ql`SELECT 3 FROM ${keys} WHERE id = ${1} and default = ${'overwritten'}`)
+      select = await SELECT.from(keys).where`id = ${3}`.orderBy('default')
+      expect(select).deep.eq([
+        { id: 3, default: 'defaulted', data: null },
+      ])
+
+      await UPSERT.into(keys)
+        .columns(['id', 'data'])
+        .from(cds.ql`SELECT 3, count() FROM ${keys} WHERE id = ${1}`)
+        // FYI: only HANA does unique key constraints on the source SELECT result
+        // example: the following query will return 2 rows with their row count
+        // the result for this UPSERT would be undefined behavior (data = 1 or 2)
+        // therefor HANA ensures that all keys of the source SELECT are unique
+        // .from(cds.ql`SELECT 3, row_number() over () FROM ${keys} WHERE id = ${1}`)
+      select = await SELECT.from(keys).where`id = ${3}`.orderBy('default')
+      expect(select).deep.eq([
+        { id: 3, default: 'defaulted', data: '2' },
       ])
     })
   })
