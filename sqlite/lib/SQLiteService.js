@@ -248,6 +248,10 @@ class SQLiteService extends SQLService {
       // ms precision to allow safe comparisons, also to query {val}s in where clauses
       DateTime: e => e === '?' ? e : `ISO(${e})`,
       Timestamp: e => e === '?' ? e : `ISO(${e})`,
+      // Vector inputs are normalized to HANA-compatible binary format
+      // (int32 dim + float32 × dim, little-endian) via the TO_REAL_VECTOR UDF.
+      // Accepts JSON-array strings, Float32Array, plain arrays, or Buffers.
+      Vector: e => `TO_REAL_VECTOR(${e})`,
     }
 
     static OutputConverters = {
@@ -281,6 +285,10 @@ class SQLiteService extends SQLService {
         : undefined,
       // Binary is not allowed in json objects
       Binary: expr => `${expr} || ''`,
+      // Vector: decode binary storage back to JSON-string form. Mirrors HANA's
+      // OutputConverters.Vector = e => `TO_NVARCHAR(${e})` so the app-facing
+      // shape is identical across dialects.
+      Vector: expr => `TO_NVARCHAR(${expr})`,
     }
 
     // Used for SQL function expressions
@@ -290,6 +298,10 @@ class SQLiteService extends SQLService {
     static TypeMap = {
       ...super.TypeMap,
       Binary: e => `BINARY_BLOB(${e.length || 5000})`,
+      // Vector: stored as BLOB. The dimension check happens at the compiler
+      // (`length % 4 == 0`). Actual byte count is `length * 4 + 4` (int32 dim
+      // header + float32 per element) — the compiler already accounts for that.
+      Vector: e => `VARBINARY(${e.length ? e.length * 4 + 4 : 5000})`,
       Date: () => 'DATE_TEXT',
       Time: () => 'TIME_TEXT',
       DateTime: () => 'DATETIME_TEXT',
@@ -306,6 +318,17 @@ class SQLiteService extends SQLService {
     }
 
     static ReservedWords = { ...super.ReservedWords, ...sqliteKeywords }
+
+    // Rewrite `cast(x as cds.Vector)` to `TO_REAL_VECTOR(x)` so that JSON-array
+    // literals get converted to the binary REAL_VECTOR representation. Mirrors
+    // how HANA's CAST(? AS REAL_VECTOR) works — same function name, same effect.
+    expr(x) {
+      if (x?.cast?.type === 'cds.Vector') {
+        const { cast, ...rest } = x
+        return `TO_REAL_VECTOR(${super.expr(rest)})`
+      }
+      return super.expr(x)
+    }
   }
 }
 

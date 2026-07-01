@@ -2,12 +2,7 @@
 
 const cds = require('../../test/cds.js')
 
-// Skip entire suite when no HANA binding is available.
-// Set HANA_HOST (and optionally HANA_USER, HANA_PASSWORD, HANA_PORT) to enable.
-const hasHana = !!process.env.HANA_HOST
-const run = hasHana ? describe : describe.skip
-
-run('Vector round-trip on HANA', () => {
+describe('Vector round-trip on HANA', () => {
   const { expect } = cds.test(__dirname, 'vector.cds')
 
   test('INSERT and SELECT a vector value', async () => {

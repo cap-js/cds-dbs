@@ -118,11 +118,13 @@ describe('SQLite Vector: storage + cosine_similarity', () => {
     const { Books } = cds.entities('test.vector')
     await INSERT.into(Books).entries({ ID: 50, title: 'det', description: 'x', embedding: '[1,0,0,0]' })
 
+    // TO_NVARCHAR converts the binary vector to a JSON string so it can flow
+    // through the SELECT's JSON projection. Mirrors HANA's OutputConverter.
     const [r1] = await SELECT.from(Books)
-      .columns`VECTOR_EMBEDDING('the quick brown fox jumps', 'DOCUMENT', 'test-model') as vec`
+      .columns`TO_NVARCHAR(VECTOR_EMBEDDING('the quick brown fox jumps', 'DOCUMENT', 'test-model')) as vec`
       .where({ ID: 50 })
     const [r2] = await SELECT.from(Books)
-      .columns`VECTOR_EMBEDDING('the quick brown fox jumps', 'DOCUMENT', 'test-model') as vec`
+      .columns`TO_NVARCHAR(VECTOR_EMBEDDING('the quick brown fox jumps', 'DOCUMENT', 'test-model')) as vec`
       .where({ ID: 50 })
 
     assert.strictEqual(r1.vec, r2.vec, 'Same input must produce identical vector strings')
@@ -135,10 +137,10 @@ describe('SQLite Vector: storage + cosine_similarity', () => {
     await INSERT.into(Books).entries({ ID: 51, title: 'diff', description: 'x', embedding: '[1,0,0,0]' })
 
     const [r1] = await SELECT.from(Books)
-      .columns`VECTOR_EMBEDDING('alice in wonderland is great', 'DOCUMENT', 'test-model') as vec`
+      .columns`TO_NVARCHAR(VECTOR_EMBEDDING('alice in wonderland is great', 'DOCUMENT', 'test-model')) as vec`
       .where({ ID: 51 })
     const [r2] = await SELECT.from(Books)
-      .columns`VECTOR_EMBEDDING('bob builds bridges in boston', 'DOCUMENT', 'test-model') as vec`
+      .columns`TO_NVARCHAR(VECTOR_EMBEDDING('bob builds bridges in boston', 'DOCUMENT', 'test-model')) as vec`
       .where({ ID: 51 })
 
     assert.notStrictEqual(r1.vec, r2.vec, 'Different text must produce different vectors')
@@ -149,10 +151,10 @@ describe('SQLite Vector: storage + cosine_similarity', () => {
     await INSERT.into(Books).entries({ ID: 52, title: 'model', description: 'x', embedding: '[1,0,0,0]' })
 
     const [r1] = await SELECT.from(Books)
-      .columns`VECTOR_EMBEDDING('hello world this is a test', 'DOCUMENT', 'model-A') as vec`
+      .columns`TO_NVARCHAR(VECTOR_EMBEDDING('hello world this is a test', 'DOCUMENT', 'model-A')) as vec`
       .where({ ID: 52 })
     const [r2] = await SELECT.from(Books)
-      .columns`VECTOR_EMBEDDING('hello world this is a test', 'DOCUMENT', 'model-B') as vec`
+      .columns`TO_NVARCHAR(VECTOR_EMBEDDING('hello world this is a test', 'DOCUMENT', 'model-B')) as vec`
       .where({ ID: 52 })
 
     assert.notStrictEqual(r1.vec, r2.vec, 'Different model must produce different vectors (model is part of hash seed)')
@@ -167,5 +169,33 @@ describe('SQLite Vector: storage + cosine_similarity', () => {
       .where({ ID: 53 })
 
     assert(Math.abs(res.sim - 1.0) < 0.0001, `Self-similarity should be 1.0, got ${res.sim}`)
+  })
+
+  test('storage is HANA-compatible binary format, not JSON string', async () => {
+    // Use the built-in sqlite driver directly to read the raw BLOB bytes.
+    // The declared cds.Vector(4) column must be stored as exactly 4+4*4=20 bytes:
+    // [int32 dim=4, LE][float32 × 4, LE].
+    const { Books } = cds.entities('test.vector')
+    await INSERT.into(Books).entries({ ID: 60, title: 'binary', description: 'x', embedding: '[0.25, 0.5, 0.75, 1.0]' })
+
+    // Round-trip via the OutputConverter still yields a JSON string
+    const row = await SELECT.one.from(Books).where({ ID: 60 })
+    assert.strictEqual(typeof row.embedding, 'string', 'App-facing shape is still JSON string')
+    const parsed = JSON.parse(row.embedding)
+    assert.strictEqual(parsed.length, 4)
+
+    // Inspect the raw storage bytes via an escape hatch: select length() of the BLOB.
+    // If storage is JSON string ('[0.25, 0.5, 0.75, 1.0]' = 22 chars), length() = 22.
+    // If storage is binary (int32 dim + 4×float32), length() = 20 bytes.
+    const raw = await cds.run({
+      SELECT: {
+        from: { ref: ['test.vector.Books'] },
+        columns: [{ func: 'length', args: [{ ref: ['embedding'] }], as: 'nbytes' }],
+        where: [{ ref: ['ID'] }, '=', { val: 60 }]
+      }
+    })
+    assert.strictEqual(raw[0].nbytes, 20,
+      `Vector(4) must occupy exactly 20 bytes (4 dim + 4×4 f32), got ${raw[0].nbytes}. ` +
+      `A JSON-string storage would be ~22 bytes.`)
   })
 })
