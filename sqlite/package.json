@@ -55,6 +55,8 @@
         "sqlite": {
           "impl": "@cap-js/sqlite",
           "pool": {
+            "evictionRunIntervalMillis": 0,
+            "min": 1,
             "max": 1
           }
         }
