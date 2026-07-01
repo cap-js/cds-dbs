@@ -1,17 +1,15 @@
-let embedding
-try { embedding = require('./semantic-search/embedding.js') } catch { /**/ }
+const DIMENSIONS = 384
 
-module.exports = async function addSQLiteVectorSupport(dbc) {
-  let genVector = generateVector
-  try { await embedding.createSession() } catch { genVector = randomVector }
+let embeddingService = { embedSync: hashEmbed }
 
+module.exports = function addSQLiteVectorSupport(dbc) {
   dbc.function('VECTOR_EMBEDDING', { deterministic: true }, (text, text_type, model_and_version) => {
-    if (text_type !== 'DOCUMENT' && text_type !== 'QUERY') throw Error(`VECOTR_EMBEDDING called but text_type is ${text_type} and not DOCUMENT or QUERY`)
-    return genVector(text, text_type, model_and_version)
+    if (text_type !== 'DOCUMENT' && text_type !== 'QUERY') throw Error(`VECTOR_EMBEDDING called but text_type is ${text_type} and not DOCUMENT or QUERY`)
+    return embed(text, model_and_version)
   })
   dbc.function('VECTOR_EMBEDDING', { deterministic: true }, (text, text_type, model_and_version, remote_source) => {
-    if (text_type !== 'DOCUMENT' && text_type !== 'QUERY') throw Error(`VECOTR_EMBEDDING called for ${remote_source} but text_type is ${text_type} and not DOCUMENT or QUERY`,)
-    return genVector(text, text_type, model_and_version)
+    if (text_type !== 'DOCUMENT' && text_type !== 'QUERY') throw Error(`VECTOR_EMBEDDING called for ${remote_source} but text_type is ${text_type} and not DOCUMENT or QUERY`)
+    return embed(text, model_and_version)
   })
   dbc.function('COSINE_SIMILARITY', { deterministic: true }, (vector1, vector2) => {
     if (vector1 == null || vector2 == null) return null
@@ -53,6 +51,54 @@ module.exports = async function addSQLiteVectorSupport(dbc) {
   })
 }
 
+module.exports.setEmbeddingService = svc => { embeddingService = svc }
+
+function embed(text, model_and_version) {
+  if (!text) return JSON.stringify(new Array(DIMENSIONS).fill(0))
+  const vec = embeddingService.embedSync(text, model_and_version)
+  return JSON.stringify(Array.from(vec))
+}
+
+// --- Hash-based fallback embedding (deterministic, no external deps) ---
+
+function fnv1a(str) {
+  let h = 0x811c9dc5 | 0
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i)
+    h = Math.imul(h, 0x01000193)
+  }
+  return h >>> 0
+}
+
+function hashEmbed(text, model_and_version) {
+  const dims = DIMENSIONS
+  const vec = new Float32Array(dims)
+  // Use FNV-1a seeded with model to generate sparse random projection
+  const seed = fnv1a(model_and_version || 'default')
+  // Split text into trigrams and accumulate hashed contributions
+  const input = text.toLowerCase().trim()
+  for (let i = 0; i <= input.length - 3; i++) {
+    const trigram = input.substring(i, i + 3)
+    const h = fnv1a(trigram)
+    const idx = ((h ^ seed) >>> 0) % dims
+    vec[idx] += (h & 1) ? 1 : -1
+  }
+  // Handle short text (fewer than 3 chars)
+  if (input.length < 3) {
+    const h = fnv1a(input)
+    const idx = ((h ^ seed) >>> 0) % dims
+    vec[idx] += 1
+  }
+  // L2-normalize
+  let norm = 0
+  for (let i = 0; i < dims; i++) norm += vec[i] * vec[i]
+  norm = Math.sqrt(norm)
+  if (norm > 0) for (let i = 0; i < dims; i++) vec[i] /= norm
+  return vec
+}
+
+// --- Vector format conversion helpers ---
+
 function toFloatArray(vector) {
   if (vector == null) return null
   if (vector instanceof Float32Array) return Array.from(vector)
@@ -63,26 +109,9 @@ function toFloatArray(vector) {
   throw new Error(`Unsupported vector type: ${typeof vector}`)
 }
 
-/**
- * Converts a plain Array of numbers back into the same format as the original input.
- */
 function fromFloatArray(arr, original) {
   if (original instanceof Float32Array) {
     return new Float32Array(arr)
   }
-  // Default: return as JSON string (also for Buffer/BLOB inputs)
   return JSON.stringify(arr)
-}
-
-const model_dimensions = {
-  'SAP_GXY.20250407': 384, // 768 actually
-  'SAP_GXY.20240715': 384, // 768 actually
-}
-function generateVector(text, _, model_and_version) {
-  if (text) return JSON.stringify(Array.from(embedding.embedding(text).embedding))
-  return JSON.stringify(new Array(model_dimensions[model_and_version] ?? 384).fill(0))
-}
-function randomVector(text, _, model_and_version) {
-  if (text) return JSON.stringify(new Array(model_dimensions[model_and_version] ?? 384).fill(null).map(() => Math.random()))
-  return JSON.stringify(new Array(model_dimensions[model_and_version] ?? 384).fill(0))
 }
