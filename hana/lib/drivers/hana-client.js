@@ -172,7 +172,7 @@ class HANAClientDriver extends driver {
     return this._native.state() === 'connected'
   }
 
-  _getResultForProcedure(rows, outParameters, stmt) {
+  async _getResultForProcedure(rows, outParameters, stmt) {
     const result = {}
     // build result from scalar params
     const paramInfo = stmt.getParameterInfo()
@@ -183,6 +183,8 @@ class HANAClientDriver extends driver {
     }
 
     const resultSet = Array.isArray(rows) ? rows[0] : rows
+    const nextAsync = prom(resultSet, 'next')
+    const nextResultAsync = prom(resultSet, 'nextResult')
 
     // merge table output params into scalar params
     const params = Array.isArray(outParameters) && outParameters.filter(md => !(md.PARAMETER_NAME in result))
@@ -190,10 +192,10 @@ class HANAClientDriver extends driver {
       for (let i = 0; i < params.length; i++) {
         const parameterName = params[i].PARAMETER_NAME
         result[parameterName] = []
-        while (resultSet.next()) {
+        while (resultSet.nextCanBlock() ? await nextAsync() : resultSet.next()) {
           result[parameterName].push(resultSet.getValues())
         }
-        resultSet.nextResult()
+        await nextResultAsync()
       }
     }
 
