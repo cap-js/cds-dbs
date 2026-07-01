@@ -164,6 +164,12 @@ describe('SELECT', () => {
       await expect(cds.run(cqn)).rejected
     })
 
+    test('select func path expression', async () => {
+      const { Authors } = cds.entities('complex.associations')
+      const cqn = cds.ql`SELECT count(books) FROM ${Authors}`
+      await cds.run(cqn)
+    })
+
     test('select function (wrong)', async () => {
       const { globals } = cds.entities('basic.projection')
       const cqn = cds.ql`SELECT 'func' as function : cds.String FROM ${globals}`
