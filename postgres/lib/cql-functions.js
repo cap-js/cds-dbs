@@ -191,6 +191,33 @@ const HANAFunctions = {
   years_between(x, y) {
     return `TRUNC(${this.expr({ func: 'months_between', args: [x, y] })} / 12,0)`
   },
+
+  /**
+   * Computes the cosine similarity of two vectors
+   * @param {*} v1 - Vector 1
+   * @param {*} v2 - Vector 2
+   * @returns {string} - SQL statement
+   */
+  cosine_similarity(v1, v2) {
+    return `1 - cosine_distance(${this.expr(v1)},${this.expr(v2)})`
+  },
+  /**
+   * Computes the L2 distance of two vectors.
+   * @param {*} v1 - Vector 1
+   * @param {*} v2 - Vector 2
+   * @returns {string} - SQL statement
+   */
+  l2distance(v1, v2) { 
+    return `l2_distance(${this.expr(v1)},${this.expr(v2)})`
+  },
+  /**
+   * L2 normalizes the vector
+   * @param {*} v - Vector
+   * @returns {string} - SQL statement
+   */
+  l2normalize(v) { 
+    return `l2_normalize(${this.expr(v)})`
+  },
 }
 
 for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunctions[each]

@@ -5,6 +5,7 @@ using from './associations';
 using from './associationsUnmanaged';
 using from './uniques';
 using from './keywords';
+using from './vectors';
 
 entity Root {
   key ID       : Integer;

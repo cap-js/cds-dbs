@@ -267,6 +267,15 @@ const HANAFunctions = {
   HIERARCHY: undefined,
   HIERARCHY_DESCENDANTS: undefined,
   HIERARCHY_ANCESTORS: undefined,
+
+  // Ease of use for stakeholders for auto-filling the remote source
+  vector_embedding(text, text_type, model_and_version, remote_source = cds.env.ai?.embeddings?.remoteSource) {
+    if (!remote_source || (model_and_version.val ?? model_and_version).startswith('SAP')) {
+      return `vector_embedding(${text},${text_type},${model_and_version})`
+    } else {
+      return `vector_embedding(${text},${text_type},${model_and_version},${remote_source})`
+    }
+  }
 }
 
 for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunctions[each]

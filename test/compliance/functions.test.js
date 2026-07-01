@@ -229,6 +229,13 @@ describe('functions', () => {
       throw new Error('not supported')
     })
   })
+  describe('COSINE_SIMILARITY', () => {
+    test('COSINE_SIMILARITY', async () => {
+      const res = await SELECT.from('complex.vectors.Books')
+        .columns`cosine_similarity(cast('[1, 0, 0]' as cds.Vector), cast('[1, 0, 0]' as cds.Vector)) as custom`
+      expect(res[0].custom).to.eq(1)
+    })
+  })
   describe('COSH', () => {
     test.skip('missing', () => {
       throw new Error('not supported')
@@ -535,6 +542,13 @@ describe('functions', () => {
       throw new Error('not supported')
     })
   })
+  describe('L2DISTANCE', () => {
+    test('L2DISTANCE in a query', async () => {
+      const res = await SELECT.from('complex.vectors.Books')
+        .columns`l2distance(cast('[1, 0, 0]' as cds.Vector), cast('[1, 0, 0]' as cds.Vector)) as custom`
+      expect(res[0].custom).to.eq(0)
+    });
+  });
   describe('LAG', () => {
     test.skip('missing', () => {
       throw new Error('not supported')
@@ -1211,6 +1225,19 @@ describe('functions', () => {
   describe('VAR_SAMP', () => {
     test.skip('missing', () => {
       throw new Error('not supported')
+    })
+  })
+  describe('VECTOR_EMBEDDING', () => {
+    test('VECTOR_EMBEDDING in a query', async () => {
+      const res = await SELECT.from('complex.associations.Books')
+        .columns`VECTOR_EMBEDDING(title, 'QUERY', 'SAP_GXY.20250407') as custom`
+      expect(res[0].custom).truthy
+    })
+
+    test('VECTOR_EMBEDDING with specific adapter in a query', async () => {
+      const res = await SELECT.from('complex.associations.Books')
+        .columns`VECTOR_EMBEDDING(title, 'QUERY', 'SAP_GXY.20250407') as custom`
+      expect(res[0].custom).truthy
     })
   })
   describe('WEEK', () => {
