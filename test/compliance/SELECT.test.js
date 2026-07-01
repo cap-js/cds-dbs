@@ -354,9 +354,9 @@ describe('SELECT', () => {
         ORDER BY integer
       `)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
-      assert.strictEqual(res[0].caseInt, 1, 'integer 0 → caseInt 1')
-      assert.strictEqual(res[1].caseInt, 2, 'integer 1 → caseInt 2')
-      assert.strictEqual(res[2].caseInt, 3, 'integer 2 → caseInt 3 (else branch)')
+      assert.equal(res[0].caseInt, 1, 'integer 0 → caseInt 1')
+      assert.equal(res[1].caseInt, 2, 'integer 1 → caseInt 2')
+      assert.equal(res[2].caseInt, 3, 'integer 2 → caseInt 3 (else branch)')
     })
   })
 
