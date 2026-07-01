@@ -69,6 +69,17 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
       const { where, having } = transformSearch(searchTerm)
       if (where) inferred.SELECT.where = where
       else if (having) inferred.SELECT.having = having
+      if (searchTerm.func) (inferred.SELECT.orderBy ??= []).unshift({ func: searchTerm.func, args: [...searchTerm.args, true], sort: 'desc' })
+      else if (searchTerm.xpr) {
+        const searchSelect = searchTerm.xpr[2]
+        const searchFunc = searchSelect.SELECT.where[0]
+          ; (inferred.SELECT.orderBy ??= []).unshift({
+            __proto__: SELECT.from(searchSelect.SELECT.from)
+              .columns({ func: searchFunc.func, args: [...searchFunc.args, true] })
+              .where([searchTerm.xpr[0], 'in', { list: searchSelect.SELECT.columns }]), // TODO: <-- ensure that the sub select in the order by is bound to the original query result row
+            sort: 'desc'
+          })
+      }
     }
   }
   // query modifiers can also be defined in from ref leaf infix filter
@@ -995,11 +1006,11 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
             const keyName = k.as || k.ref.join('_')
             const fkName = `${elemName}_${keyName}`  // e.g., 'head_id'
             const fkFullName = `${columnAlias}_${fkName}`  // e.g., 'department_head_id'
-            
+
             // Check if this FK is excluded
             if (exclude.some(e => (e.ref?.at(-1) || e.as || e) === fkName)) continue
             if (exclude.some(e => (e.ref?.at(-1) || e.as || e) === fkFullName)) continue
-            
+
             const flatColumn = {
               ref: [joinAlias, fkName],
               as: fkFullName,
@@ -1017,7 +1028,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
             calcElement.as = fullName
           }
           res.push(calcElement)
-        }        
+        }
         else {
           // Scalar element
           const flatColumn = {
