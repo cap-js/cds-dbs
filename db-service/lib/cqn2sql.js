@@ -3,8 +3,6 @@ const cds_infer = require('./infer')
 const cqn4sql = require('./cqn4sql')
 const { resolveTable } = require('./utils')
 
-const _simple_queries = cds.env.features.sql_simple_queries
-const _strict_booleans = _simple_queries < 2
 // REVISIT: make string the default in next major
 const _count_as_string = cds.env.features.count_as_string
 const _count = _count_as_string ? { func: 'count', cast: { type: 'cds.String' } } : { func: 'count' }
@@ -270,10 +268,10 @@ class CQN2SQLRenderer {
       if (!_empty(from)) sql += ` FROM ${this.from(from, q)}`
       else sql += this.from_dummy()
     }
-    if (!recurse && !_empty(where)) sql += ` WHERE ${this.where(where)}`
-    if (!recurse && !_empty(groupBy)) sql += ` GROUP BY ${this.groupBy(groupBy)}`
-    if (!recurse && !_empty(having)) sql += ` HAVING ${this.having(having)}`
-    if (!recurse && !_empty(orderBy)) sql += ` ORDER BY ${this.orderBy(orderBy, localized)}`
+    if (!recurse && !_empty(where)) sql += ` WHERE ${this.where(where, q)}`
+    if (!recurse && !_empty(groupBy)) sql += ` GROUP BY ${this.groupBy(groupBy, q)}`
+    if (!recurse && !_empty(having)) sql += ` HAVING ${this.having(having, q)}`
+    if (!recurse && !_empty(orderBy)) sql += ` ORDER BY ${this.orderBy(orderBy, localized, q)}`
     if (one) limit = Object.assign({}, limit, { rows: { val: 1 } })
     if (limit) sql += ` LIMIT ${this.limit(limit)}`
     if (forUpdate) sql += ` ${this.forUpdate(forUpdate)}`
@@ -626,27 +624,10 @@ class CQN2SQLRenderer {
     if (!SELECT.columns) return sql
 
     const isRoot = SELECT.expand === 'root'
-    const isSimple = _simple_queries &&
-      isRoot && // Simple queries are only allowed to have a root
-      !ObjectKeys(q.elements).some(e =>
-        _strict_booleans && q.elements[e].type === 'cds.Boolean' || // REVISIT: Booleans require json for sqlite
-        q.elements[e].isAssociation || // Indicates columns contains an expand
-        q.elements[e].$assocExpand || // REVISIT: sometimes associations are structs
-        q.elements[e].items // Array types require to be inlined with a json result
-      )
-
-    let cols = SELECT.columns.map(isSimple
-      ? x => {
-        const name = this.column_name(x)
-        const escaped = `${name.replace(/"/g, '""')}`
-        return `${this.output_converter4(x.element, this.quote(name))} AS "${escaped}"`
-      }
-      : x => {
-        const name = this.column_name(x)
-        return `${this.string(`$.${JSON.stringify(name)}`)},${this.output_converter4(x.element, this.quote(name))}`
-      }).flat()
-
-    if (isSimple) return `SELECT ${cols} FROM (${sql})`
+    let cols = SELECT.columns.map(x => {
+      const name = this.column_name(x)
+      return `${this.string(`$.${JSON.stringify(name)}`)},${this.output_converter4(x.element, this.quote(name))}`
+    }).flat()
 
     // Prevent SQLite from hitting function argument limit of 100
     let obj = "'{}'"

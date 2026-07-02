@@ -1,0 +1,37 @@
+name: 'Start HANA'
+description: 'Starts a pre-initialized HANA container for isolated testing'
+inputs:
+  GITHUB_TOKEN:
+    description: 'Token used to pull from ghcr.io'
+    required: true
+  image:
+    description: 'Image reference to pull and run'
+    required: false
+    default: 'ghcr.io/cap-js/hana:latest'
+runs:
+  using: "composite"
+  steps:
+    - name: Start HANA
+      shell: bash
+      env:
+        IMAGE: ${{ inputs.image }}
+        GH_TOKEN: ${{ inputs.GITHUB_TOKEN }}
+      run: |
+        echo "$GH_TOKEN" | docker login ghcr.io -u $ --password-stdin
+        docker run -d --name hana --hostname buildkitsandbox -p 30041:30041 "$IMAGE"
+        docker logs -f hana &
+        LOGS_PID=$!
+        trap 'kill "$LOGS_PID" 2>/dev/null || true' EXIT
+
+        # Poll readiness; bail out early if the container has died.
+        until docker exec hana ./check_hana_health >/dev/null 2>&1; do
+          if ! docker ps --format '{{.Names}}' | grep -q '^hana$'; then
+            echo "::error::HANA container exited before becoming healthy"
+            docker ps -a --filter name=hana
+            docker logs --tail 200 hana || true
+            exit 1
+          fi
+          sleep 10
+        done
+
+        echo "HANA is ready."

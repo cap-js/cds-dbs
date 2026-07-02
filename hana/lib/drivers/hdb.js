@@ -10,16 +10,6 @@ const { driver, prom, handleLevel } = require('./base')
 const { resultSetStream } = require('./stream')
 const { wrap_client } = require('./dynatrace')
 
-if (cds.env.features.sql_simple_queries === 3) {
-  // Make hdb return true / false
-  const Reader = require('hdb/lib/protocol/Reader.js')
-  Reader.prototype._readTinyInt = Reader.prototype.readTinyInt
-  Reader.prototype.readTinyInt = function () {
-    const ret = this._readTinyInt()
-    return ret == null ? ret : !!ret
-  }
-}
-
 const credentialMappings = [
   { old: 'certificate', new: 'ca' },
   { old: 'encrypt', new: 'useTLS' },
@@ -124,10 +114,97 @@ class HDBDriver extends driver {
       return this._getResultForProcedure(rows, outParameters)
     }
 
+    // hyper streaming setup
     ret.stream = async (values, one, objectMode) => {
       const stmt = await ret._prep
-      const rs = await prom(stmt, 'execute')(values || [])
-      return rsIterator(rs, one, objectMode)
+      const message = require('hdb/lib/protocol/reply/index.js')
+      const connection = stmt._connection
+      const socket = connection._socket
+
+      let ondata
+      async function* slice(queue, stream) {
+        // Wait for the connection queue to have arrived at the stream
+        await queue
+
+        ondata = socket._events.data
+        socket.off('data', ondata) //  take full control over the tcp connection
+        try {
+          let segment
+          let packetLength
+          let packetRead = 0
+          let rssize
+          let streamsize
+          let streamRead = 0
+          const it = stream.iterator({ destroyOnReturn: false })
+          for await (const chunk of it) {
+            let offset = 0
+            packetRead += chunk.length
+            if (packetLength == null) {
+              packetLength = chunk.readUInt32LE(12) + 32
+              offset += 32
+            }
+
+            if (!segment) { // handle headers
+              function alignLength(length, alignment) {
+                if (length % alignment === 0) return length
+                return length + alignment - length % alignment
+              }
+
+              const parts = chunk.readInt16LE(offset + 8)
+              offset += 24
+              for (let i = 0; i < parts; i++) {
+                offset += alignLength(chunk.readInt32LE(offset + 8), 8) + 16
+              }
+              if (offset <= chunk.length) throw new Error(/HY\d*([\x20-\x7E]+)/.exec(`${chunk}`)[1])
+              segment = true
+            }
+
+            if (offset < chunk.length && !streamsize) {
+              let length = chunk[offset++]
+              switch (length) {
+                case 0xff:
+                  return null
+                case 0xf6:
+                  length = chunk.readInt16LE(offset)
+                  offset += 2
+                  break
+                case 0xf7:
+                  length = chunk.readInt32LE(offset)
+                  offset += 4
+                  break
+                default:
+              }
+              streamsize = length
+            }
+            if (offset < chunk.length && streamsize) {
+              const part = chunk.subarray(offset)
+              streamRead += part.length
+              yield part // iconv.decode(part, 'cesu8')
+            }
+            if (packetRead >= packetLength) break
+          }
+          if (!streamRead) yield 'null'
+        } finally {
+          connection._queue.busy = false
+          connection._queue.dequeue()
+        }
+      }
+
+      const stream = Readable.from(slice(new Promise(resolve => {
+        connection._queue.push({ run: (next) => { resolve(); next() } })
+      }), socket), { objectMode: false })
+      stmt.exec(values || [], (err, res) => {
+        if (err) { return }
+        res.close()
+      })
+      connection._queue.push({
+        run: next => { // wait for stream request to have finished
+          socket.on('data', ondata) // hand control over the tcp connection back
+          next()
+        }
+      })
+
+      return stream
     }
     return ret
   }
@@ -174,339 +251,6 @@ class HDBDriver extends driver {
       streams,
     }
   }
-}
-
-async function rsIterator(rs, one, objectMode) {
-  // Raw binary data stream unparsed
-  const raw = rs.createBinaryStream()[Symbol.asyncIterator]()
-
-  const blobs = rs.metadata.slice(4).map(b => b.columnName)
-  const levels = [
-    {
-      index: 0,
-      suffix: one ? '' : ']',
-      path: '$[',
-      expands: {},
-    },
-  ]
-
-  const state = {
-    rs,
-    levels,
-    blobs,
-    reading: 0,
-    writing: 0,
-    buffer: Buffer.allocUnsafe(0),
-    columnIndex: 0,
-    // yields: [],
-    next() {
-      const ret = this._prefetch || raw.next()
-      this._prefetch = raw.next()
-      return ret
-    },
-    done() {
-      // Validate whether the current buffer is finished reading
-      if (this.buffer.byteLength <= this.reading) {
-        return this.next().then(next => {
-          if (next.done || next.value.byteLength === 0) {
-            // yield for raw mode
-            this.inject(handleLevel(this.levels, '$', {}))
-            if (this.writing) this.stream.push(this.buffer.subarray(0, this.writing))
-            return true
-          }
-          if (this.writing) this.stream.push(this.buffer.subarray(0, this.writing))
-          // Update state
-          this.buffer = next.value
-          this.columnIndex = 0
-          this.reading = 0
-          this.writing = 0
-        })
-          .catch(() => {
-            // TODO: check whether the error is early close
-            this.inject(handleLevel(this.levels, '$', {}))
-            if (this.writing) this.stream.push(this.buffer.subarray(0, this.writing))
-            return true
-          })
-      }
-      this.columnIndex = 0
-    },
-    ensure(size) {
-      const totalSize = this.reading + size
-      if (this.buffer.byteLength >= totalSize) {
-        return
-      }
-      return this.next().then(next => {
-        if (next.done) {
-          throw new Error('Trying to read more bytes than are available')
-        }
-        // Write processed buffer to stream
-        if (this.writing) this.stream.push(this.buffer.subarray(0, this.writing))
-        // Keep unread buffer and prepend to new buffer
-        const leftover = this.buffer.subarray(this.reading)
-        // Update state
-        this.buffer = Buffer.concat([leftover, next.value])
-        this.reading = 0
-        this.writing = 0
-      })
-    },
-    read(nr) {
-      this.reading += nr
-    },
-    write(length, encoding) {
-      const bytesLeft = this.buffer.byteLength - this.reading
-      if (bytesLeft < length) {
-        // Copy leftover bytes
-        if (encoding) {
-          let slice = Buffer.from(iconv.decode(this.buffer.subarray(this.reading), 'cesu8'), 'binary')
-          this.prefetchDecodedSize = slice.byteLength
-          const encoded = Buffer.from(encoding.write(slice))
-          if (this.writing + encoded.byteLength > this.buffer.byteLength) {
-            this.stream.push(this.buffer.subarray(0, this.writing))
-            this.stream.push(encoded)
-          } else {
-            this.buffer.copy(encoded, this.writing) // REVISIT: make sure this is the correct copy direction
-            this.writing += encoded.byteLength
-            this.stream.push(this.buffer.subarray(0, this.writing))
-          }
-        } else {
-          this.buffer.copyWithin(this.writing, this.reading)
-          this.writing += bytesLeft
-          this.stream.push(this.buffer.subarray(0, this.writing))
-        }
-
-        return this.next().then(next => {
-          length = length - bytesLeft
-          if (next.done) {
-            throw new Error('Trying to read more byte then are available')
-          }
-          // Update state
-          this.buffer = next.value
-          this.reading = 0
-          this.writing = 0
-          return this.write(length, encoding)
-        })
-      }
-      if (encoding) {
-        let slice = Buffer.from(iconv.decode(this.buffer.subarray(this.reading, this.reading + length), 'cesu8'), 'binary')
-        this.prefetchDecodedSize = slice.byteLength
-        const encoded = Buffer.from(encoding.write(slice))
-        const nextWriting = this.writing + encoded.byteLength
-        const nextReading = this.reading + length
-        if (nextWriting > this.buffer.byteLength || nextWriting > nextReading) {
-          this.stream.push(this.buffer.subarray(0, this.writing))
-          this.stream.push(encoded)
-          this.buffer = this.buffer.subarray(nextReading)
-          this.reading = 0
-          this.writing = 0
-        } else {
-          this.buffer.copy(encoded, this.writing) // REVISIT: make sure this is the correct copy direction
-          this.writing += encoded.byteLength
-          this.reading += length
-        }
-      } else {
-        this.buffer.copyWithin(this.writing, this.reading, this.reading + length)
-        this.writing += length
-        this.reading += length
-      }
-    },
-    inject(str) {
-      if (str == null) return
-      str = Buffer.from(str)
-      if (this.writing + str.byteLength > this.reading) {
-        this.stream.push(this.buffer.subarray(0, this.writing))
-        this.stream.push(str)
-        this.buffer = this.buffer.subarray(this.reading)
-        this.writing = 0
-        this.reading = 0
-        return
-      }
-      str.copy(this.buffer, this.writing)
-      this.writing += str.byteLength
-    },
-    slice(length) {
-      const ens = this.ensure(length)
-      if (ens) return ens.then(() => this.slice(length))
-      const ret = this.buffer.subarray(this.reading, this.reading + length)
-      this.reading += length
-      return ret
-    },
-    readString() {
-      this.columnIndex++
-      return readString(this, this.columnIndex === 4)
-    },
-    readBlob() {
-      const meta = this.rs.metadata[this.columnIndex]
-      this.columnIndex++
-      if (meta.dataType === 12 || meta.dataType === 13) {
-        const binary = readString(this)
-        if (binary == null) this.inject('null')
-        else this.inject(`"${Buffer.from(binary).toString('base64')}"`)
-        return
-      }
-
-      return readBlob(state, new StringDecoder('base64'))
-    }
-  }
-
-  // Mostly ignore buffer manipulation for objectMode
-  if (objectMode) {
-    state.write = function write(length, encoding) {
-      let slice = this.buffer.slice(this.reading, this.reading + length)
-      this.prefetchDecodedSize = slice.byteLength
-      this.reading += length
-      return encoding.write(slice)
-    }
-    state.inject = function inject() { }
-    state.readString = function _readString() {
-      this.columnIndex++
-      return readString(this)
-    }
-    state.readBlob = function _readBlob() {
-      const meta = this.rs.metadata[this.columnIndex]
-      this.columnIndex++
-
-      if (meta.dataType === 12 || meta.dataType === 13) {
-        return readString(this)
-      }
-
-      const binaryStream = new Readable({
-        read() {
-          if (binaryStream._prefetch) {
-            this.push(binaryStream._prefetch)
-            binaryStream._prefetch = null
-          }
-          this.resume()
-        }
-      })
-      const isNull = readBlob(state, {
-        end() { binaryStream.push(null) },
-        write(chunk) {
-          if (!binaryStream.readableDidRead) {
-            binaryStream._prefetch = chunk
-            binaryStream.pause()
-            return new Promise((resolve, reject) => {
-              binaryStream.once('error', reject)
-              binaryStream.once('resume', resolve)
-            })
-          }
-          binaryStream.push(chunk)
-        }
-      })
-        ?.catch((err) => { if (binaryStream) binaryStream.emit('error', err) })
-      return isNull === null ? null : binaryStream
-    }
-  }
-
-  return resultSetStream(state, one, objectMode)
-}
-
-const readString = function (state, isJson = false) {
-  let ens = state.ensure(1)
-  if (ens) return ens.then(() => readString(state, isJson))
-
-  let length = state.buffer[state.reading]
-  let offset = 1
-  switch (length) {
-    case 0xff:
-      state.read(offset)
-      return null
-    case 0xf6:
-      ens = state.ensure(2)
-      if (ens) return ens.then(() => readString(state, isJson))
-      length = state.buffer.readInt16LE(state.reading + offset)
-      offset += 2
-      break
-    case 0xf7:
-      ens = state.ensure(4)
-      if (ens) return ens.then(() => readString(state, isJson))
-      length = state.buffer.readInt32LE(state.reading + offset)
-      offset += 4
-      break
-    default:
-  }
-
-  // Read the string value
-  state.read(offset)
-  if (isJson) {
-    state.write(length - 1)
-    state.read(1)
-    return length
-  }
-  return state.slice(length)
-}
-
-const { readInt64LE } = require('hdb/lib/util/bignum.js')
-const readBlob = function (state, encoding) {
-  // Check if the blob is null
-  let ens = state.ensure(2)
-  if (ens) return ens.then(() => readBlob(state, encoding))
-  if (state.buffer[state.reading + 1] & 1) {
-    state.read(2)
-    state.inject('null')
-    return null
-  }
-
-  // Read actual chunk size
-  ens = state.ensure(32)
-  if (ens) return ens.then(() => readBlob(state, encoding))
-  // const charLength = readInt64LE(state.buffer, state.reading + 4)
-  const byteLength = readInt64LE(state.buffer, state.reading + 12)
-  const locatorId = Buffer.from(state.buffer.slice(state.reading + 20, state.reading + 28).toString('hex'), 'hex')
-  const length = state.buffer.readInt32LE(state.reading + 28)
-  state.read(32)
-
-  if (encoding) {
-    state.inject('"')
-  }
-
-  let hasMore = length < byteLength
-  const skipLast = !encoding && !hasMore
-  const preFetchRead = skipLast ? length - 1 : length
-  state.prefetchDecodedSize = length
-  const write = state.write(preFetchRead, encoding)
-  if (skipLast) {
-    state.read(1)
-  }
-
-  const after = () => {
-    if (encoding) {
-      state.inject(encoding.end())
-      state.inject('"')
-    }
-    return byteLength
-  }
-
-  const next = () => {
-    if (hasMore) {
-      return new Promise((resolve, reject) => {
-        state.rs._connection.readLob(
-          {
-            locatorId: locatorId,
-            // REVISIT: identify why large binaries are a byte to long
-            offset: state.prefetchDecodedSize + 1 || length,
-            length: 1 << 16,
-          },
-          (err, data) => {
-            if (err) return reject(err)
-            const isLast = data.readLobReply.isLast
-            let chunk = isLast && !encoding ? data.readLobReply.chunk.slice(0, -1) : data.readLobReply.chunk
-            state.inject(encoding ? encoding.write(chunk) : chunk)
-            if (isLast) {
-              hasMore = false
-            }
-            resolve()
-          },
-        )
-      }).then(next)
-    }
-    return after()
-  }
-
-  if (write?.then) {
-    return write.then(next)
-  }
-
-  return next()
 }
 
 module.exports.driver = HDBDriver

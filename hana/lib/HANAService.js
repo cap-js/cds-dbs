@@ -28,11 +28,6 @@ class HANAService extends SQLService {
       super.deploy = this.hdiDeploy
     }
 
-    // TODO: find a way to reliably detect minor/patch versions
-    this.server = {
-      major: 4
-    }
-
     this.on(['BEGIN'], this.onBEGIN)
     this.on(['COMMIT'], this.onCOMMIT)
     this.on(['ROLLBACK'], this.onROLLBACK)
@@ -40,7 +35,6 @@ class HANAService extends SQLService {
     return super.init()
   }
 
-  // REVISIT: Add multi tenant factory when clarified
   get factory() {
     const driver = this._driver = drivers[this.options.driver || this.options.credentials?.driver]?.driver || drivers.default.driver
     const service = this
@@ -56,7 +50,6 @@ class HANAService extends SQLService {
       try {
         const dbc = new driver({ ...service.options.credentials, ...clientOptions })
         await dbc.connect()
-        service.server.major = dbc.server.major || service.server.major
         return dbc
       } catch (err) {
         if (err.code === 10) return // authentication error, see error handler below
@@ -75,7 +68,6 @@ class HANAService extends SQLService {
         credentials = smTenant.credentials
         const dbc = new driver({ ...credentials, ...clientOptions })
         await dbc.connect()
-        service.server.major = dbc.server.major || service.server.major
         return dbc
       } catch (err) {
         if (!cds.env.features.use_generic_pool) {
@@ -130,7 +122,6 @@ class HANAService extends SQLService {
     }
   }
 
-  // REVISIT: Add multi tenant credential look up when clarified
   url4(tenant) {
     tenant
     let { host, port, driver } = this.options?.credentials || this.options || {}
@@ -163,33 +154,24 @@ class HANAService extends SQLService {
     if (!query._target || query._target._unresolved) {
       try { this.infer(query) } catch { /**/ }
     }
-    if (!query._target || query._target._unresolved) {
-      return super.onSELECT(req)
-    }
+    if (!query._target || query._target._unresolved) return super.onSELECT(req)
 
     const isLockQuery = query.SELECT.forUpdate || query.SELECT.forShareLock
-    // REVISIT: disable this for queries like (SELECT 1)
-    // Will return multiple rows with objects inside
     if (!isLockQuery) query.SELECT.expand = 'root'
-
-    const { cqn, sql, temporary, blobs, withclause, values } = this.cqn2sql(query, data)
+    let { cqn, sql, values } = this.cqn2sql(query, data)
     delete query.SELECT.expand
 
-    const isSimple = temporary.length + blobs.length + withclause.length === 0
     const isOne = cqn.SELECT.one || query.SELECT.from.ref?.[0].cardinality?.max === 1
-    const isStream = iterator && !isLockQuery
 
-    // REVISIT: add prepare options when param:true is used
-    let sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
     const { hints } = query.SELECT
-    if (hints) sqlScript += ` WITH HINT (${hints.join(',')})`
+    if (hints) sql += ` WITH HINT (${hints.join(',')})`
 
     let rows
-    if (values?.length || blobs.length > 0 || isStream) {
-      const ps = await this.prepare(sqlScript, blobs.length)
-      rows = this.ensureDBC() && await ps[isStream ? 'stream' : 'all'](values || [], isOne, objectMode)
+    if (values?.length || iterator) {
+      const ps = await this.prepare(sql)
+      rows = this.ensureDBC() && await ps[iterator ? 'stream' : 'all'](values || [], isOne, objectMode)
     } else {
-      rows = await this.exec(sqlScript)
+      rows = await this.exec(sql)
     }
 
     if (isLockQuery) {
@@ -214,14 +196,17 @@ class HANAService extends SQLService {
       return this.onSELECT({ query: resultQuery, __proto__: req })
     }
 
-    if (rows.length && !isSimple) {
-      rows = this.parseRows(rows)
+    if (Array.isArray(rows)) {
+      rows = JSON.parse(rows[0]?.JSONRESULT || '[]')
+      this._changeToStreams(cqn.SELECT.columns, rows, query.SELECT.one) // TODO: improve for all databases
     }
+
     if (cqn.SELECT.count) {
       // REVISIT: the runtime always expects that the count is preserved with .map, required for renaming in mocks
       return HANAService._arrayWithCount(rows, await this.count(query, rows))
     }
-    return isOne && !isStream ? rows[0] : rows
+
+    return isOne && !iterator ? rows[0] : rows
   }
 
   async onINSERT({ query, data }) {
@@ -230,9 +215,7 @@ class HANAService extends SQLService {
     const ps = await this.prepare(sql)
     // HANA driver supports batch execution
     const results = await (entries
-      ? this.server.major <= 2
-        ? entries.reduce((l, c) => l.then(() => this.ensureDBC() && ps.run(c)), Promise.resolve(0))
-        : entries.length > 1 ? this.ensureDBC() && await ps.runBatch(entries) : this.ensureDBC() && await ps.run(entries[0])
+      ? entries.length > 1 ? this.ensureDBC() && await ps.runBatch(entries) : this.ensureDBC() && await ps.run(entries[0])
       : this.ensureDBC() && ps.run())
     return new this.class.InsertResults(cqn, results)
   }
@@ -243,94 +226,11 @@ class HANAService extends SQLService {
     } catch (err) {
       // Ensure that the known entity still exists
       if (!this.context.tenant && err.code === 259 && typeof req.query !== 'string') {
-        // decouple current request to avoid race condition
-        await this.release()
         // Clear current tenant connection pool
         this.disconnect(this.context.tenant)
       }
       throw err
     }
-  }
-
-  // Allow for running complex expand queries in a single statement
-  wrapTemporary(temporary, withclauses, blobs) {
-    const blobColumn = b => `"${b.replace(/"/g, '""')}"`
-
-    const values = temporary
-      .map(t => {
-        const blobColumns = blobs.map(b => (b in t.blobs) ? blobColumn(b) : `NULL AS ${blobColumn(b)}`)
-        return blobColumns.length
-          ? `SELECT "_path_","_blobs_","_expands_","_json_",${blobColumns} FROM (${t.select})`
-          : t.select
-      })
-
-    const withclause = withclauses.length ? `WITH ${withclauses} ` : ''
-    const pathOrder = ' ORDER BY "_path_" ASC'
-    const ret = withclause + (
-      values.length === 1
-        ? values[0] + (values[0].indexOf(`SELECT '$[' as "_path_"`) < 0 ? pathOrder : '')
-        : 'SELECT * FROM ' + values.map(v => `(${v})`).join(' UNION ALL ') + pathOrder
-    )
-    DEBUG?.(ret)
-    return ret
-  }
-
-  // Structure flat rows into expands and include raw blobs as raw buffers
-  parseRows(rows) {
-    const ret = []
-    const levels = [
-      {
-        data: ret,
-        path: '$[',
-        expands: {},
-      },
-    ]
-
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i]
-      const expands = JSON.parse(row._expands_)
-      const blobs = JSON.parse(row._blobs_)
-      const data = Object.assign(JSON.parse(row._json_ || '{}'), expands, blobs)
-      Object.keys(blobs).forEach(k => (data[k] = row[k] || data[k]))
-
-      // REVISIT: try to unify with handleLevel from base driver used for streaming
-      while (levels.length) {
-        const level = levels[levels.length - 1]
-        // Check if the current row is a child of the current level
-        if (row._path_.indexOf(level.path) === 0 && row._path_ != level.path) {
-          // Check if the current row is an expand of the current level
-          const property = row._path_.slice(level.path.length + 2, -7)
-          if (property in level.expands) {
-            if (level.expands[property]) {
-              level.data[property].push(data)
-            } else {
-              level.data[property] = data
-            }
-            levels.push({
-              data: data,
-              path: row._path_,
-              expands,
-            })
-            break
-          } else {
-            // REVISIT: identify why sometimes not all parent rows are returned
-            level.data.push?.(data)
-            if (row._path_ !== level.path) {
-              levels.push({
-                data: data,
-                path: row._path_,
-                expands,
-              })
-            }
-            break
-          }
-        } else {
-          // Step up if it is not a child of the current level
-          levels.pop()
-        }
-      }
-    }
-    return ret
   }
 
   // prepare and exec are both implemented inside the drivers
@@ -376,377 +276,17 @@ class HANAService extends SQLService {
     }
 
     SELECT(q) {
-      // Collect all queries and blob columns of all queries
-      this.blobs = this.blobs || []
-      this.withclause = this.withclause || []
-      this.temporary = this.temporary || []
-      this.temporaryValues = this.temporaryValues || []
-      this.aliasIdx = this.aliasIdx || 0
-
-      if (q.SELECT.from?.join && !q.SELECT.columns) {
-        throw new Error('CQN query using joins must specify the selected columns.')
-      }
-
-      let { limit, one, distinct, from, orderBy, groupBy, having, expand, columns = ['*'], localized, count, parent, recurse } = q.SELECT
-
-      // When one of these is defined wrap the query in a sub query
-      if (expand || (parent && (limit || one || orderBy))) {
-        const walkAlias = (q) => {
-          if (q.as) return q.as
-          if (q.args) return walkAlias(q.args[0])
-          if (q.SELECT?.from) return walkAlias(q.SELECT?.from)
-          return 'unknown'
-        }
-
-        const alias = q.as // Use query alias as path name
-        q.as = walkAlias(q.args?.[0] ?? q.SELECT.from ?? q) // Use from alias for query re use alias
-        q.alias = `$TA${this.aliasIdx++}`
-
-        const src = q
-
-        const { element, elements } = q
-
-        q = cds.ql.clone(q)
-        if (parent) {
-          q.SELECT.limit = undefined
-          q.SELECT.one = undefined
-          q.SELECT.orderBy = undefined
-        }
-        q.SELECT.expand = false
-
-        const outputColumns = [...columns.filter(c => c.as !== '_path_')]
-
-        if (parent) {
-          // Track parent _path_ for later concatination
-          if (!columns.find(c => this.column_name(c) === '_path_'))
-            columns.push({ ref: [parent.as, '_path_'], as: '_parent_path_' })
-          // make sure to include the _parent_path_ in group by is applied to expand
-          if (groupBy)
-            groupBy.push({ ref: [parent.as, '_path_'] })
-        }
-
-        if (recurse) {
-          columns.push({ xpr: [{ ref: ['RANK'] }], as: '$$RN$$' })
-        }
-
-        let orderByHasOutputColumnRef = false
-        if (!recurse && orderBy) {
-          if (distinct) orderByHasOutputColumnRef = true
-          // Ensure that all columns used in the orderBy clause are exposed
-          orderBy = orderBy.map((c, i) => {
-            if (!c.ref) {
-              c.as = `$$ORDERBY_${i}$$`
-              columns.push(c)
-              return { __proto__: c, ref: [c.as], sort: c.sort }
-            }
-            if (c.ref?.length === 2) {
-              const ref = c.ref + ''
-              const match = columns.find(col => col.ref + '' === ref)
-              if (!match) {
-                c.as = `$$${c.ref.join('.')}$$`
-                columns.push(c)
-                if (groupBy && !groupBy.find(col => col.ref + '' === ref)) {
-                  groupBy.push(c)
-                }
-              }
-              return { __proto__: c, ref: [this.column_name(match || c)], sort: c.sort }
-            }
-            orderByHasOutputColumnRef = true
-            return c
-          })
-        }
-
-        let hasBooleans = false
-        let hasExpands = false
-        let hasStructures = false
-        const aliasedOutputColumns = outputColumns.map(c => {
-          if (c.element?.type === 'cds.Boolean') hasBooleans = true
-          if (c.elements && c.element?.isAssociation) hasExpands = true
-          if (c.element?.type in this.BINARY_TYPES || c.elements || c.element?.elements || c.element?.items) hasStructures = true
-          return c.elements && c.element?.isAssociation ? c : { __proto__: c, ref: [this.column_name(c)] }
-        })
-
-        const isSimpleQuery = (
-          cds.env.features.sql_simple_queries &&
-          (cds.env.features.sql_simple_queries > 1 || !hasBooleans) &&
-          !hasStructures &&
-          !parent
-        )
-
-        const rowNumberRequired = parent // If this query has a parent it is an expand
-          || (!isSimpleQuery && (orderBy || from.SELECT)) // If using JSON functions the _path_ is used for top level sorting
-          || hasExpands // Expands depend on parent $$RN$$
-
-        if (!recurse && rowNumberRequired) {
-          // Insert row number column for reducing or sorting the final result
-          const over = { xpr: [] }
-          // TODO: replace with full path partitioning
-          if (parent) over.xpr.push(`PARTITION BY ${this.ref({ ref: ['_parent_path_'] })}`)
-          if (orderBy?.length) over.xpr.push(` ORDER BY ${this.orderBy(orderBy, localized)}`)
-          const rn = { xpr: [{ func: 'ROW_NUMBER', args: [] }, 'OVER', over], as: '$$RN$$' }
-          q.as = q.SELECT.from.as
-
-          q = cds.ql.SELECT(['*', rn]).from(q)
-          q.as = q.SELECT.from.as
-        }
-
-        const outputAliasSimpleQueriesRequired = cds.env.features.sql_simple_queries
-          && (orderByHasOutputColumnRef || having)
-        if (outputAliasSimpleQueriesRequired || rowNumberRequired || q.SELECT.columns.length !== aliasedOutputColumns.length) {
-          q = cds.ql.SELECT(aliasedOutputColumns).from(q)
-          q.as = q.SELECT.from.as
-          Object.defineProperty(q, 'elements', { value: elements })
-          Object.defineProperty(q, 'element', { value: element })
-        }
-
-        if ((recurse || rowNumberRequired) && !q.SELECT.columns.find(c => c.as === '_path_')) {
-          q.SELECT.columns.push({
-            xpr: [
-              {
-                func: 'concat',
-                args: parent
-                  ? [
-                    {
-                      func: 'concat',
-                      args: [{ ref: ['_parent_path_'] }, { val: `].${alias}[`, param: false }],
-                    },
-                    { func: 'lpad', args: [{ ref: ['$$RN$$'] }, { val: 6, param: false }, { val: '0', param: false }] },
-                  ]
-                  : [{ val: '$[', param: false }, { func: 'lpad', args: [{ ref: ['$$RN$$'] }, { val: 6, param: false }, { val: '0', param: false }] }],
-              },
-            ],
-            as: '_path_',
-          })
-        }
-
-        if (parent && (limit || one)) {
-          if (limit && limit.rows == null) {
-            // same error as in limit(), but for limits in expand
-            throw new Error('Rows parameter is missing in SELECT.limit(rows, offset)')
-          }
-
-          // Apply row number limits
-          q.where(
-            one
-              ? [{ ref: ['$$RN$$'] }, '=', { val: 1, param: false }]
-              : limit.offset?.val
-                ? [
-                  { ref: ['$$RN$$'] },
-                  '>',
-                  limit.offset,
-                  'AND',
-                  { ref: ['$$RN$$'] },
-                  '<=',
-                  { val: limit.rows.val + limit.offset.val },
-                ]
-                : [{ ref: ['$$RN$$'] }, '<=', { val: limit.rows.val }],
-          )
-        }
-
-        // Pass along SELECT options
-        q.SELECT.expand = expand
-        q.SELECT._one = one
-        q.SELECT.count = count
-        q.src = src
-      }
-
-      super.SELECT(q)
-
-      // Set one and limit back to the query for onSELECT handler
-      q.SELECT.one = one
-      q.SELECT.limit = limit
-
-      if (expand === 'root' && this._outputColumns) {
-        this.cqn = q
-        const fromSQL = this.quote(this.name(q.src.alias))
-        this.withclause.unshift(`${fromSQL} as (${this.sql})`)
-        this.temporary.unshift({ blobs: this._blobs, select: `SELECT ${this._outputColumns} FROM ${fromSQL}` })
-        if (this.values) {
-          this.temporaryValues.unshift(this.values)
-          this.values = this.temporaryValues.flat()
-        }
-      }
-
-      return this.sql
+      let { expand, one } = q.SELECT
+      if (expand === true && one) q.SELECT.one = false
+      return super.SELECT(q)
     }
 
-    SELECT_columns(q) {
-      const { SELECT, src } = q
-      if (!SELECT.columns) return '*'
-      if (SELECT.expand !== 'root') {
-        const ret = []
-        for (const x of q.SELECT.columns) {
-          if (x.elements && x.element?.isAssociation) continue
-          ret.push(this.column_expr(x, q))
-        }
-        return ret
+    SELECT_expand(q, sql) {
+      if (q.SELECT.expand === 'root') {
+        return `${sql} FOR JSON ('omitnull'='no','binary_encoding'='base64') RETURNS NVARCHAR(2147483647)`
       }
-      const structures = []
-      const blobrefs = []
-      let expands = {}
-      let blobs = {}
-      let hasBooleans = false
-      let path
-      let sql = []
-
-      // Remove sub expands and track special return column types
-      for (const x of SELECT.columns) {
-        if (x === '*') sql.push('*')
-        // means x is a sub select expand
-        if (x.elements && x.element?.isAssociation) {
-          if (x.SELECT?.count) {
-            // Add count query to src query and output  query
-            const cq = this.SELECT_count(x)
-            src.SELECT.columns.push(cq)
-            if (q !== src) q.SELECT.columns.push({ ref: [cq.as], element: cq.element })
-          }
-
-          expands[this.column_name(x)] = x.SELECT.one ? null : []
-
-          const parent = src
-          this.extractForeignKeys(x.SELECT.where, parent.as, []).forEach(ref => {
-            const columnName = this.column_name(ref)
-            if (!parent.SELECT.columns.find(c => this.column_name(c) === columnName)) {
-              parent.SELECT.columns.push(ref)
-            }
-          })
-
-          if (x.SELECT.from) {
-            x.SELECT.from = {
-              join: 'inner',
-              args: [x.SELECT.from, { ref: [parent.alias], as: parent.as }],
-              on: x.SELECT.where,
-              as: x.SELECT.from.as,
-            }
-          } else {
-            x.SELECT.from = { ref: [parent.alias], as: parent.as }
-            x.SELECT.columns.forEach(col => {
-              // if (col.ref?.length === 1) { col.ref.unshift(parent.as) }
-              if (col.ref?.length > 1) {
-                const colName = this.column_name(col)
-
-                const isSource = from => {
-                  if (from.as === col.ref[0]) return true
-                  return from.args?.some(a => {
-                    if (a.args) return isSource(a)
-                    return a.as === col.ref[0]
-                  })
-                }
-
-                // Inject foreign columns into parent selects (recursively)
-                const as = `$$${col.ref.join('.')}$$`
-                let rename = col.ref[0] !== parent.as
-                let curPar = parent
-                while (curPar) {
-                  if (isSource(curPar.SELECT.from)) {
-                    if (curPar.SELECT.columns.find(c => c.as === as)) {
-                      rename = true
-                    } else {
-                      rename = rename || curPar === parent
-                      curPar.SELECT.columns.push(rename ? { __proto__: col, ref: col.ref, as } : { __proto__: col, ref: [...col.ref] })
-                    }
-                    break
-                  } else {
-                    curPar.SELECT.columns.push({ __proto__: col, ref: [curPar.SELECT.parent.as, as], as })
-                    curPar = curPar.SELECT.parent
-                  }
-                }
-                if (rename) {
-                  col.as = colName
-                  col.ref = [parent.as, as]
-                } else {
-                  col.ref = [parent.as, colName]
-                }
-              }
-            })
-          }
-
-          x.SELECT.where = undefined
-          x.SELECT.expand = 'root'
-          x.SELECT.parent = parent
-
-          const values = this.values
-          this.values = []
-          parent.SELECT.expand = true
-          this.SELECT(x)
-          this.values = values
-          continue
-        }
-        if (x.element?.type in this.BINARY_TYPES) {
-          blobrefs.push(x)
-          blobs[this.column_name(x)] = null
-          continue
-        }
-        if (x.element?.elements || x.element?.items) {
-          // support for structured types and arrays
-          structures.push(x)
-          continue
-        }
-        const columnName = this.column_name(x)
-        if (columnName === '_path_') {
-          path = this.expr(x)
-          continue
-        }
-        if (x.element?.type === 'cds.Boolean') hasBooleans = true
-        const converter = x.element?.[this.class._convertOutput] || (e => e)
-        const s = x.param !== true && typeof x.val === 'number' ? this.expr({ param: false, __proto__: x }) : this.expr(x)
-        sql.push(`${converter(s, x.element)} as "${columnName.replace(/"/g, '""')}"`)
-      }
-
-      this._blobs = blobs
-      const blobColumns = Object.keys(blobs)
-      this.blobs.push(...blobColumns.filter(b => !this.blobs.includes(b)))
-      if (
-        cds.env.features.sql_simple_queries &&
-        (cds.env.features.sql_simple_queries > 1 || !hasBooleans) &&
-        structures.length + ObjectKeys(expands).length + ObjectKeys(blobs).length === 0 &&
-        !q?.src?.SELECT?.parent &&
-        this.temporary.length === 0
-      ) {
-        return `${sql}`
-      }
-
-      expands = this.string(JSON.stringify(expands))
-      blobs = this.string(JSON.stringify(blobs))
-      // When using FOR JSON the whole dataset is put into a single blob
-      // To increase the potential maximum size of the result set every row is converted to a JSON
-      // Making each row a maximum size of 2gb instead of the whole result set to be 2gb
-      // Excluding binary columns as they are not supported by FOR JSON and themselves can be 2gb
-      const rawJsonColumn = sql.length
-        ? `(SELECT ${path ? sql : sql.map(c => c.slice(c.lastIndexOf(' as "') + 4))} FROM JSON_TABLE('{}', '$' COLUMNS("'$$FaKeDuMmYCoLuMn$$'" FOR ORDINALITY)) FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`
-        : `'{}'`
-
-      let jsonColumn = rawJsonColumn
-      if (structures.length) {
-        // Appending the structured columns to prevent them from being quoted and escaped
-        // In case of the deep JSON select queries the deep columns depended on a REGEXP_REPLACE which will probably be slower
-        const structuresConcat = structures
-          .map((x, i) => {
-            const name = this.column_name(x)
-            return `'${i ? ',' : '{'}"${name}":' || COALESCE(${this.quote(name)},'null')`
-          })
-          .join(' || ')
-        jsonColumn = sql.length
-          ? `${structuresConcat} || ',' || SUBSTRING(${rawJsonColumn}, 2)`
-          : `${structuresConcat} || '}'`
-      }
-
-      // Calculate final output columns once
-      let outputColumns = `${path ? this.quote('_path_') : `'$[0'`} as "_path_",${blobs} as "_blobs_",${expands} as "_expands_",${jsonColumn} as "_json_"`
-      if (blobColumns.length)
-        outputColumns = `${outputColumns},${blobColumns.map(b => `${this.quote(b)} as "${b.replace(/"/g, '""')}"`)}`
-      this._outputColumns = outputColumns
-      if (path) {
-        sql = `*,${path} as ${this.quote('_path_')}`
-      } else {
-        structures.forEach(x => sql.push(this.column_expr(x)))
-        blobrefs.forEach(x => sql.push(this.column_expr(x)))
-      }
-      return sql
-    }
-
-    SELECT_expand(_, sql) {
-      return sql
+      const one = q.element.is2one // TODO: double check support of 'arraywrap' with RETURNS JSON to always return an Array or single Object
+      return `${one ? 'JSON_QUERY((' : 'COALESCE(('}${sql} FOR JSON ('omitnull'='no','binary_encoding'='base64') RETURNS JSON${one ? "),'$[0]' RETURNING JSON)" : `), JSON_QUERY('[]', '$' RETURNING JSON))`}`
     }
 
     SELECT_count(q) {
@@ -758,21 +298,56 @@ class HANAService extends SQLService {
       return countQuery
     }
 
-    from_dummy() {
-      return ' FROM DUMMY'
+    strictRef({ ref, element }) {
+      switch (ref[0]) {
+        case '$now': return this.func({ func: 'session_context', args: [{ val: '$now', param: false }] }) // REVISIT: why do we need param: false here?
+        case '$user': return this.func({ func: 'session_context', args: [{ val: '$user.' + ref[1] || 'id', param: false }] }) // REVISIT: same here?
+        default: return ref.map((r, i, arr) => i === arr.length - 1 ? this.output_converter4(element) ? `CAST("${r}" AS ${this.type4(element)})` : `"${r}"` : this.quote(r)).join('.')
+      }
     }
 
-    extractForeignKeys(xpr, alias, foreignKeys = []) {
-      // REVISIT: this is a quick method of extracting the foreign keys it could be nicer
-      // Find all foreign keys used in the expression so they can be exposed to the follow up expand queries
-      JSON.stringify(xpr, (key, val) => {
-        if (key === 'ref' && val.length === 2 && val[0] === alias && !foreignKeys.find(k => k.ref + '' === val + '')) {
-          foreignKeys.push({ ref: val })
-          return
-        }
-        return val
+    hasStrictRef(c, q) {
+      return !c.param && c.ref && c.ref.length === 1 && this.column_name(c) in q.elements
+        ? this.strictRef(c)
+        : this.expr(c)
+    }
+
+    groupBy(clause, q) {
+      return clause.map(q.SELECT.expand
+        ? c => this.hasStrictRef(c, q)
+        : c => this.expr(c))
+    }
+
+    // TODO: order by has a conflict with the output converter order causing incorrect sorting results
+    orderBy(orderBy, localized, q) {
+      const expr = q?.SELECT?.expand
+        ? c => this.hasStrictRef(c, q)
+        : c => this.expr(c)
+      return orderBy.map(c => {
+        const o = localized
+          ? expr(c) +
+          (c.element?.[this.class._localized] && this.context.locale
+            ? ` COLLATE ${collations[this.context.locale] || collations[this.context.locale.split('_')[0]] || collations['']}`
+            : '') +
+          (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+          : expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+        if (c.nulls) return o + ' NULLS ' + (c.nulls.toLowerCase() === 'first' ? 'FIRST' : 'LAST')
+        return o
       })
-      return foreignKeys
+    }
+
+    column_expr(x, q) {
+      if (x === '*') return '*'
+
+      let sql = x.param !== true && typeof x.val === 'number' ? this.expr({ param: false, __proto__: x }) : this.expr(x)
+      let alias = this.column_alias4(x, q)
+      if (q?.SELECT?.expand) sql = this.output_converter4(x.element, sql) + ' as "' + (alias || this.column_name(x)) + '"'
+      else if (alias) sql += ' as ' + this.quote(alias)
+      return sql
+    }
+
+    from_dummy() {
+      return ' FROM DUMMY'
     }
 
     // REVISIT: Find a way to avoid overriding the whole function redundantly
@@ -813,19 +388,11 @@ class HANAService extends SQLService {
         return stream
       }
 
-      // HANA Express does not process large JSON documents
-      // The limit is somewhere between 64KB and 128KB
-      if (this.srv.server.major <= 2) {
-        this.entries = INSERT.entries.map(e => (e instanceof Readable && !e.readableObjectMode
-          ? [e]
-          : [_stream([e])]))
-      } else {
-        this.entries = [[
-          INSERT.entries[0] instanceof Readable && !INSERT.entries[0].readableObjectMode
-            ? INSERT.entries[0]
-            : _stream(INSERT.entries)
-        ]]
-      }
+      this.entries = [[
+        INSERT.entries[0] instanceof Readable && !INSERT.entries[0].readableObjectMode
+          ? INSERT.entries[0]
+          : _stream(INSERT.entries)
+      ]]
 
       // WITH SRC is used to force HANA to interpret the ? as a NCLOB allowing for streaming of the data
       // Additionally for drivers that did allow for streaming of NVARCHAR they quickly reached size limits
@@ -934,21 +501,8 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
       return `(${ObjectKeys(args).map(k => `${this.quote(k)} => ${this.expr(args[k])}`)})`
     }
 
-    orderBy(orderBy, localized) {
-      return orderBy.map(c => {
-        const o = localized
-          ? this.expr(c) +
-          (c.element?.[this.class._localized] && this.context.locale
-            ? ` COLLATE ${collations[this.context.locale] || collations[this.context.locale.split('_')[0]] || collations['']}`
-            : '') +
-          (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
-          : this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
-        if (c.nulls) return o + ' NULLS ' + (c.nulls.toLowerCase() === 'first' ? 'FIRST' : 'LAST')
-        return o
-      })
-    }
-
-    limit({ rows, offset }) {
+    limit({ rows, offset }, q) {
+      // TODO: fix limit inside expand as nested SELECT clauses are not allowed to have LIMIT
       rows = { param: false, __proto__: rows }
       return super.limit({ rows, offset })
     }
@@ -960,6 +514,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     }
 
     having(xpr) {
+      // TODO: make sure it works with output columns
       return this.where(xpr)
     }
 
@@ -1219,7 +774,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     }
 
     managed_extract(name, element, converter) {
-      const path = this.string(this.srv?.server.major <= 2 ? `$.${name}` : `$[${JSON.stringify(name)}]`)
+      const path = this.string(`$[${JSON.stringify(name)}]`)
       return {
         extract: `${this.quote(name)} ${this.insertType4(element)} PATH ${path}, ${this.quote('$.' + name)} NVARCHAR(2147483647) FORMAT JSON PATH ${path}`,
         sql: converter(`NEW.${this.quote(name)}`),
@@ -1238,8 +793,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
         const sql = `${this.quote(q.as)} AS (${this.SELECT(q)})`
         return { sql, values }
       })
-      if (this.withclause?.length) this.withclause = [...prefix.map(p => p.sql), ...this.withclause]
-      else this.sql = `WITH ${prefix.map(p => p.sql)} ${sql}`
+      this.sql = `WITH ${prefix.map(p => p.sql)} ${sql}`
       this.values = [...prefix.map(p => p.values).flat(), ...values]
     }
 
@@ -1303,9 +857,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
 
     static OutputConverters = {
       ...super.OutputConverters,
-      LargeString: cds.env.features.sql_simple_queries > 0 ? e => `TO_NVARCHAR(${e})` : undefined,
       // REVISIT: binaries should use BASE64_ENCODE, but this results in BASE64_ENCODE(BINTONHEX(${e}))
-      Binary: e => `BINTONHEX(${e})`,
       Date: e => `to_char(${e}, 'YYYY-MM-DD')`,
       Time: e => `to_char(${e}, 'HH24:MI:SS')`,
       DateTime: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`,
@@ -1317,6 +869,10 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
       Decimal: (expr, elem) => elem?.scale
         ? `TO_NVARCHAR(${expr}, '0.${''.padEnd(elem.scale, '0')}')`
         : `TO_NVARCHAR(${expr})`,
+
+      // convert JSON strings to JSON type
+      struct: expr => `JSON_QUERY(${expr},'$' RETURNING JSON)`,
+      array: expr => `JSON_QUERY(${expr},'$' RETURNING JSON)`,
 
       // HANA types
       'cds.hana.ST_POINT': e => `TO_NVARCHAR(${e})`,
@@ -1428,7 +984,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
 
       const stmt = await this.dbc.prepare(createContainerDatabase)
       const res = this.ensureDBC() && await stmt.run([creds.user, creds.password, creds.containerGroup, !clean])
-      res && DEBUG?.(res.changes.map(r => r.MESSAGE).join('\n'))
+      Array.isArray(res?.changes) && DEBUG?.(res.changes.map(r => r.MESSAGE).join('\n'))
     } finally {
       if (this.dbc) {
         // Release table lock
@@ -1484,8 +1040,10 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
         throw new Error(`Failed to create tenant: ${err.message || err.stack || err}`)
       }
     } finally {
-      await this.dbc.disconnect()
-      delete this.dbc
+      if (this.dbc) {
+        await this.dbc.disconnect()
+        delete this.dbc
+      }
     }
     // Update credentials to new Tenant owner
     await this.disconnect()

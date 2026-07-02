@@ -36,15 +36,14 @@ jobs:
       - run: npm ci
       - run: npm install -g @sap/cds-dk
       - run: npm run lint
-      - id: hxe
-        uses: ./.github/actions/hxe
+      - id: hce
+        uses: ./.github/actions/hce
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # testing
       - run: npm test -ws
         env:
-          TAG: ${{ steps.hxe.outputs.TAG }}
-          IMAGE_ID: ${{ steps.hxe.outputs.IMAGE_ID }}
+          HANA_HOST: 'localhost'
       - name: sqlite driver (better-sqlite3))
         run: npm test -w sqlite
         env:

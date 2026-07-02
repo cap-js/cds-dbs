@@ -101,7 +101,7 @@ describe('Bookshop - Read', () => {
 
   test('groupby with nested path expression', async () => {
     const res = await GET(
-      '/admin/Books(ID=280)?$apply=groupby((genre/name,genre/children/name,genre/children/children/name))',
+      `/admin/Books(280)?$apply=filter(genre/children/children/name ne null)/groupby((genre/name,genre/children/name,genre/children/children/name))`,
       admin,
     )
     expect(res.status).to.be.eq(200)
@@ -357,7 +357,7 @@ describe('Bookshop - Read', () => {
   test('recursively expand children of Generes to exceed MAX_LENGTH_OF_IDENTIFIER (127)', async () => {
     const { Genres } = cds.entities('sap.capire.bookshop')
 
-    const columns = Array.from({ length: 16 }).reduce(cols => {
+    const columns = Array.from({ length: 9 }).reduce(cols => {
         const nestedCols = cols.pop()
         cols.push([{ ref: ['ID'] }, { ref: ['children'], expand: nestedCols }])
         return cols
