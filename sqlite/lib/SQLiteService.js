@@ -7,6 +7,7 @@ const sessionVariableMap = require('./session.json')  // Adjust the path as nece
 const convStrm = require('stream/consumers')
 const { Readable } = require('stream')
 const addSQLiteVectorSupport = require('./vector_handling')
+const { getEmbeddingService } = require('./vector_handling')
 
 const keywords = cds.compiler.to.sql.sqlite.keywords
 // keywords come as array
@@ -26,6 +27,70 @@ const toDate = (d, allowTime = false) => {
 
 
 class SQLiteService extends SQLService {
+
+  init() {
+    // Register vector embedding handlers for entities with cds.Vector fields
+    this._registerVectorHandlers()
+    return super.init()
+  }
+
+  /**
+   * Registers before handlers to compute vector embeddings for entities with cds.Vector fields.
+   * This allows async embedding computation in CAP handlers, avoiding SQLite's sync requirement.
+   */
+  _registerVectorHandlers() {
+    // Handle INSERT - compute embeddings before insert
+    this.before('CREATE', '*', async (req) => {
+      await this._computeVectorEmbeddings(req)
+    })
+
+    // Handle UPDATE - recompute embeddings if source text changed
+    this.before('UPDATE', '*', async (req) => {
+      await this._computeVectorEmbeddings(req)
+    })
+  }
+
+  /**
+   * Computes vector embeddings for any cds.Vector fields in the entity.
+   * Looks for fields annotated with @cds.vectorSource to determine the source text field.
+   */
+  async _computeVectorEmbeddings(req) {
+    const entity = req.target
+    if (!entity?.elements) return
+
+    // Find vector fields and their source text fields
+    const vectorFields = []
+    for (const [name, element] of Object.entries(entity.elements)) {
+      if (element.type === 'cds.Vector') {
+        // Look for @cds.vectorSource annotation or convention: field_embedding <- field
+        const sourceField = element['@cds.vectorSource']
+          || name.replace(/_embedding$/, '')
+          || name.replace(/_vector$/, '')
+
+        if (entity.elements[sourceField]) {
+          vectorFields.push({ vectorField: name, sourceField, element })
+        }
+      }
+    }
+
+    if (vectorFields.length === 0) return
+
+    // Get embedding service (async - will use transformers or hash fallback)
+    const embeddingService = await getEmbeddingService()
+
+    // Process each row
+    const rows = Array.isArray(req.data) ? req.data : [req.data]
+    for (const row of rows) {
+      for (const { vectorField, sourceField } of vectorFields) {
+        const text = row[sourceField]
+        // Only compute if source text exists and embedding not already provided
+        if (text && row[vectorField] === undefined) {
+          const embedding = await embeddingService.embed(text)
+          row[vectorField] = JSON.stringify(embedding)
+        }
+      }
+    }
+  }
 
   get factory() {
     return {
