@@ -182,22 +182,19 @@ module.exports = async function addSQLiteVectorSupport(dbc) {
   })
 
   // VECTOR_EMBEDDING is handled via CAP db.before handlers (see SQLiteService)
-  // We register a stub that throws an error if called directly in SQL
+  // We register stubs that throw an error if called directly in SQL
   // This ensures embeddings are pre-computed at the CAP level where async is allowed
-  dbc.function('VECTOR_EMBEDDING', { deterministic: true }, (text, text_type, model_and_version) => {
+  const vectorEmbeddingError = () => {
     throw new Error(
       'VECTOR_EMBEDDING cannot be called directly in SQLite SQL. ' +
       'Embeddings are computed automatically via CAP event handlers. ' +
       'Ensure your entity has a vector field and the source text field is populated.'
     )
-  })
-  dbc.function('VECTOR_EMBEDDING', { deterministic: true }, (text, text_type, model_and_version, remote_source) => {
-    throw new Error(
-      'VECTOR_EMBEDDING cannot be called directly in SQLite SQL. ' +
-      'Embeddings are computed automatically via CAP event handlers. ' +
-      'Ensure your entity has a vector field and the source text field is populated.'
-    )
-  })
+  }
+  // Register for both 3-arg and 4-arg variants (with/without remote_source)
+  // Note: better-sqlite3 uses function.length to distinguish overloads
+  dbc.function('VECTOR_EMBEDDING', { deterministic: true }, (a, b, c) => vectorEmbeddingError())
+  dbc.function('VECTOR_EMBEDDING', { deterministic: true }, (a, b, c, d) => vectorEmbeddingError())
 }
 
 // ============================================================================
