@@ -1,5 +1,8 @@
 const cds = require('../cds.js')
 
+const approxEq = (actual, expected, tolerance = 0.0001) =>
+  Math.abs(actual - expected) < tolerance
+
 describe('vector', () => {
   const { expect, data } = cds.test(__dirname + '/resources')
   data.autoIsolation(true)
@@ -28,7 +31,6 @@ describe('vector', () => {
         const res = await SELECT.from('complex.vectors.Books')
           .columns`cosine_similarity(embedding, cast('[1, 0, 0]' as cds.Vector)) as similarity`
           .where({ ID: 201 })
-        // embedding is null in test data, so result should be null
         expect(res[0].similarity).to.eq(null)
       })
     })
@@ -43,7 +45,7 @@ describe('vector', () => {
       test('unit vectors distance', async () => {
         const res = await SELECT.from('complex.vectors.Books')
           .columns`l2distance(cast('[1, 0, 0]' as cds.Vector), cast('[0, 1, 0]' as cds.Vector)) as distance`
-        expect(res[0].distance).to.be.closeTo(Math.sqrt(2), 0.0001)
+        expect(approxEq(res[0].distance, Math.sqrt(2))).to.eq(true)
       })
 
       test('known distance', async () => {
@@ -58,8 +60,8 @@ describe('vector', () => {
         const res = await SELECT.from('complex.vectors.Books')
           .columns`l2normalize(cast('[3, 4, 0]' as cds.Vector)) as normalized`
         const normalized = JSON.parse(res[0].normalized)
-        expect(normalized[0]).to.be.closeTo(0.6, 0.0001)
-        expect(normalized[1]).to.be.closeTo(0.8, 0.0001)
+        expect(approxEq(normalized[0], 0.6)).to.eq(true)
+        expect(approxEq(normalized[1], 0.8)).to.eq(true)
         expect(normalized[2]).to.eq(0)
       })
 
@@ -78,7 +80,6 @@ describe('vector', () => {
     test('INSERT computes embedding from description', async () => {
       const { Books } = cds.entities('complex.vectors')
 
-      // Insert without embedding - should be computed automatically
       await INSERT.into(Books).entries({
         ID: 999,
         title: 'Test Book',
@@ -86,11 +87,10 @@ describe('vector', () => {
       })
 
       const res = await SELECT.one.from(Books).where({ ID: 999 })
-      expect(res.embedding).to.not.be.null
+      expect(res.embedding).to.not.eq(null)
 
-      // Verify it's a valid vector (JSON array)
       const embedding = JSON.parse(res.embedding)
-      expect(embedding).to.be.an('array')
+      expect(Array.isArray(embedding)).to.eq(true)
       expect(embedding.length).to.be.greaterThan(0)
     })
 
@@ -112,7 +112,6 @@ describe('vector', () => {
     test('UPDATE recomputes embedding when description changes', async () => {
       const { Books } = cds.entities('complex.vectors')
 
-      // First insert
       await INSERT.into(Books).entries({
         ID: 997,
         title: 'Update Test',
@@ -122,11 +121,9 @@ describe('vector', () => {
       const before = await SELECT.one.from(Books).where({ ID: 997 })
       const embeddingBefore = before.embedding
 
-      // Update description
       await UPDATE(Books).set({ description: 'Completely different description' }).where({ ID: 997 })
 
       const after = await SELECT.one.from(Books).where({ ID: 997 })
-      // Embedding should be different after description change
       expect(after.embedding).to.not.eq(embeddingBefore)
     })
 
@@ -136,12 +133,10 @@ describe('vector', () => {
       await INSERT.into(Books).entries({
         ID: 996,
         title: 'No Description Book'
-        // no description
       })
 
       const res = await SELECT.one.from(Books).where({ ID: 996 })
-      // No source text means no embedding computed
-      expect(res.embedding).to.be.null
+      expect(res.embedding).to.eq(null)
     })
   })
 
@@ -149,18 +144,15 @@ describe('vector', () => {
     test('ORDER BY cosine_similarity', async () => {
       const { Books } = cds.entities('complex.vectors')
 
-      // Insert some books with embeddings
       await INSERT.into(Books).entries([
         { ID: 901, title: 'Book A', description: 'Programming in JavaScript' },
         { ID: 902, title: 'Book B', description: 'Cooking Italian food' },
         { ID: 903, title: 'Book C', description: 'JavaScript frameworks and libraries' }
       ])
 
-      // Get embedding for a search query
       const searchBook = await SELECT.one.from(Books).where({ ID: 901 })
       const searchEmbedding = searchBook.embedding
 
-      // Find similar books
       const results = await SELECT.from(Books)
         .columns('ID', 'title')
         .columns`cosine_similarity(embedding, ${searchEmbedding}) as similarity`
@@ -168,8 +160,7 @@ describe('vector', () => {
         .orderBy`cosine_similarity(embedding, ${searchEmbedding}) desc`
 
       expect(results.length).to.eq(3)
-      // Book about JavaScript should be most similar to another JavaScript book
-      expect(results[0].ID).to.be.oneOf([901, 903])
+      expect([901, 903]).to.include(results[0].ID)
     })
   })
 
@@ -181,7 +172,7 @@ describe('vector', () => {
       const embedding1 = hashEmbedding(text)
       const embedding2 = hashEmbedding(text)
 
-      expect(embedding1).to.deep.equal(embedding2)
+      expect(embedding1).to.deep.eq(embedding2)
     })
 
     test('different inputs produce different embeddings', async () => {
@@ -190,7 +181,7 @@ describe('vector', () => {
       const embedding1 = hashEmbedding('Hello world')
       const embedding2 = hashEmbedding('Goodbye world')
 
-      expect(embedding1).to.not.deep.equal(embedding2)
+      expect(embedding1).to.not.deep.eq(embedding2)
     })
 
     test('embeddings are normalized', async () => {
@@ -199,7 +190,7 @@ describe('vector', () => {
       const embedding = hashEmbedding('Test text')
       const norm = Math.sqrt(embedding.reduce((sum, x) => sum + x * x, 0))
 
-      expect(norm).to.be.closeTo(1.0, 0.0001)
+      expect(approxEq(norm, 1.0)).to.eq(true)
     })
   })
 })
