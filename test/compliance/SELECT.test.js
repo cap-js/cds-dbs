@@ -337,6 +337,29 @@ describe('SELECT', () => {
     })
   })
 
+  describe('calculated elements', () => {
+    // GH issue #1669 CASE with integer literals in THEN branches fails on HANA
+    // ("Cannot set parameter at row: 1. Argument must be a string.") because the
+    // literals are emitted as `?` parameters with no surrounding type anchor.
+    test('case returning integer literals', async () => {
+      const { dynamic } = cds.entities('complex.computed')
+      await cds.run(INSERT.into(dynamic).entries([{ integer: 0 }, { integer: 1 }, { integer: 2 }]))
+      const res = await cds.run(cds.ql`
+        SELECT integer,
+          case when integer = 0 then 1
+               when integer = 1 then 2
+               else 3
+          end as caseInt
+        FROM ${dynamic}
+        ORDER BY integer
+      `)
+      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+      assert.equal(res[0].caseInt, 1, 'integer 0 → caseInt 1')
+      assert.equal(res[1].caseInt, 2, 'integer 1 → caseInt 2')
+      assert.equal(res[2].caseInt, 3, 'integer 2 → caseInt 3 (else branch)')
+    })
+  })
+
   describe('excluding', () => {
     test('without columns', async () => {
       const { string } = cds.entities('basic.literals')

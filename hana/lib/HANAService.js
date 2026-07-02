@@ -1079,6 +1079,8 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
           }
           sql.push(this.operator(x, i, xpr, top || iscompareStack.length > 1))
         } else if (x.xpr) sql.push(`(${this.xpr(x, iscompareStack.at(-1))})`)
+        // inline numeric literals, HANA cannot infer the type of `?` inside CASE branches
+        else if (x.param !== true && typeof x.val === 'number') sql.push(this.expr({ param: false, __proto__: x }))
         // default
         else sql.push(this.expr(x))
       }
