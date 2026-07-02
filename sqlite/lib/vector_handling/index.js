@@ -35,6 +35,67 @@ async function getEmbeddingService() {
   return embeddingService
 }
 
+// ============================================================================
+// Vector Math Functions (shared between SQLite functions and internal use)
+// ============================================================================
+
+/**
+ * Computes cosine similarity of two vectors.
+ * @param {number[]} a - First vector
+ * @param {number[]} b - Second vector
+ * @returns {number|null} - Cosine similarity or null if inputs are null
+ */
+function cosineSimilarity(a, b) {
+  if (a == null || b == null) return null
+  let dot = 0, normA = 0, normB = 0
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i]
+    normA += a[i] * a[i]
+    normB += b[i] * b[i]
+  }
+  const denom = Math.sqrt(normA) * Math.sqrt(normB)
+  return denom === 0 ? 0 : dot / denom
+}
+
+/**
+ * Computes L2 (Euclidean) distance of two vectors.
+ * @param {number[]} a - First vector
+ * @param {number[]} b - Second vector
+ * @returns {number|null} - L2 distance or null if inputs are null
+ */
+function l2Distance(a, b) {
+  if (a == null || b == null) return null
+  let sum = 0
+  for (let i = 0; i < a.length; i++) {
+    const diff = a[i] - b[i]
+    sum += diff * diff
+  }
+  return Math.sqrt(sum)
+}
+
+/**
+ * L2 normalizes vector in place (changes length to 1, keeps direction).
+ * @param {number[]|Float32Array} v - Vector to normalize (modified in place)
+ * @returns {number[]|Float32Array} - The same vector, normalized
+ */
+function l2Normalize(v) {
+  if (v == null) return null
+  let norm = 0
+  for (let i = 0; i < v.length; i++) {
+    norm += v[i] * v[i]
+  }
+  if (norm === 0) return v
+  norm = Math.sqrt(norm)
+  for (let i = 0; i < v.length; i++) {
+    v[i] /= norm
+  }
+  return v
+}
+
+// ============================================================================
+// Hash-based Embedding (deterministic fallback)
+// ============================================================================
+
 /**
  * Deterministic hash-based embedding service.
  * Port of Java's HashEmbeddingService - uses FNV-1a hash + sparse random projection.
@@ -100,66 +161,24 @@ function rehash(hash, band) {
   return h
 }
 
-/**
- * L2 normalize vector in place.
- */
-function l2Normalize(vector) {
-  let norm = 0
-  for (let i = 0; i < vector.length; i++) {
-    norm += vector[i] * vector[i]
-  }
-  if (norm === 0) return
-  norm = Math.sqrt(norm)
-  for (let i = 0; i < vector.length; i++) {
-    vector[i] /= norm
-  }
-}
-
 // ============================================================================
 // SQLite Vector Functions (synchronous - pure math only)
 // ============================================================================
 
 module.exports = async function addSQLiteVectorSupport(dbc) {
-  // Register synchronous vector math functions
+  // Register synchronous vector math functions using shared implementations
   dbc.function('COSINE_SIMILARITY', { deterministic: true }, (vector1, vector2) => {
-    if (vector1 == null || vector2 == null) return null
-
-    const v1 = toFloatArray(vector1)
-    const v2 = toFloatArray(vector2)
-    let dot = 0, norm1 = 0, norm2 = 0
-    for (let i = 0; i < v1.length; i++) {
-      dot += v1[i] * v2[i]
-      norm1 += v1[i] * v1[i]
-      norm2 += v2[i] * v2[i]
-    }
-    const denom = Math.sqrt(norm1) * Math.sqrt(norm2)
-    return denom === 0 ? 0 : dot / denom
+    return cosineSimilarity(toFloatArray(vector1), toFloatArray(vector2))
   })
 
   dbc.function('L2DISTANCE', { deterministic: true }, (vector1, vector2) => {
-    if (vector1 == null || vector2 == null) return null
-
-    const v1 = toFloatArray(vector1)
-    const v2 = toFloatArray(vector2)
-    let sum = 0
-    for (let i = 0; i < v1.length; i++) {
-      const diff = v1[i] - v2[i]
-      sum += diff * diff
-    }
-    return Math.sqrt(sum)
+    return l2Distance(toFloatArray(vector1), toFloatArray(vector2))
   })
 
   dbc.function('L2NORMALIZE', { deterministic: true }, (vector) => {
     if (vector == null) return null
-
     const v = toFloatArray(vector)
-    let sum = 0
-    for (let i = 0; i < v.length; i++) {
-      sum += v[i] * v[i]
-    }
-    const norm = Math.sqrt(sum)
-    if (norm === 0) return fromFloatArray(v, vector)
-    return fromFloatArray(v.map(x => x / norm), vector)
+    return fromFloatArray(l2Normalize(v), vector)
   })
 
   // VECTOR_EMBEDDING is handled via CAP db.before handlers (see SQLiteService)
