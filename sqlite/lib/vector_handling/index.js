@@ -1,50 +1,30 @@
 const cds = require('@sap/cds')
 
-// Embedding service - will be initialized on first use
 let embeddingService = null
 
-/**
- * Initialize the embedding service.
- * Tries to use @xenova/transformers if available, falls back to hash-based embedding.
- */
+/** Tries @xenova/transformers, falls back to hash-based embedding */
 async function getEmbeddingService() {
   if (embeddingService) return embeddingService
 
   try {
-    // Try to load @xenova/transformers
     const { pipeline } = require('@xenova/transformers')
     const extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2')
-
     embeddingService = {
       name: 'transformers',
-      embed: async (text) => {
-        const result = await extractor(text, { pooling: 'mean', normalize: true })
-        return Array.from(result.data)
-      }
+      embed: async (text) => Array.from((await extractor(text, { pooling: 'mean', normalize: true })).data)
     }
     cds.log('sqlite').info('Using @xenova/transformers for vector embeddings')
   } catch {
-    // Fallback to deterministic hash-based embedding (like Java's HashEmbeddingService)
     embeddingService = {
       name: 'hash',
       embed: async (text) => hashEmbedding(text)
     }
     cds.log('sqlite').info('Using hash-based fallback for vector embeddings (install @xenova/transformers for real embeddings)')
   }
-
   return embeddingService
 }
 
-// ============================================================================
-// Vector Math Functions (shared between SQLite functions and internal use)
-// ============================================================================
-
-/**
- * Computes cosine similarity of two vectors.
- * @param {number[]} a - First vector
- * @param {number[]} b - Second vector
- * @returns {number|null} - Cosine similarity or null if inputs are null
- */
+/** Cosine similarity of two vectors */
 function cosineSimilarity(a, b) {
   if (a == null || b == null) return null
   let dot = 0, normA = 0, normB = 0
@@ -57,12 +37,7 @@ function cosineSimilarity(a, b) {
   return denom === 0 ? 0 : dot / denom
 }
 
-/**
- * Computes L2 (Euclidean) distance of two vectors.
- * @param {number[]} a - First vector
- * @param {number[]} b - Second vector
- * @returns {number|null} - L2 distance or null if inputs are null
- */
+/** L2 (Euclidean) distance of two vectors */
 function l2Distance(a, b) {
   if (a == null || b == null) return null
   let sum = 0
@@ -73,62 +48,34 @@ function l2Distance(a, b) {
   return Math.sqrt(sum)
 }
 
-/**
- * L2 normalizes vector in place (changes length to 1, keeps direction).
- * @param {number[]|Float32Array} v - Vector to normalize (modified in place)
- * @returns {number[]|Float32Array} - The same vector, normalized
- */
+/** L2 normalizes vector in place */
 function l2Normalize(v) {
   if (v == null) return null
   let norm = 0
-  for (let i = 0; i < v.length; i++) {
-    norm += v[i] * v[i]
-  }
+  for (let i = 0; i < v.length; i++) norm += v[i] * v[i]
   if (norm === 0) return v
   norm = Math.sqrt(norm)
-  for (let i = 0; i < v.length; i++) {
-    v[i] /= norm
-  }
+  for (let i = 0; i < v.length; i++) v[i] /= norm
   return v
 }
 
-// ============================================================================
-// Hash-based Embedding (deterministic fallback)
-// ============================================================================
-
-/**
- * Deterministic hash-based embedding service.
- * Port of Java's HashEmbeddingService - uses FNV-1a hash + sparse random projection.
- * Same input always produces same output (unlike random fallback).
- *
- * Not suitable for production - limited semantic quality.
- * Use for testing when @xenova/transformers is not available.
- */
+/** Deterministic hash-based embedding (port of Java's HashEmbeddingService). For testing only. */
 function hashEmbedding(text, dimensions = 384, ngramSize = 3) {
   if (text == null) return null
-
   const vector = new Float32Array(dimensions)
   const normalized = text.toLowerCase()
 
-  // Accumulate random projections for each character n-gram
   if (normalized.length >= ngramSize) {
-    for (let i = 0; i <= normalized.length - ngramSize; i++) {
+    for (let i = 0; i <= normalized.length - ngramSize; i++)
       project(ngramHash(normalized, i, ngramSize), vector, dimensions)
-    }
   } else {
-    // Short text fallback: use individual characters
-    for (let i = 0; i < normalized.length; i++) {
+    for (let i = 0; i < normalized.length; i++)
       project(normalized.charCodeAt(i), vector, dimensions)
-    }
   }
-
-  l2Normalize(vector)
-  return Array.from(vector)
+  return Array.from(l2Normalize(vector))
 }
 
-/**
- * FNV-1a inspired polynomial rolling hash for n-gram.
- */
+/** FNV-1a hash for n-gram */
 function ngramHash(text, start, len) {
   let hash = 0x811c9dc5
   for (let i = start; i < start + len; i++) {
@@ -138,21 +85,15 @@ function ngramHash(text, start, len) {
   return hash
 }
 
-/**
- * Maps hash value to sparse dimensions via 4 independent projection bands.
- */
+/** Maps hash to sparse dimensions via 4 projection bands */
 function project(hash, vector, dimensions) {
   for (let band = 0; band < 4; band++) {
     const h = rehash(hash, band)
-    const dim = Math.abs(h % dimensions)
-    const sign = ((h >>> 16) & 1) === 0 ? 1.0 : -1.0
-    vector[dim] += sign
+    vector[Math.abs(h % dimensions)] += ((h >>> 16) & 1) === 0 ? 1.0 : -1.0
   }
 }
 
-/**
- * Avalanche-mixes hash with band seed for independent projection.
- */
+/** Avalanche-mixes hash with band seed */
 function rehash(hash, band) {
   let h = hash ^ Math.imul(band, 0x9e3779b9)
   h ^= h >>> 16
@@ -161,45 +102,21 @@ function rehash(hash, band) {
   return h
 }
 
-// ============================================================================
-// SQLite Vector Functions (synchronous - pure math only)
-// ============================================================================
-
 module.exports = async function addSQLiteVectorSupport(dbc) {
-  // Register synchronous vector math functions using shared implementations
-  dbc.function('COSINE_SIMILARITY', { deterministic: true }, (vector1, vector2) => {
-    return cosineSimilarity(toFloatArray(vector1), toFloatArray(vector2))
-  })
+  dbc.function('COSINE_SIMILARITY', { deterministic: true }, (v1, v2) =>
+    cosineSimilarity(toFloatArray(v1), toFloatArray(v2)))
 
-  dbc.function('L2DISTANCE', { deterministic: true }, (vector1, vector2) => {
-    return l2Distance(toFloatArray(vector1), toFloatArray(vector2))
-  })
+  dbc.function('L2DISTANCE', { deterministic: true }, (v1, v2) =>
+    l2Distance(toFloatArray(v1), toFloatArray(v2)))
 
-  dbc.function('L2NORMALIZE', { deterministic: true }, (vector) => {
-    if (vector == null) return null
-    const v = toFloatArray(vector)
-    return fromFloatArray(l2Normalize(v), vector)
-  })
+  dbc.function('L2NORMALIZE', { deterministic: true }, (v) =>
+    v == null ? null : fromFloatArray(l2Normalize(toFloatArray(v)), v))
 
-  // VECTOR_EMBEDDING is handled via CAP db.before handlers (see SQLiteService)
-  // We register stubs that throw an error if called directly in SQL
-  // This ensures embeddings are pre-computed at the CAP level where async is allowed
-  const vectorEmbeddingError = () => {
-    throw new Error(
-      'VECTOR_EMBEDDING cannot be called directly in SQLite SQL. ' +
-      'Embeddings are computed automatically via CAP event handlers. ' +
-      'Ensure your entity has a vector field and the source text field is populated.'
-    )
-  }
-  // Register for both 3-arg and 4-arg variants (with/without remote_source)
-  // Note: better-sqlite3 uses function.length to distinguish overloads
-  dbc.function('VECTOR_EMBEDDING', { deterministic: true }, (a, b, c) => vectorEmbeddingError())
-  dbc.function('VECTOR_EMBEDDING', { deterministic: true }, (a, b, c, d) => vectorEmbeddingError())
+  // VECTOR_EMBEDDING throws - embeddings are computed via CAP db.before handlers
+  const err = () => { throw new Error('VECTOR_EMBEDDING cannot be called directly in SQLite. Use CAP event handlers.') }
+  dbc.function('VECTOR_EMBEDDING', { deterministic: true }, (a, b, c) => err())
+  dbc.function('VECTOR_EMBEDDING', { deterministic: true }, (a, b, c, d) => err())
 }
-
-// ============================================================================
-// Vector Format Utilities
-// ============================================================================
 
 function toFloatArray(vector) {
   if (vector == null) return null
@@ -212,15 +129,8 @@ function toFloatArray(vector) {
 }
 
 function fromFloatArray(arr, original) {
-  if (original instanceof Float32Array) {
-    return new Float32Array(arr)
-  }
-  return JSON.stringify(arr)
+  return original instanceof Float32Array ? new Float32Array(arr) : JSON.stringify(arr)
 }
-
-// ============================================================================
-// Exports for CAP handlers
-// ============================================================================
 
 module.exports.getEmbeddingService = getEmbeddingService
 module.exports.hashEmbedding = hashEmbedding
