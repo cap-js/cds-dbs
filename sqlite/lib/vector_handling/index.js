@@ -35,7 +35,7 @@ function l2Normalize(v) {
   return v
 }
 
-/** Deterministic hash-based embedding (port of Java's HashEmbeddingService). For testing/development only. */
+/** Deterministic synchronous hash-based embedding function for SQLite */
 function hashEmbedding(text, dimensions = 384) {
   if (text == null) return null
   const vector = new Float32Array(dimensions)
