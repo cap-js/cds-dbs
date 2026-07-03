@@ -79,7 +79,7 @@ function toFloatArray(vector) {
   if (vector == null) return null
   if (vector instanceof Float32Array) return Array.from(vector)
   if (Buffer.isBuffer(vector)) return JSON.parse(vector.toString('utf8'))
-  if (vector instanceof Uint8Array) return JSON.parse(new TextDecoder().decode(vector))
+  if (vector instanceof Uint8Array) return JSON.parse(Buffer.from(vector).toString('utf8'))
   if (typeof vector === 'string') return JSON.parse(vector)
   if (Array.isArray(vector)) return vector
   throw new Error(`Unsupported vector type: ${typeof vector}`)
