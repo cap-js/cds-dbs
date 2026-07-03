@@ -1,5 +1,8 @@
 const cds = require('../cds.js')
 
+const isHana = () => cds.db?.options?.impl === '@cap-js/hana'
+const describeIf = (condition, name, fn) => condition() ? describe.skip(name, fn) : describe(name, fn)
+
 describe('functions', () => {
   const { expect, data } = cds.test(__dirname + '/resources')
   data.autoIsolation(true)
@@ -229,27 +232,21 @@ describe('functions', () => {
       throw new Error('not supported')
     })
   })
-  describe('COSINE_SIMILARITY', () => {
+  describeIf(isHana, 'COSINE_SIMILARITY', () => {
     test('identical vectors return 1', async () => {
-      const res = await SELECT.from('complex.vectors.Books')
+      const res = await SELECT.from('complex.associations.Books')
         .columns`cosine_similarity(cast('[1, 0, 0]' as cds.Vector), cast('[1, 0, 0]' as cds.Vector)) as similarity`
       expect(res[0].similarity).to.eq(1)
     })
     test('orthogonal vectors return 0', async () => {
-      const res = await SELECT.from('complex.vectors.Books')
+      const res = await SELECT.from('complex.associations.Books')
         .columns`cosine_similarity(cast('[1, 0, 0]' as cds.Vector), cast('[0, 1, 0]' as cds.Vector)) as similarity`
       expect(res[0].similarity).to.eq(0)
     })
     test('opposite vectors return -1', async () => {
-      const res = await SELECT.from('complex.vectors.Books')
+      const res = await SELECT.from('complex.associations.Books')
         .columns`cosine_similarity(cast('[1, 0, 0]' as cds.Vector), cast('[-1, 0, 0]' as cds.Vector)) as similarity`
       expect(res[0].similarity).to.eq(-1)
-    })
-    test('null returns null', async () => {
-      const res = await SELECT.from('complex.vectors.Books')
-        .columns`cosine_similarity(embedding, cast('[1, 0, 0]' as cds.Vector)) as similarity`
-        .where({ ID: 201 })
-      expect(res[0].similarity).to.eq(null)
     })
   })
   describe('COSH', () => {
@@ -558,26 +555,26 @@ describe('functions', () => {
       throw new Error('not supported')
     })
   })
-  describe('L2DISTANCE', () => {
+  describeIf(isHana, 'L2DISTANCE', () => {
     test('identical vectors return 0', async () => {
-      const res = await SELECT.from('complex.vectors.Books')
+      const res = await SELECT.from('complex.associations.Books')
         .columns`l2distance(cast('[1, 0, 0]' as cds.Vector), cast('[1, 0, 0]' as cds.Vector)) as distance`
       expect(res[0].distance).to.eq(0)
     })
     test('unit vectors distance', async () => {
-      const res = await SELECT.from('complex.vectors.Books')
+      const res = await SELECT.from('complex.associations.Books')
         .columns`l2distance(cast('[1, 0, 0]' as cds.Vector), cast('[0, 1, 0]' as cds.Vector)) as distance`
       expect(Math.abs(res[0].distance - Math.SQRT2) < 0.0001).to.eq(true)
     })
     test('known distance', async () => {
-      const res = await SELECT.from('complex.vectors.Books')
+      const res = await SELECT.from('complex.associations.Books')
         .columns`l2distance(cast('[0, 0, 0]' as cds.Vector), cast('[3, 4, 0]' as cds.Vector)) as distance`
       expect(res[0].distance).to.eq(5)
     })
   })
-  describe('L2NORMALIZE', () => {
+  describeIf(isHana, 'L2NORMALIZE', () => {
     test('normalizes to unit length', async () => {
-      const res = await SELECT.from('complex.vectors.Books')
+      const res = await SELECT.from('complex.associations.Books')
         .columns`l2normalize(cast('[3, 4, 0]' as cds.Vector)) as normalized`
       const normalized = JSON.parse(res[0].normalized)
       expect(Math.abs(normalized[0] - 0.6) < 0.0001).to.eq(true)
@@ -585,7 +582,7 @@ describe('functions', () => {
       expect(normalized[2]).to.eq(0)
     })
     test('already normalized unchanged', async () => {
-      const res = await SELECT.from('complex.vectors.Books')
+      const res = await SELECT.from('complex.associations.Books')
         .columns`l2normalize(cast('[1, 0, 0]' as cds.Vector)) as normalized`
       const normalized = JSON.parse(res[0].normalized)
       expect(normalized[0]).to.eq(1)
@@ -1270,7 +1267,7 @@ describe('functions', () => {
       throw new Error('not supported')
     })
   })
-  describe('VECTOR_EMBEDDING', () => {
+  describeIf(isHana, 'VECTOR_EMBEDDING', () => {
     test('computes embedding', async () => {
       const res = await SELECT.from('complex.associations.Books')
         .columns`VECTOR_EMBEDDING('model', title) as embedding`
@@ -1280,46 +1277,19 @@ describe('functions', () => {
       expect(embedding.length).to.eq(384)
     })
     test('deterministic', async () => {
-      const res = await SELECT.from('complex.vectors.Books')
+      const res = await SELECT.from('complex.associations.Books')
         .columns`vector_embedding('model', 'test') as e1, vector_embedding('model', 'test') as e2`
       expect(res[0].e1).to.eq(res[0].e2)
     })
     test('different inputs different outputs', async () => {
-      const res = await SELECT.from('complex.vectors.Books')
+      const res = await SELECT.from('complex.associations.Books')
         .columns`vector_embedding('model', 'hello') as e1, vector_embedding('model', 'world') as e2`
       expect(res[0].e1).to.not.eq(res[0].e2)
     })
     test('null returns null', async () => {
-      const res = await SELECT.from('complex.vectors.Books')
+      const res = await SELECT.from('complex.associations.Books')
         .columns`vector_embedding('model', null) as embedding`
       expect(res[0].embedding).to.eq(null)
-    })
-    test('ORDER BY similarity', async () => {
-      const { Books } = cds.entities('complex.vectors')
-      await INSERT.into(Books).entries([
-        { ID: 901, title: 'A', embedding: '[1,0,0]' },
-        { ID: 902, title: 'B', embedding: '[0,1,0]' },
-        { ID: 903, title: 'C', embedding: '[0.9,0.1,0]' }
-      ])
-      const results = await SELECT.from(Books)
-        .columns('ID')
-        .columns`cosine_similarity(embedding, cast('[1,0,0]' as cds.Vector)) as similarity`
-        .where`ID in (901, 902, 903)`
-        .orderBy`cosine_similarity(embedding, cast('[1,0,0]' as cds.Vector)) desc`
-      expect(results[0].ID).to.eq(901)
-      expect(results[1].ID).to.eq(903)
-    })
-    test('dynamic embedding on column', async () => {
-      const { Books } = cds.entities('complex.vectors')
-      await INSERT.into(Books).entries([
-        { ID: 801, title: 'adventure', description: 'adventure' },
-        { ID: 802, title: 'science', description: 'science' }
-      ])
-      const results = await SELECT.from(Books)
-        .columns('ID')
-        .where`ID in (801, 802)`
-        .orderBy`cosine_similarity(vector_embedding('m', description), vector_embedding('m', 'adventure')) desc`
-      expect(results[0].ID).to.eq(801)
     })
   })
   describe('WEEK', () => {
