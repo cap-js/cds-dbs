@@ -1,7 +1,7 @@
 const cds = require('../cds.js')
 
 const isHana = () => cds.db?.options?.impl === '@cap-js/hana'
-const describeIf = (condition, name, fn) => condition() ? describe.skip(name, fn) : describe(name, fn)
+const describeSkipIf = (condition, name, fn) => condition() ? describe.skip(name, fn) : describe(name, fn)
 
 describe('functions', () => {
   const { expect, data } = cds.test(__dirname + '/resources')
@@ -232,7 +232,7 @@ describe('functions', () => {
       throw new Error('not supported')
     })
   })
-  describeIf(isHana, 'COSINE_SIMILARITY', () => {
+  describeSkipIf(isHana, 'COSINE_SIMILARITY', () => {
     test('identical vectors return 1', async () => {
       const res = await SELECT.from('complex.associations.Books')
         .columns`cosine_similarity(cast('[1, 0, 0]' as cds.Vector), cast('[1, 0, 0]' as cds.Vector)) as similarity`
@@ -555,7 +555,7 @@ describe('functions', () => {
       throw new Error('not supported')
     })
   })
-  describeIf(isHana, 'L2DISTANCE', () => {
+  describeSkipIf(isHana, 'L2DISTANCE', () => {
     test('identical vectors return 0', async () => {
       const res = await SELECT.from('complex.associations.Books')
         .columns`l2distance(cast('[1, 0, 0]' as cds.Vector), cast('[1, 0, 0]' as cds.Vector)) as distance`
@@ -572,7 +572,7 @@ describe('functions', () => {
       expect(res[0].distance).to.eq(5)
     })
   })
-  describeIf(isHana, 'L2NORMALIZE', () => {
+  describeSkipIf(isHana, 'L2NORMALIZE', () => {
     test('normalizes to unit length', async () => {
       const res = await SELECT.from('complex.associations.Books')
         .columns`l2normalize(cast('[3, 4, 0]' as cds.Vector)) as normalized`
@@ -1267,7 +1267,7 @@ describe('functions', () => {
       throw new Error('not supported')
     })
   })
-  describeIf(isHana, 'VECTOR_EMBEDDING', () => {
+  describeSkipIf(isHana, 'VECTOR_EMBEDDING', () => {
     test('computes embedding', async () => {
       const res = await SELECT.from('complex.associations.Books')
         .columns`VECTOR_EMBEDDING('model', title) as embedding`
