@@ -1,6 +1,6 @@
 const cds = require('../cds.js')
 
-const isSQLite = () => cds.db?.options?.impl === '@cap-js/sqlite'
+const isHana = () => cds.db?.options?.impl === '@cap-js/hana'
 
 describe('functions', () => {
   const { expect, data } = cds.test(__dirname + '/resources')
@@ -233,19 +233,19 @@ describe('functions', () => {
   })
   describe('COSINE_SIMILARITY', () => {
     test('identical vectors return 1', async () => {
-      if (!isSQLite()) return // Vector tests only for SQLite
+      if (isHana()) return // HANA Express doesn't support REAL_VECTOR
       const res = await SELECT.from('complex.associations.Books')
         .columns`cosine_similarity(cast('[1, 0, 0]' as cds.Vector), cast('[1, 0, 0]' as cds.Vector)) as similarity`
       expect(res[0].similarity).to.eq(1)
     })
     test('orthogonal vectors return 0', async () => {
-      if (!isSQLite()) return
+      if (isHana()) return
       const res = await SELECT.from('complex.associations.Books')
         .columns`cosine_similarity(cast('[1, 0, 0]' as cds.Vector), cast('[0, 1, 0]' as cds.Vector)) as similarity`
       expect(res[0].similarity).to.eq(0)
     })
     test('opposite vectors return -1', async () => {
-      if (!isSQLite()) return
+      if (isHana()) return
       const res = await SELECT.from('complex.associations.Books')
         .columns`cosine_similarity(cast('[1, 0, 0]' as cds.Vector), cast('[-1, 0, 0]' as cds.Vector)) as similarity`
       expect(res[0].similarity).to.eq(-1)
@@ -559,19 +559,19 @@ describe('functions', () => {
   })
   describe('L2DISTANCE', () => {
     test('identical vectors return 0', async () => {
-      if (!isSQLite()) return
+      if (isHana()) return
       const res = await SELECT.from('complex.associations.Books')
         .columns`l2distance(cast('[1, 0, 0]' as cds.Vector), cast('[1, 0, 0]' as cds.Vector)) as distance`
       expect(res[0].distance).to.eq(0)
     })
     test('unit vectors distance', async () => {
-      if (!isSQLite()) return
+      if (isHana()) return
       const res = await SELECT.from('complex.associations.Books')
         .columns`l2distance(cast('[1, 0, 0]' as cds.Vector), cast('[0, 1, 0]' as cds.Vector)) as distance`
       expect(Math.abs(res[0].distance - Math.SQRT2) < 0.0001).to.eq(true)
     })
     test('known distance', async () => {
-      if (!isSQLite()) return
+      if (isHana()) return
       const res = await SELECT.from('complex.associations.Books')
         .columns`l2distance(cast('[0, 0, 0]' as cds.Vector), cast('[3, 4, 0]' as cds.Vector)) as distance`
       expect(res[0].distance).to.eq(5)
@@ -579,7 +579,7 @@ describe('functions', () => {
   })
   describe('L2NORMALIZE', () => {
     test('normalizes to unit length', async () => {
-      if (!isSQLite()) return
+      if (isHana()) return
       const res = await SELECT.from('complex.associations.Books')
         .columns`l2normalize(cast('[3, 4, 0]' as cds.Vector)) as normalized`
       const normalized = JSON.parse(res[0].normalized)
@@ -588,7 +588,7 @@ describe('functions', () => {
       expect(normalized[2]).to.eq(0)
     })
     test('already normalized unchanged', async () => {
-      if (!isSQLite()) return
+      if (isHana()) return
       const res = await SELECT.from('complex.associations.Books')
         .columns`l2normalize(cast('[1, 0, 0]' as cds.Vector)) as normalized`
       const normalized = JSON.parse(res[0].normalized)
@@ -1276,7 +1276,7 @@ describe('functions', () => {
   })
   describe('VECTOR_EMBEDDING', () => {
     test('computes embedding', async () => {
-      if (!isSQLite()) return
+      if (isHana()) return
       const res = await SELECT.from('complex.associations.Books')
         .columns`VECTOR_EMBEDDING('model', title) as embedding`
         .limit(1)
@@ -1285,19 +1285,19 @@ describe('functions', () => {
       expect(embedding.length).to.eq(384)
     })
     test('deterministic', async () => {
-      if (!isSQLite()) return
+      if (isHana()) return
       const res = await SELECT.from('complex.associations.Books')
         .columns`vector_embedding('model', 'test') as e1, vector_embedding('model', 'test') as e2`
       expect(res[0].e1).to.eq(res[0].e2)
     })
     test('different inputs different outputs', async () => {
-      if (!isSQLite()) return
+      if (isHana()) return
       const res = await SELECT.from('complex.associations.Books')
         .columns`vector_embedding('model', 'hello') as e1, vector_embedding('model', 'world') as e2`
       expect(res[0].e1).to.not.eq(res[0].e2)
     })
     test('null returns null', async () => {
-      if (!isSQLite()) return
+      if (isHana()) return
       const res = await SELECT.from('complex.associations.Books')
         .columns`vector_embedding('model', null) as embedding`
       expect(res[0].embedding).to.eq(null)
