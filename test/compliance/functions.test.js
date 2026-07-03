@@ -1228,11 +1228,13 @@ describe('functions', () => {
     })
   })
   describe('VECTOR_EMBEDDING', () => {
-    test('VECTOR_EMBEDDING throws when called directly in SQLite', async () => {
-      await expect(
-        SELECT.from('complex.associations.Books')
-          .columns`VECTOR_EMBEDDING(title, 'QUERY', 'SAP_GXY.20250407') as custom`
-      ).rejected
+    test('VECTOR_EMBEDDING computes embedding', async () => {
+      const res = await SELECT.from('complex.associations.Books')
+        .columns`VECTOR_EMBEDDING('model', title) as embedding`
+        .limit(1)
+      const embedding = JSON.parse(res[0].embedding)
+      expect(Array.isArray(embedding)).to.eq(true)
+      expect(embedding.length).to.eq(384)
     })
   })
   describe('WEEK', () => {
