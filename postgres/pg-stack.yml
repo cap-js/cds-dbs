@@ -3,13 +3,10 @@ version: '3.1'
 
 services:
   db:
-    image: pgvector/pgvector:pg16
+    image: postgres:16-alpine
     restart: always
     environment:
       POSTGRES_PASSWORD: postgres
-      LANG: en_US.utf8
-      LC_COLLATE: en_US.utf8
-      LC_CTYPE: en_US.utf8
     ports:
       - '5432:5432'
     command: ['postgres', '-c', 'log_statement=all']
