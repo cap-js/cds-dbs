@@ -1,5 +1,3 @@
-const cds = require('@sap/cds')
-
 function cosineSimilarity(a, b) {
   if (a == null || b == null) return null
   let dot = 0, normA = 0, normB = 0
@@ -91,20 +89,4 @@ function fromFloatArray(arr, original) {
   return original instanceof Float32Array ? new Float32Array(arr) : JSON.stringify(arr)
 }
 
-module.exports = function addSQLiteVectorSupport(dbc) {
-  cds.log('sqlite').info('Using hash-based vector embeddings (for testing/development)')
-
-  dbc.function('COSINE_SIMILARITY', { deterministic: true }, (v1, v2) =>
-    cosineSimilarity(toFloatArray(v1), toFloatArray(v2)))
-
-  dbc.function('L2DISTANCE', { deterministic: true }, (v1, v2) =>
-    l2Distance(toFloatArray(v1), toFloatArray(v2)))
-
-  dbc.function('L2NORMALIZE', { deterministic: true }, (v) =>
-    v == null ? null : fromFloatArray(l2Normalize(toFloatArray(v)), v))
-
-  dbc.function('VECTOR_EMBEDDING', { deterministic: true }, (model, text) =>
-    text == null ? null : JSON.stringify(hashEmbedding(String(text))))
-}
-
-module.exports.hashEmbedding = hashEmbedding
+module.exports = { cosineSimilarity, l2Distance, l2Normalize, hashEmbedding, toFloatArray, fromFloatArray }

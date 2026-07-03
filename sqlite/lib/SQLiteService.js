@@ -6,7 +6,7 @@ const $session = Symbol('dbc.session')
 const sessionVariableMap = require('./session.json')  // Adjust the path as necessary for your project
 const convStrm = require('stream/consumers')
 const { Readable } = require('stream')
-const addSQLiteVectorSupport = require('./vector_handling')
+const { cosineSimilarity, l2Distance, l2Normalize, hashEmbedding, toFloatArray, fromFloatArray } = require('./vector_handling')
 
 const keywords = cds.compiler.to.sql.sqlite.keywords
 // keywords come as array
@@ -47,7 +47,10 @@ class SQLiteService extends SQLService {
           dbc.function('hour', deterministic, d => d === null ? null : toDate(d, true).getUTCHours())
           dbc.function('minute', deterministic, d => d === null ? null : toDate(d, true).getUTCMinutes())
           dbc.function('second', deterministic, d => d === null ? null : toDate(d, true).getUTCSeconds())
-          addSQLiteVectorSupport(dbc)
+          dbc.function('COSINE_SIMILARITY', deterministic, (a, b) => cosineSimilarity(toFloatArray(a), toFloatArray(b)))
+          dbc.function('L2DISTANCE', deterministic, (a, b) => l2Distance(toFloatArray(a), toFloatArray(b)))
+          dbc.function('L2NORMALIZE', deterministic, v => v == null ? null : fromFloatArray(l2Normalize(toFloatArray(v)), v))
+          dbc.function('VECTOR_EMBEDDING', deterministic, (model, text) => text == null ? null : JSON.stringify(hashEmbedding(String(text))))
           if (database !== ':memory:') dbc.pragma?.('journal_mode = WAL') || dbc.exec('PRAGMA journal_mode = WAL')
           return dbc
         } catch (err) {
