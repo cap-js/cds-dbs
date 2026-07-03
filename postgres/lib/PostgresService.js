@@ -544,6 +544,7 @@ GROUP BY k
       DateTime: () => 'TIMESTAMP',
       Timestamp: () => 'TIMESTAMP',
       Map: () => 'JSONB',
+      Vector: () => 'vector',
 
       // HANA Types
       'cds.hana.CLOB': () => 'BYTEA',
