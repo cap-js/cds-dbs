@@ -1,8 +1,5 @@
 const cds = require('@sap/cds')
 
-// NOTE: If a synchronous embedding library becomes available for Node.js,
-// it can be integrated here to replace the hash-based fallback.
-
 function cosineSimilarity(a, b) {
   if (a == null || b == null) return null
   let dot = 0, normA = 0, normB = 0
@@ -35,7 +32,11 @@ function l2Normalize(v) {
   return v
 }
 
-/** Deterministic synchronous hash-based embedding function for SQLite */
+/**
+ * Deterministic synchronous hash-based embedding function for SQLite.
+ * NOTE: If a synchronous embedding library becomes available for Node.js,
+ * it can be integrated here to replace the hash-based implementation.
+ */
 function hashEmbedding(text, dimensions = 384) {
   if (text == null) return null
   const vector = new Float32Array(dimensions)
