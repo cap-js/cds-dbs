@@ -74,97 +74,77 @@ describe('vector', () => {
         expect(normalized[2]).to.eq(0)
       })
     })
-  })
 
-  describe('automatic embedding computation', () => {
-    test('INSERT computes embedding from description', async () => {
-      const { Books } = cds.entities('complex.vectors')
-
-      await INSERT.into(Books).entries({
-        ID: 999,
-        title: 'Test Book',
-        description: 'A test description for embedding'
+    describe('VECTOR_EMBEDDING', () => {
+      test('computes embedding from text', async () => {
+        const res = await SELECT.from('complex.vectors.Books')
+          .columns`vector_embedding('test-model', 'Hello world') as embedding`
+        const embedding = JSON.parse(res[0].embedding)
+        expect(Array.isArray(embedding)).to.eq(true)
+        expect(embedding.length).to.eq(384)
       })
 
-      const res = await SELECT.one.from(Books).where({ ID: 999 })
-      expect(res.embedding).to.not.eq(null)
-
-      const embedding = JSON.parse(res.embedding)
-      expect(Array.isArray(embedding)).to.eq(true)
-      expect(embedding.length).to.be.greaterThan(0)
-    })
-
-    test('INSERT with explicit embedding preserves it', async () => {
-      const { Books } = cds.entities('complex.vectors')
-      const customEmbedding = JSON.stringify([1, 2, 3])
-
-      await INSERT.into(Books).entries({
-        ID: 998,
-        title: 'Custom Embedding Book',
-        description: 'Some description',
-        embedding: customEmbedding
+      test('deterministic - same input same output', async () => {
+        const res = await SELECT.from('complex.vectors.Books')
+          .columns`vector_embedding('model', 'test text') as e1, vector_embedding('model', 'test text') as e2`
+        expect(res[0].e1).to.eq(res[0].e2)
       })
 
-      const res = await SELECT.one.from(Books).where({ ID: 998 })
-      expect(res.embedding).to.eq(customEmbedding)
-    })
-
-    test('UPDATE recomputes embedding when description changes', async () => {
-      const { Books } = cds.entities('complex.vectors')
-
-      await INSERT.into(Books).entries({
-        ID: 997,
-        title: 'Update Test',
-        description: 'Original description'
+      test('different inputs different outputs', async () => {
+        const res = await SELECT.from('complex.vectors.Books')
+          .columns`vector_embedding('model', 'hello') as e1, vector_embedding('model', 'world') as e2`
+        expect(res[0].e1).to.not.eq(res[0].e2)
       })
 
-      const before = await SELECT.one.from(Books).where({ ID: 997 })
-      const embeddingBefore = before.embedding
-
-      await UPDATE(Books).set({ description: 'Completely different description' }).where({ ID: 997 })
-
-      const after = await SELECT.one.from(Books).where({ ID: 997 })
-      expect(after.embedding).to.not.eq(embeddingBefore)
-    })
-
-    test('INSERT without description results in no embedding', async () => {
-      const { Books } = cds.entities('complex.vectors')
-
-      await INSERT.into(Books).entries({
-        ID: 996,
-        title: 'No Description Book'
+      test('null handling', async () => {
+        const res = await SELECT.from('complex.vectors.Books')
+          .columns`vector_embedding('model', null) as embedding`
+        expect(res[0].embedding).to.eq(null)
       })
-
-      const res = await SELECT.one.from(Books).where({ ID: 996 })
-      expect(res.embedding).to.eq(null)
     })
   })
 
   describe('semantic search queries', () => {
-    test('ORDER BY cosine_similarity', async () => {
+    test('ORDER BY similarity with inline embedding', async () => {
       const { Books } = cds.entities('complex.vectors')
 
       await INSERT.into(Books).entries([
-        { ID: 901, title: 'Book A', description: 'Programming in JavaScript' },
-        { ID: 902, title: 'Book B', description: 'Cooking Italian food' },
-        { ID: 903, title: 'Book C', description: 'JavaScript frameworks and libraries' }
+        { ID: 901, title: 'Book A', description: 'Programming in JavaScript', embedding: '[1,0,0]' },
+        { ID: 902, title: 'Book B', description: 'Cooking Italian food', embedding: '[0,1,0]' },
+        { ID: 903, title: 'Book C', description: 'JavaScript frameworks', embedding: '[0.9,0.1,0]' }
       ])
-
-      const searchBook = await SELECT.one.from(Books).where({ ID: 901 })
-      const searchEmbedding = searchBook.embedding
 
       const results = await SELECT.from(Books)
         .columns('ID', 'title')
-        .columns`cosine_similarity(embedding, ${searchEmbedding}) as similarity`
+        .columns`cosine_similarity(embedding, cast('[1,0,0]' as cds.Vector)) as similarity`
         .where`ID in (901, 902, 903)`
-        .orderBy`cosine_similarity(embedding, ${searchEmbedding}) desc`
+        .orderBy`cosine_similarity(embedding, cast('[1,0,0]' as cds.Vector)) desc`
 
       expect(results.length).to.eq(3)
-      expect([901, 903]).to.include(results[0].ID)
+      expect(results[0].ID).to.eq(901)
+      expect(results[1].ID).to.eq(903)
+    })
+
+    test('search with dynamic VECTOR_EMBEDDING', async () => {
+      const { Books } = cds.entities('complex.vectors')
+
+      await INSERT.into(Books).entries([
+        { ID: 801, title: 'Adventure Book', description: 'adventure' },
+        { ID: 802, title: 'Science Book', description: 'science' }
+      ])
+
+      const results = await SELECT.from(Books)
+        .columns('ID', 'title')
+        .columns`cosine_similarity(vector_embedding('m', description), vector_embedding('m', 'adventure')) as similarity`
+        .where`ID in (801, 802)`
+        .orderBy`cosine_similarity(vector_embedding('m', description), vector_embedding('m', 'adventure')) desc`
+
+      expect(results.length).to.eq(2)
+      expect(results[0].ID).to.eq(801)
     })
   })
 
-  describe('hash-based fallback', () => {
+  describe('hash-based embedding', () => {
     test('deterministic - same input produces same embedding', async () => {
       const { hashEmbedding } = require('@cap-js/sqlite/lib/vector_handling')
 

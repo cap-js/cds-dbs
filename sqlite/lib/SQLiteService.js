@@ -7,7 +7,6 @@ const sessionVariableMap = require('./session.json')  // Adjust the path as nece
 const convStrm = require('stream/consumers')
 const { Readable } = require('stream')
 const addSQLiteVectorSupport = require('./vector_handling')
-const { getEmbeddingService } = require('./vector_handling')
 
 const keywords = cds.compiler.to.sql.sqlite.keywords
 // keywords come as array
@@ -27,44 +26,6 @@ const toDate = (d, allowTime = false) => {
 
 
 class SQLiteService extends SQLService {
-
-  init() {
-    this._registerVectorHandlers()
-    return super.init()
-  }
-
-  /** Registers before handlers to compute vector embeddings (async) for cds.Vector fields */
-  _registerVectorHandlers() {
-    this.before('CREATE', '*', req => this._computeVectorEmbeddings(req))
-    this.before('UPDATE', '*', req => this._computeVectorEmbeddings(req))
-  }
-
-  /** Computes embeddings for cds.Vector fields using @cds.vectorSource or naming convention */
-  async _computeVectorEmbeddings(req) {
-    const entity = req.target
-    if (!entity?.elements) return
-
-    const vectorFields = []
-    for (const [name, element] of Object.entries(entity.elements)) {
-      if (element.type === 'cds.Vector') {
-        const sourceField = element['@cds.vectorSource']
-          || name.replace(/_embedding$/, '')
-          || name.replace(/_vector$/, '')
-        if (entity.elements[sourceField])
-          vectorFields.push({ vectorField: name, sourceField })
-      }
-    }
-    if (vectorFields.length === 0) return
-
-    const embeddingService = await getEmbeddingService()
-    const rows = Array.isArray(req.data) ? req.data : [req.data]
-    for (const row of rows) {
-      for (const { vectorField, sourceField } of vectorFields) {
-        if (row[sourceField] && row[vectorField] === undefined)
-          row[vectorField] = JSON.stringify(await embeddingService.embed(row[sourceField]))
-      }
-    }
-  }
 
   get factory() {
     return {
@@ -86,7 +47,7 @@ class SQLiteService extends SQLService {
           dbc.function('hour', deterministic, d => d === null ? null : toDate(d, true).getUTCHours())
           dbc.function('minute', deterministic, d => d === null ? null : toDate(d, true).getUTCMinutes())
           dbc.function('second', deterministic, d => d === null ? null : toDate(d, true).getUTCSeconds())
-          await addSQLiteVectorSupport(dbc)
+          addSQLiteVectorSupport(dbc)
           if (database !== ':memory:') dbc.pragma?.('journal_mode = WAL') || dbc.exec('PRAGMA journal_mode = WAL')
           return dbc
         } catch (err) {

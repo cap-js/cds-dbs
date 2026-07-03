@@ -1,30 +1,8 @@
 const cds = require('@sap/cds')
 
-let embeddingService = null
+// NOTE: If a synchronous embedding library becomes available for Node.js,
+// it can be integrated here to replace the hash-based fallback.
 
-/** Tries @xenova/transformers, falls back to hash-based embedding */
-async function getEmbeddingService() {
-  if (embeddingService) return embeddingService
-
-  try {
-    const { pipeline } = require('@xenova/transformers')
-    const extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2')
-    embeddingService = {
-      name: 'transformers',
-      embed: async (text) => Array.from((await extractor(text, { pooling: 'mean', normalize: true })).data)
-    }
-    cds.log('sqlite').info('Using @xenova/transformers for vector embeddings')
-  } catch {
-    embeddingService = {
-      name: 'hash',
-      embed: async (text) => hashEmbedding(text)
-    }
-    cds.log('sqlite').info('Using hash-based fallback for vector embeddings (install @xenova/transformers for real embeddings)')
-  }
-  return embeddingService
-}
-
-/** Cosine similarity of two vectors */
 function cosineSimilarity(a, b) {
   if (a == null || b == null) return null
   let dot = 0, normA = 0, normB = 0
@@ -37,7 +15,6 @@ function cosineSimilarity(a, b) {
   return denom === 0 ? 0 : dot / denom
 }
 
-/** L2 (Euclidean) distance of two vectors */
 function l2Distance(a, b) {
   if (a == null || b == null) return null
   let sum = 0
@@ -48,7 +25,6 @@ function l2Distance(a, b) {
   return Math.sqrt(sum)
 }
 
-/** L2 normalizes vector in place */
 function l2Normalize(v) {
   if (v == null) return null
   let norm = 0
@@ -59,11 +35,12 @@ function l2Normalize(v) {
   return v
 }
 
-/** Deterministic hash-based embedding (port of Java's HashEmbeddingService). For testing only. */
-function hashEmbedding(text, dimensions = 384, ngramSize = 3) {
+/** Deterministic hash-based embedding (port of Java's HashEmbeddingService). For testing/development only. */
+function hashEmbedding(text, dimensions = 384) {
   if (text == null) return null
   const vector = new Float32Array(dimensions)
   const normalized = text.toLowerCase()
+  const ngramSize = 3
 
   if (normalized.length >= ngramSize) {
     for (let i = 0; i <= normalized.length - ngramSize; i++)
@@ -75,7 +52,6 @@ function hashEmbedding(text, dimensions = 384, ngramSize = 3) {
   return Array.from(l2Normalize(vector))
 }
 
-/** FNV-1a hash for n-gram */
 function ngramHash(text, start, len) {
   let hash = 0x811c9dc5
   for (let i = start; i < start + len; i++) {
@@ -85,7 +61,6 @@ function ngramHash(text, start, len) {
   return hash
 }
 
-/** Maps hash to sparse dimensions via 4 projection bands */
 function project(hash, vector, dimensions) {
   for (let band = 0; band < 4; band++) {
     const h = rehash(hash, band)
@@ -93,29 +68,12 @@ function project(hash, vector, dimensions) {
   }
 }
 
-/** Avalanche-mixes hash with band seed */
 function rehash(hash, band) {
   let h = hash ^ Math.imul(band, 0x9e3779b9)
   h ^= h >>> 16
   h = Math.imul(h, 0x45d9f3b)
   h ^= h >>> 16
   return h
-}
-
-module.exports = async function addSQLiteVectorSupport(dbc) {
-  dbc.function('COSINE_SIMILARITY', { deterministic: true }, (v1, v2) =>
-    cosineSimilarity(toFloatArray(v1), toFloatArray(v2)))
-
-  dbc.function('L2DISTANCE', { deterministic: true }, (v1, v2) =>
-    l2Distance(toFloatArray(v1), toFloatArray(v2)))
-
-  dbc.function('L2NORMALIZE', { deterministic: true }, (v) =>
-    v == null ? null : fromFloatArray(l2Normalize(toFloatArray(v)), v))
-
-  // VECTOR_EMBEDDING throws - embeddings are computed via CAP db.before handlers
-  const err = () => { throw new Error('VECTOR_EMBEDDING cannot be called directly in SQLite. Use CAP event handlers.') }
-  dbc.function('VECTOR_EMBEDDING', { deterministic: true }, (a, b, c) => err())
-  dbc.function('VECTOR_EMBEDDING', { deterministic: true }, (a, b, c, d) => err())
 }
 
 function toFloatArray(vector) {
@@ -132,5 +90,20 @@ function fromFloatArray(arr, original) {
   return original instanceof Float32Array ? new Float32Array(arr) : JSON.stringify(arr)
 }
 
-module.exports.getEmbeddingService = getEmbeddingService
+module.exports = function addSQLiteVectorSupport(dbc) {
+  cds.log('sqlite').info('Using hash-based vector embeddings (for testing/development)')
+
+  dbc.function('COSINE_SIMILARITY', { deterministic: true }, (v1, v2) =>
+    cosineSimilarity(toFloatArray(v1), toFloatArray(v2)))
+
+  dbc.function('L2DISTANCE', { deterministic: true }, (v1, v2) =>
+    l2Distance(toFloatArray(v1), toFloatArray(v2)))
+
+  dbc.function('L2NORMALIZE', { deterministic: true }, (v) =>
+    v == null ? null : fromFloatArray(l2Normalize(toFloatArray(v)), v))
+
+  dbc.function('VECTOR_EMBEDDING', { deterministic: true }, (model, text) =>
+    text == null ? null : JSON.stringify(hashEmbedding(String(text))))
+}
+
 module.exports.hashEmbedding = hashEmbedding
