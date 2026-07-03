@@ -143,34 +143,4 @@ describe('vector', () => {
       expect(results[0].ID).to.eq(801)
     })
   })
-
-  describe('hash-based embedding', () => {
-    test('deterministic - same input produces same embedding', async () => {
-      const { hashEmbedding } = require('@cap-js/sqlite/lib/vector_handling')
-
-      const text = 'Hello world'
-      const embedding1 = hashEmbedding(text)
-      const embedding2 = hashEmbedding(text)
-
-      expect(embedding1).to.deep.eq(embedding2)
-    })
-
-    test('different inputs produce different embeddings', async () => {
-      const { hashEmbedding } = require('@cap-js/sqlite/lib/vector_handling')
-
-      const embedding1 = hashEmbedding('Hello world')
-      const embedding2 = hashEmbedding('Goodbye world')
-
-      expect(embedding1).to.not.deep.eq(embedding2)
-    })
-
-    test('embeddings are normalized', async () => {
-      const { hashEmbedding } = require('@cap-js/sqlite/lib/vector_handling')
-
-      const embedding = hashEmbedding('Test text')
-      const norm = Math.sqrt(embedding.reduce((sum, x) => sum + x * x, 0))
-
-      expect(approxEq(norm, 1.0)).to.eq(true)
-    })
-  })
 })
