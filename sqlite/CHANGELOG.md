@@ -4,6 +4,88 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.0.2](https://github.com/cap-js/cds-dbs/compare/sqlite-v3.0.1...sqlite-v3.0.2) (2026-07-01)
+
+
+### Fixed
+
+* prevent SQLite in memory connection from being cleaned up ([#1672](https://github.com/cap-js/cds-dbs/issues/1672)) ([9b9e2b3](https://github.com/cap-js/cds-dbs/commit/9b9e2b33da721a362bc7548ebbfe4389bcd628c3))
+
+## [3.0.1](https://github.com/cap-js/cds-dbs/compare/sqlite-v3.0.0...sqlite-v3.0.1) (2026-06-29)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^3.0.0 to ^3.0.1
+
+## [3.0.0](https://github.com/cap-js/cds-dbs/compare/sqlite-v2.4.0...sqlite-v3.0.0) (2026-06-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* require cds10 ([#1628](https://github.com/cap-js/cds-dbs/issues/1628))
+
+### Added
+
+* require cds10 ([#1628](https://github.com/cap-js/cds-dbs/issues/1628)) ([93e8305](https://github.com/cap-js/cds-dbs/commit/93e83053679f9ef94293caa08917855404db880d))
+* **sqlite:** use node:sqlite as default driver ([#1598](https://github.com/cap-js/cds-dbs/issues/1598)) ([b386996](https://github.com/cap-js/cds-dbs/commit/b3869961640543d55f39cc27620a4396fb7924d1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.11.0 to ^3.0.0
+
+## [2.4.0](https://github.com/cap-js/cds-dbs/compare/sqlite-v2.3.0...sqlite-v2.4.0) (2026-04-29)
+
+
+### Added
+
+* supersede potentially compromised release ([#1590](https://github.com/cap-js/cds-dbs/issues/1590)) ([3be4044](https://github.com/cap-js/cds-dbs/commit/3be404417229a2dd539e4b40393d3bd346e4388c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.10.1 to ^2.11.0
+
+## [2.3.0](https://github.com/cap-js/cds-dbs/compare/sqlite-v2.2.1...sqlite-v2.3.0) (2026-04-29)
+
+
+### Added
+
+* decimal affinity in sqlite ([#1547](https://github.com/cap-js/cds-dbs/issues/1547)) ([9228adc](https://github.com/cap-js/cds-dbs/commit/9228adc22733b18934997506271a0c7fa6505eb8))
+
+
+### Fixed
+
+* supersede potentially compromised release ([#1589](https://github.com/cap-js/cds-dbs/issues/1589)) ([bd73895](https://github.com/cap-js/cds-dbs/commit/bd7389524d00ddd6ed73fc79308e19e7bf952b53))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.10.0 to ^2.10.1
+
+## [2.2.1](https://github.com/cap-js/cds-dbs/compare/sqlite-v2.2.0...sqlite-v2.2.1) (2026-04-22)
+
+
+### Fixed
+
+* sqlite generated key is named lastInsertRowid ([#1501](https://github.com/cap-js/cds-dbs/issues/1501)) ([a4d3437](https://github.com/cap-js/cds-dbs/commit/a4d34378297c8afdb13abb7e664165012c36eb8f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.9.0 to ^2.10.0
+
 ## [2.2.0](https://github.com/cap-js/cds-dbs/compare/sqlite-v2.1.3...sqlite-v2.2.0) (2026-03-09)
 
 

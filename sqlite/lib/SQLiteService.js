@@ -188,7 +188,8 @@ class SQLiteService extends SQLService {
     const { sql, values } = this.cqn2sql(query, data)
     let ps = await this.prepare(sql)
     const vals = await this._prepareStreams(values)
-    return (await ps.run(vals)).changes
+    const { changes } = await ps.run(vals)
+    return this._return_affected (changes)
   }
 
   onPlainSQL({ query, data }, next) {
@@ -275,9 +276,11 @@ class SQLiteService extends SQLService {
       Int64: cds.env.features.ieee754compatible ? expr => `CAST(${expr} as TEXT)` : undefined,
       // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
-      Decimal: cds.env.features.ieee754compatible ? (expr, elem) => elem?.scale
-        ? `CASE WHEN ${expr} IS NULL THEN NULL ELSE format('%.${elem.scale}f', ${expr}) END`
-        : `CAST(${expr} as TEXT)`
+      Decimal: cds.env.features.ieee754compatible
+        ? (expr, elem) =>
+            elem?.scale
+              ? `CASE WHEN ${expr} IS NULL THEN NULL ELSE format('%.${elem.scale}f', ${expr}) END`
+              : `CASE WHEN ${expr} IS NULL THEN NULL ELSE rtrim(rtrim(format('%.999f', ${expr}), '0'), '.') END`
         : undefined,
       // Binary is not allowed in json objects
       Binary: expr => `${expr} || ''`,
@@ -294,7 +297,8 @@ class SQLiteService extends SQLService {
       Time: () => 'TIME_TEXT',
       DateTime: () => 'DATETIME_TEXT',
       Timestamp: () => 'TIMESTAMP_TEXT',
-      Map: () => 'JSON_TEXT'
+      Map: () => 'JSON_TEXT',
+      Decimal: cds.env.requires.db?.decimal_affinity?.match(/^real$/i) ? () => 'REAL_DECIMAL' : undefined,
     }
 
     get is_distinct_from_() {
@@ -317,13 +321,8 @@ function loadSQLite(driver) {
 
   if (driver) {
     sqlite = require(drivers[driver])
-    return
-  }
-
-  try { sqlite = require(drivers['better-sqlite3']) }
-  catch {
-    try { sqlite = require(drivers.node) }
-    catch { sqlite = require(drivers['sql.js']) }
+  } else {
+    sqlite = require(drivers.node)
   }
 }
 

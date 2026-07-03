@@ -4,6 +4,75 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.0.1](https://github.com/cap-js/cds-dbs/compare/postgres-v3.0.0...postgres-v3.0.1) (2026-06-29)
+
+
+### Fixed
+
+* transient retries before invalidating credentials in built-in connection pool ([#1646](https://github.com/cap-js/cds-dbs/issues/1646)) ([9833ecf](https://github.com/cap-js/cds-dbs/commit/9833ecf954923109a427b2077d3731aa41800071))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^3.0.0 to ^3.0.1
+
+## [3.0.0](https://github.com/cap-js/cds-dbs/compare/postgres-v2.3.0...postgres-v3.0.0) (2026-06-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* require cds10 ([#1628](https://github.com/cap-js/cds-dbs/issues/1628))
+
+### Added
+
+* require cds10 ([#1628](https://github.com/cap-js/cds-dbs/issues/1628)) ([93e8305](https://github.com/cap-js/cds-dbs/commit/93e83053679f9ef94293caa08917855404db880d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.11.0 to ^3.0.0
+
+## [2.3.0](https://github.com/cap-js/cds-dbs/compare/postgres-v2.2.2...postgres-v2.3.0) (2026-04-29)
+
+
+### Added
+
+* supersede potentially compromised release ([#1590](https://github.com/cap-js/cds-dbs/issues/1590)) ([3be4044](https://github.com/cap-js/cds-dbs/commit/3be404417229a2dd539e4b40393d3bd346e4388c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.10.1 to ^2.11.0
+
+## [2.2.2](https://github.com/cap-js/cds-dbs/compare/postgres-v2.2.1...postgres-v2.2.2) (2026-04-29)
+
+
+### Fixed
+
+* supersede potentially compromised release ([#1589](https://github.com/cap-js/cds-dbs/issues/1589)) ([bd73895](https://github.com/cap-js/cds-dbs/commit/bd7389524d00ddd6ed73fc79308e19e7bf952b53))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.10.0 to ^2.10.1
+
+## [2.2.1](https://github.com/cap-js/cds-dbs/compare/postgres-v2.2.0...postgres-v2.2.1) (2026-04-22)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.9.0 to ^2.10.0
+
 ## [2.2.0](https://github.com/cap-js/cds-dbs/compare/postgres-v2.1.3...postgres-v2.2.0) (2026-03-09)
 
 

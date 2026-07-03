@@ -26,7 +26,9 @@ class WasmSqlite {
         try {
           stmt.bind(params)
           stmt.step()
-          return { changes: stmt.db.getRowsModified(stmt) }
+          const changes = stmt.db.getRowsModified(stmt)
+          const lastInsertRowid = stmt.db.exec('SELECT last_insert_rowid()')[0]?.values[0][0]
+          return { changes, lastInsertRowid }
         } catch (err) {
           if (err.message.indexOf('NOT NULL constraint failed:') === 0) {
             err.code = 'SQLITE_CONSTRAINT_NOTNULL'

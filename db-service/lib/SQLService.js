@@ -6,6 +6,10 @@ const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
 const { resolveTable } = require('./utils')
 
+// REVISIT: make string the default in next major
+const _count_as_string = cds.env.features.count_as_string
+const _count = _count_as_string ? { func: 'count', cast: { type: 'cds.String' } } : { func: 'count' }
+
 const BINARY_TYPES = {
   'cds.Binary': 1,
   'cds.hana.BINARY': 1
@@ -14,7 +18,7 @@ const BINARY_TYPES = {
 /**
  * Checks if parameter is an object that at least contains one property.
  *
- * @param {*} obj 
+ * @param {*} obj
  * @returns Boolean
  */
 const _hasProps = (obj) => {
@@ -195,10 +199,10 @@ class SQLService extends DatabaseService {
   async onUPSERT({ query, data }) {
     const { sql, entries } = this.cqn2sql(query, data)
     if (!sql) return // Do nothing when there is nothing to be done // REVISIT: When does this happen?
-    const ps = await this.prepare(sql)
-    const results = entries ? await Promise.all(entries.map(e => ps.run(e))) : await ps.run()
-    // REVISIT: results isn't an array, when no entries -> how could that work? when do we have no entries?
-    return results.reduce((total, affectedRows) => total + affectedRows.changes, 0)
+    let ps = await this.prepare(sql)
+    let results = entries ? await Promise.all(entries.map(e => ps.run(e))) : await ps.run()
+    let changes = results.reduce?.((total,r) => total + r.changes, 0) ?? results.changes
+    return this._return_affected(changes)
   }
 
   /**
@@ -212,7 +216,7 @@ class SQLService extends DatabaseService {
       !_hasProps(req.query.UPDATE.with) &&
       !Object.values(req.target?.elements || {}).some(e => e['@cds.on.update'])
     )
-      return 0
+      return this._return_affected(0)
     return this.onSIMPLE(req)
   }
 
@@ -223,7 +227,8 @@ class SQLService extends DatabaseService {
   async onSIMPLE({ query, data }) {
     const { sql, values } = this.cqn2sql(query, data)
     let ps = await this.prepare(sql)
-    return (await ps.run(values)).changes
+    let { changes } = await ps.run(values)
+    return this._return_affected(changes)
   }
 
   get onDELETE() {
@@ -296,7 +301,7 @@ class SQLService extends DatabaseService {
    * @type {Handler}
    */
   async onEVENT({ event }) {
-    if(DEBUG._debug) DEBUG.debug(event) // in the other cases above DEBUG happens in cqn2sql
+    if (DEBUG._debug) DEBUG.debug(event) // in the other cases above DEBUG happens in cqn2sql
     return await this.exec(event)
   }
 
@@ -306,7 +311,7 @@ class SQLService extends DatabaseService {
    */
   async onPlainSQL({ query, data }, next) {
     if (typeof query === 'string') {
-      if(DEBUG._debug) DEBUG.debug(query, data)
+      if (DEBUG._debug) DEBUG.debug(query, data)
       const ps = await this.prepare(query)
       const exec = this.hasResults(query) ? d => ps.all(d) : d => ps.run(d)
       if (Array.isArray(data) && Array.isArray(data[0])) return await Promise.all(data.map(exec))
@@ -326,24 +331,24 @@ class SQLService extends DatabaseService {
    * Derives and executes a query to fill in `$count` for given query
    * @param {import('@sap/cds/apis/cqn').SELECT} query - SELECT CQN
    * @param {unknown[]} ret - Results of the original query
-   * @returns {Promise<number>}
+   * @returns {Promise<number|string>}
    */
   async count(query, ret) {
     if (ret?.length) {
       const { one, limit: _ } = query.SELECT,
         n = ret.length
       const [max, offset = 0] = one ? [1] : _ ? [_.rows?.val, _.offset?.val] : []
-      if (max === undefined || (n < max && (n || !offset))) return n + offset
+      if (max === undefined || (n < max && (n || !offset))) return _count_as_string ? `${n + offset}` : n + offset
     }
 
     // Keep original query columns when potentially used insde conditions
     const { having, groupBy } = query.SELECT
     let columns = []
-    if ((having?.length || groupBy?.length)) {
+    if (having?.length || groupBy?.length) {
       columns = query.SELECT.columns.filter(c => !c.expand)
     }
     if (columns.length === 0) columns.push({ val: 1 })
-    const cq = SELECT.one([{ func: 'count' }]).from(
+    const cq = SELECT.one([_count]).from(
       cds.ql.clone(query, {
         columns,
         localized: false,
@@ -411,7 +416,7 @@ class SQLService extends DatabaseService {
    * @param {import('@sap/cds/apis/cqn').Query} q
    * @returns {import('./infer/cqn').Query}
    */
-  cqn4sql(q, useTechnicalAlias=true) {
+  cqn4sql(q, useTechnicalAlias = true) {
     if (
       !cds.env.features.db_strict &&
       !q.SELECT?.from?.join &&
@@ -513,7 +518,7 @@ const DEBUG_PQL = cds.log('pql')
 if (DEBUG_PQL._debug || cds.repl) {
 
   // Add helper method to convert CQN to PQL, used below...
-  SQLService.prototype.cqn2pql = function cqn2pql (query, values) {
+  SQLService.prototype.cqn2pql = function cqn2pql(query, values) {
     const CQN2PQL = cqn2pql.renderer ??= require('./cqn2pql')
     return new CQN2PQL(this).render(query, values)
   }
@@ -529,7 +534,7 @@ if (DEBUG_PQL._debug || cds.repl) {
     }
   }
 
-  // If running in the REPL, extend cds.ql.Query with helpers to inspect queries. 
+  // If running in the REPL, extend cds.ql.Query with helpers to inspect queries.
   if (cds.repl) {
 
     cds.extend(cds.ql.Query).with(
@@ -559,12 +564,12 @@ if (DEBUG_PQL._debug || cds.repl) {
       }
     )
 
-    /** 
-     * Dummy SQL service used in extensions to cds.ql above, 
-     * if no real SQL service is available yet through cds.db. 
+    /**
+     * Dummy SQL service used in extensions to cds.ql above,
+     * if no real SQL service is available yet through cds.db.
      */
     class db extends SQLService {
-      /** @returns {SQLService} */ 
+      /** @returns {SQLService} */
       static get srv() { return cds.db || (this.singleton ??= new this) }
       get factory() { return null }
       get model() { return cds.model }

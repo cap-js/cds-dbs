@@ -44,7 +44,7 @@ describe('search', () => {
       expect(sql).to.include('descr FUZZY WEIGHT 0.3 MINIMAL SCORE 0.9')
 
       const res = await cqn
-      expect(res.length).to.be(1) // jane eyre
+      expect(res.length).to.eq(1) // jane eyre
     })
 
     test('single element - annotations', async () => {
@@ -54,7 +54,7 @@ describe('search', () => {
       expect(sql).to.include('descr FUZZY WEIGHT 0.3 MINIMAL SCORE 0.9')
 
       const res = await cqn
-      expect(res.length).to.be(1) // jane eyre
+      expect(res.length).to.eq(1) // jane eyre
     })
   })
 
@@ -65,9 +65,9 @@ describe('search', () => {
       const cqn = SELECT.from(Books).search('"autobio"').columns('1')
       const { sql } = cds.db.cqn2sql(cqn)
       // 5 columns to be searched createdBy, modifiedBy, title, descr, currency_code
-      expect(sql.match(/(like)/g).length).to.be(5)
+      expect(sql.match(/(like)/g).length).to.eq(5)
       const res = await cqn
-      expect(res.length).to.be(2) // Eleonora and Jane Eyre
+      expect(res.length).to.eq(2) // Eleonora and Jane Eyre
     })
 
     test('fallback - 2 search terms', async () => {
@@ -75,11 +75,11 @@ describe('search', () => {
       const cqn = SELECT.from(Books).search('"autobio"', '"Jane"').columns('1')
       const { sql, values } = cds.db.cqn2sql(cqn)
       // 5 columns to be searched createdBy, modifiedBy, title, descr, currency_code
-      expect(sql.match(/(like)/g).length).to.be(10)
+      expect(sql.match(/(like)/g).length).to.eq(10)
       expect(values).to.include('%autobio%')
       expect(values).to.include('%jane%')
       const res = await cqn
-      expect(res.length).to.be(1) // Jane Eyre
+      expect(res.length).to.eq(1) // Jane Eyre
     })
 
     test('fallback - 3 search terms with special characters', async () => {
@@ -87,12 +87,12 @@ describe('search', () => {
       const cqn = SELECT.from(Books).search('"1847"', '1846', '"\\"Ellis Bell\\""').columns('1')
       const { sql, values } = cds.db.cqn2sql(cqn)
       // 5 columns to be searched createdBy, modifiedBy, title, descr, currency_code
-      expect(sql.match(/(like)/g).length).to.be(15)
+      expect(sql.match(/(like)/g).length).to.eq(15)
       expect(values).to.include('%1847%')
       expect(values).to.include('%1846%')
       expect(values).to.include('%"ellis bell"%')
       const res = await cqn
-      expect(res.length).to.be(1) // Emily Brontë
+      expect(res.length).to.eq(1) // Emily Brontë
     })
   })
 })
