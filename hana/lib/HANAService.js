@@ -59,7 +59,11 @@ class HANAService extends SQLService {
         service.server.major = dbc.server.major || service.server.major
         return dbc
       } catch (err) {
-        if (err.code === 10) return // authentication error, see error handler below
+        if (err.code === 10) {
+          // authentication error
+          LOG.debug('connection failed:', err)
+          throw new Error(`Pool failed connecting`, { cause: err })
+        } 
         if (attempt < maxRetries) {
           LOG.debug('connection failed:', err, '- retrying attempt', attempt, 'of', maxRetries)
           return createSingleTenant(tenant, attempt + 1)
