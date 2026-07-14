@@ -342,7 +342,7 @@ class HANAService extends SQLService {
       const newPS = this.ensureDBC().prepare(sql, hasBlobs)
       this.ensureDBC().statements.set(sql, newPS)
       stmt = newPS
-      }
+    }
     return stmt
   }
 
