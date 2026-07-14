@@ -335,9 +335,14 @@ class HANAService extends SQLService {
 
   // prepare and exec are both implemented inside the drivers
   prepare(sql, hasBlobs) {
-    const stmt = this.ensureDBC().prepare(sql, hasBlobs)
-    // we store the statements, to release them on commit/rollback all at once
-    this.dbc.statements.push(stmt)
+    // we store the prepared statements for caching
+    // and to release them on commit/rollback all at once
+    let stmt = this.ensureDBC().statements.get(sql);
+    if (!stmt) {
+      const newPS = this.ensureDBC().prepare(sql, hasBlobs)
+      this.ensureDBC().statements.set(sql, newPS)
+      stmt = newPS
+      }
     return stmt
   }
 
@@ -1358,7 +1363,8 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
   async onCall({ query, data }, name, schema) {
     const isAsync = /\sASYNC\s*$/.test(query)
     const outParameters = isAsync ? [{ PARAMETER_NAME: 'ASYNC_CALL_ID' }] : await this._getProcedureMetadata(name, schema)
-    const ps = await this.prepare(query)
+    // make procedure preparations unique to avoid caching issues with internal procedures
+    const ps = await this.prepare(query+'--'+this.ensureDBC().statements.length)
     const ret = this.ensureDBC() && await ps.proc(data, outParameters)
     return isAsync ? ret.ASYNC_CALL_ID[0] : ret
   }
@@ -1385,7 +1391,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
 
   onBEGIN() {
     DEBUG?.('BEGIN')
-    if (this.dbc) this.dbc.statements = []
+    if (this.dbc) this.dbc.statements = new Map()
     return this.dbc?.begin()
   }
 
