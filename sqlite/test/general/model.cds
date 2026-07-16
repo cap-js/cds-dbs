@@ -7,6 +7,11 @@ entity db.fooTemporal : managed, temporal {
   key ID   : Integer;
 }
 
+entity db.Orders : managed {
+  key ID   : Integer;
+      name : String;
+}
+
 @path: '/test'
 service test {
   entity foo : managed {
@@ -34,6 +39,9 @@ service test {
   }
 
   entity fooTemporal as projection on db.fooTemporal;
+
+  // cap/issues#20583: projection does not expose the managed audit fields
+  entity Orders as projection on db.Orders { ID, name };
 
   entity Images {
      key ID   : Integer;

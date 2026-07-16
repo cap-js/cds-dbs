@@ -142,4 +142,14 @@ describe('Managed thingies', () => {
       expect(result[0].createdBy).to.equal(result[1].createdBy)
     }
   })
+
+  test('managed fields excluded from projection still reach the INSERT', async () => {
+    const resPost = await POST('/test/Orders', { ID: 1, name: 'first' })
+    expect(resPost.status).to.equal(201)
+
+    const db = await cds.connect.to('db')
+    const row = await db.run(SELECT.one.from('db.Orders').where({ ID: 1 }))
+    expect(row.createdBy).to.equal('anonymous')
+    expect(row.createdAt).to.not.be.null
+  })
 })
