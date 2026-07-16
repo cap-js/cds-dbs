@@ -157,4 +157,55 @@ const HANAFunctions = {
 
 for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunctions[each]
 
-module.exports = { ...StandardFunctions, ...HANAFunctions }
+// ==============================
+// Vector Functions - SQL variants
+// ==============================
+
+const VectorFunctionsSQL = {
+  /**
+   * Generates SQL statement for cosine similarity calculation using pure SQL
+   * @param {string} a - First vector
+   * @param {string} b - Second vector
+   * @returns {string} - SQL statement
+   */
+  cosine_similarity_sql: (a, b) => `
+    (SELECT
+      CASE
+        WHEN SQRT(normA) * SQRT(normB) = 0 THEN 0
+        ELSE dot / (SQRT(normA) * SQRT(normB))
+      END
+    FROM (
+      SELECT
+        SUM(a.value * b.value) as dot,
+        SUM(a.value * a.value) as normA,
+        SUM(b.value * b.value) as normB
+      FROM json_each(${a}) a
+      JOIN json_each(${b}) b ON a.key = b.key
+    ))`,
+
+  /**
+   * Generates SQL statement for L2 distance calculation using pure SQL
+   * @param {string} a - First vector
+   * @param {string} b - Second vector
+   * @returns {string} - SQL statement
+   */
+  l2distance_sql: (a, b) => `
+    (SELECT SQRT(SUM((a.value - b.value) * (a.value - b.value)))
+     FROM json_each(${a}) a
+     JOIN json_each(${b}) b ON a.key = b.key)`,
+
+  /**
+   * Generates SQL statement for L2 normalization using pure SQL
+   * @param {string} v - Vector to normalize
+   * @returns {string} - SQL statement
+   */
+  l2normalize_sql: v => `
+    (SELECT json_group_array(
+      CASE
+        WHEN (SELECT SQRT(SUM(value * value)) FROM json_each(${v})) = 0 THEN value
+        ELSE value / (SELECT SQRT(SUM(value * value)) FROM json_each(${v}))
+      END
+    ) FROM json_each(${v}))`,
+}
+
+module.exports = { ...StandardFunctions, ...HANAFunctions, ...VectorFunctionsSQL }
