@@ -234,6 +234,104 @@ const speedup5 = (js5.avgMs / sql5.avgMs).toFixed(2)
 const faster5 = js5.avgMs < sql5.avgMs ? 'JavaScript' : 'SQL'
 console.log(`\n  ➜ Winner: ${faster5} is ${Math.abs(speedup5)}x faster\n`)
 
+// Test 6: L2DISTANCE with 10D vectors
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+console.log('TEST 6: L2DISTANCE with 10-dimensional vectors')
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n')
+
+const js6 = benchmark(
+  'JavaScript (L2DISTANCE)',
+  `SELECT L2DISTANCE('${vec10a}', '${vec10b}') as result FROM test`,
+  3000
+)
+
+const sql6 = benchmark(
+  'SQL (json_each + aggregates)',
+  `SELECT (SELECT SQRT(SUM((a.value - b.value) * (a.value - b.value)))
+   FROM json_each('${vec10a}') a
+   JOIN json_each('${vec10b}') b ON a.key = b.key) as result FROM test`,
+  3000
+)
+
+const speedup6 = (js6.avgMs / sql6.avgMs).toFixed(2)
+const faster6 = js6.avgMs < sql6.avgMs ? 'JavaScript' : 'SQL'
+console.log(`\n  ➜ Winner: ${faster6} is ${Math.abs(speedup6)}x faster\n`)
+
+// Test 7: L2DISTANCE with 100D vectors
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+console.log('TEST 7: L2DISTANCE with 100-dimensional vectors')
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n')
+
+const js7 = benchmark(
+  'JavaScript (L2DISTANCE)',
+  `SELECT L2DISTANCE('${vec100a}', '${vec100b}') as result FROM test`,
+  1000
+)
+
+const sql7 = benchmark(
+  'SQL (json_each + aggregates)',
+  `SELECT (SELECT SQRT(SUM((a.value - b.value) * (a.value - b.value)))
+   FROM json_each('${vec100a}') a
+   JOIN json_each('${vec100b}') b ON a.key = b.key) as result FROM test`,
+  1000
+)
+
+const speedup7 = (js7.avgMs / sql7.avgMs).toFixed(2)
+const faster7 = js7.avgMs < sql7.avgMs ? 'JavaScript' : 'SQL'
+console.log(`\n  ➜ Winner: ${faster7} is ${Math.abs(speedup7)}x faster\n`)
+
+// Test 8: L2NORMALIZE with 10D vectors
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+console.log('TEST 8: L2NORMALIZE with 10-dimensional vectors')
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n')
+
+const js8 = benchmark(
+  'JavaScript (L2NORMALIZE)',
+  `SELECT L2NORMALIZE('${vec10a}') as result FROM test`,
+  3000
+)
+
+const sql8 = benchmark(
+  'SQL (json_each + aggregates)',
+  `SELECT (SELECT json_group_array(
+    CASE
+      WHEN (SELECT SQRT(SUM(value * value)) FROM json_each('${vec10a}')) = 0 THEN value
+      ELSE value / (SELECT SQRT(SUM(value * value)) FROM json_each('${vec10a}'))
+    END
+  ) FROM json_each('${vec10a}')) as result FROM test`,
+  3000
+)
+
+const speedup8 = (js8.avgMs / sql8.avgMs).toFixed(2)
+const faster8 = js8.avgMs < sql8.avgMs ? 'JavaScript' : 'SQL'
+console.log(`\n  ➜ Winner: ${faster8} is ${Math.abs(speedup8)}x faster\n`)
+
+// Test 9: L2NORMALIZE with 100D vectors
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+console.log('TEST 9: L2NORMALIZE with 100-dimensional vectors')
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n')
+
+const js9 = benchmark(
+  'JavaScript (L2NORMALIZE)',
+  `SELECT L2NORMALIZE('${vec100a}') as result FROM test`,
+  1000
+)
+
+const sql9 = benchmark(
+  'SQL (json_each + aggregates)',
+  `SELECT (SELECT json_group_array(
+    CASE
+      WHEN (SELECT SQRT(SUM(value * value)) FROM json_each('${vec100a}')) = 0 THEN value
+      ELSE value / (SELECT SQRT(SUM(value * value)) FROM json_each('${vec100a}'))
+    END
+  ) FROM json_each('${vec100a}')) as result FROM test`,
+  1000
+)
+
+const speedup9 = (js9.avgMs / sql9.avgMs).toFixed(2)
+const faster9 = js9.avgMs < sql9.avgMs ? 'JavaScript' : 'SQL'
+console.log(`\n  ➜ Winner: ${faster9} is ${Math.abs(speedup9)}x faster\n`)
+
 // Summary
 console.log('\n╔════════════════════════════════════════════════════════════════════╗')
 console.log('║                        SUMMARY                                     ║')
@@ -241,14 +339,14 @@ console.log('╚═════════════════════�
 console.log('  JavaScript Implementation:')
 console.log('    • SQLite calls custom JS function')
 console.log('    • Simple loops and Math operations')
-console.log(`    • Average: ${((js1.avgMs + js2.avgMs + js3.avgMs + js4.avgMs + js5.avgMs) / 5).toFixed(4)}ms per operation\n`)
+console.log(`    • Average: ${((js1.avgMs + js2.avgMs + js3.avgMs + js4.avgMs + js5.avgMs + js6.avgMs + js7.avgMs + js8.avgMs + js9.avgMs) / 9).toFixed(4)}ms per operation\n`)
 console.log('  SQL Implementation:')
 console.log('    • Pure SQL with json_each() and aggregations')
 console.log('    • Stays within SQLite engine')
-console.log(`    • Average: ${((sql1.avgMs + sql2.avgMs + sql3.avgMs + sql4.avgMs + sql5.avgMs) / 5).toFixed(4)}ms per operation\n`)
+console.log(`    • Average: ${((sql1.avgMs + sql2.avgMs + sql3.avgMs + sql4.avgMs + sql5.avgMs + sql6.avgMs + sql7.avgMs + sql8.avgMs + sql9.avgMs) / 9).toFixed(4)}ms per operation\n`)
 
-const jsAvg = (js1.avgMs + js2.avgMs + js3.avgMs + js4.avgMs + js5.avgMs) / 5
-const sqlAvg = (sql1.avgMs + sql2.avgMs + sql3.avgMs + sql4.avgMs + sql5.avgMs) / 5
+const jsAvg = (js1.avgMs + js2.avgMs + js3.avgMs + js4.avgMs + js5.avgMs + js6.avgMs + js7.avgMs + js8.avgMs + js9.avgMs) / 9
+const sqlAvg = (sql1.avgMs + sql2.avgMs + sql3.avgMs + sql4.avgMs + sql5.avgMs + sql6.avgMs + sql7.avgMs + sql8.avgMs + sql9.avgMs) / 9
 const ratio = (jsAvg / sqlAvg).toFixed(2)
 
 if (ratio < 1) {
