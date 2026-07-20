@@ -14,11 +14,6 @@
     "better-sqlite3": "^12.11.1",
     "sql.js": "^1.13.0"
   },
-  "overrides": {
-    "@sap/cds": {
-      "@sap/cds-compiler": "6"
-    }
-  },
   "scripts": {
     "test": "npm t -w db-service -w sqlite",
     "lint": "npx eslint ."
