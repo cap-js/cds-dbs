@@ -5,7 +5,7 @@ const os = require('os')
 describe('vector functions', () => {
   const { expect } = cds.test(__dirname + '/../../test/compliance/resources')
 
-  // Setup pgvector extension and fake vector_embedding function
+  // Setup pgvector extension
   beforeAll(async () => {
     const testDb = process.env.TRAVIS_JOB_ID || process.env.GITHUB_RUN_ID || os.userInfo().username || 'test_db'
 
@@ -28,7 +28,8 @@ describe('vector functions', () => {
     }
     await adminClient.end()
 
-    // Now connect to the test database and set up extension + function
+    // Now connect to the test database and set up extension
+    // Note: vector_embedding function is now created automatically by PostgresService
     const client = new Client({
       host: 'localhost',
       port: 5432,
@@ -38,15 +39,6 @@ describe('vector functions', () => {
     })
     await client.connect()
     await client.query('CREATE EXTENSION IF NOT EXISTS vector')
-    await client.query(`
-      CREATE OR REPLACE FUNCTION public.vector_embedding(model text, input text)
-      RETURNS text AS $$
-        SELECT CASE WHEN input IS NULL THEN NULL
-          ELSE (SELECT json_agg(sin(i * hashtext(input)::float8 / 1000))::text
-                FROM generate_series(1, 384) i)
-        END;
-      $$ LANGUAGE SQL IMMUTABLE;
-    `)
     await client.end()
   })
 

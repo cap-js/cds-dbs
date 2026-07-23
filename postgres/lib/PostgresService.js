@@ -56,7 +56,7 @@ class PostgresService extends SQLService {
           // 2. Only pgvector.registerTypes(dbc) - This registers type parsers with the pg client and may need to run per connection
           // 3. Make it conditional - Only run if a config flag is set, e.g., cds.env.requires.db.vector: true
           // 4. Lazy initialization - Only initialize vector support when a vector operation is first attempted
-          // 5. Run once per process - Use a module-level flag         
+          // 5. Run once per process - Use a module-level flag
           /*
           try {
             await dbc.query('CREATE EXTENSION IF NOT EXISTS vector')
@@ -65,6 +65,19 @@ class PostgresService extends SQLService {
             const LOG = cds.log('postgres')
             LOG.debug('pgvector extension not available, skipping vector support:', e.message)
           }*/
+
+          // Create default vector_embedding function (hash-based implementation for testing/development)
+          // Users can override this with their own implementation if needed
+          await dbc.query(`
+            CREATE OR REPLACE FUNCTION public.vector_embedding(model text, input text)
+            RETURNS text AS $$
+              SELECT CASE WHEN input IS NULL THEN NULL
+                ELSE (SELECT json_agg(sin(i * hashtext(input)::float8 / 1000))::text
+                      FROM generate_series(1, 384) i)
+              END;
+            $$ LANGUAGE SQL IMMUTABLE;
+          `)
+
           dbc.open = true
           dbc.on('end', () => { dbc.open = false })
           return dbc
