@@ -376,15 +376,12 @@ describe('Bookshop - Read', () => {
 
     const q = cds.ql`SELECT title FROM sap.capire.bookshop.Books ORDER BY title`
     const res3 = await cds.run(q)
-    // pgvector image: 'Wuthering Heights' sorts last (W > d in Unicode order)
-    // sqlite/alpine: 'dracula' sorts last (different collation behavior)
-    const lastTitle = res3.at(-1).title
-    expect(['dracula', 'Wuthering Heights']).to.include(lastTitle)
+    expect(res3.at(-1).title).to.be.eq('dracula')
 
     // If no locale is set, we do not sort by default locale, standard sorting applies
     q.SELECT.localized = true
     const res4 = await cds.run(q)
-    expect(['dracula', 'Wuthering Heights']).to.include(res4.at(-1).title)
+    expect(res4.at(-1).title).to.be.eq('dracula')
   })
 
   test('Filter Books(multiple functions)', async () => {

@@ -5,6 +5,8 @@ services:
     restart: always
     environment:
       POSTGRES_PASSWORD: postgres
+      # Use C locale for consistent, simple byte-order collation across platforms
+      POSTGRES_INITDB_ARGS: "--locale=C --encoding=UTF8"
     ports:
       - '5432:5432'
     command: ['postgres', '-c', 'log_statement=all']

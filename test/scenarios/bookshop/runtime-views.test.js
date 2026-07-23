@@ -159,11 +159,7 @@ describe('Runtime Views', () => {
           .orderBy('title')
 
         const authors = res.map(b => b.author.name)
-        // pgvector image: 'Emily Brontë' (Wuthering Heights) comes second
-        // sqlite/alpine: 'Emily Brontë' sorted last (different collation behavior)
-        expect(authors).to.have.lengthOf(5)
-        expect(authors[0]).to.equal('Richard Carpenter')
-        expect(authors).to.include('Emily Brontë')
+        expect(authors).to.deep.equal(['Richard Carpenter', 'Edgar Allen Poe', 'Charlotte Brontë', 'Edgar Allen Poe', "Emily Brontë"])
 
         const resDeployed = await SELECT.from(DBView)
           .columns([{ ref: ['author'], expand: ['*'] }])
