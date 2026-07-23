@@ -7,6 +7,11 @@ entity db.fooTemporal : managed, temporal {
   key ID   : Integer;
 }
 
+entity db.fooManaged : managed {
+  key ID    : Integer;
+      value : String;
+}
+
 @path: '/test'
 service test {
   entity foo : managed {
@@ -34,6 +39,13 @@ service test {
   }
 
   entity fooTemporal as projection on db.fooTemporal;
+
+  // Projection that intentionally excludes the managed fields
+  // (createdBy/createdAt/modifiedBy/modifiedAt) — see issue 20583.
+  entity fooManagedRestricted as projection on db.fooManaged {
+    ID,
+    value
+  };
 
   entity Images {
      key ID   : Integer;
