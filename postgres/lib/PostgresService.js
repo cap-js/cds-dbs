@@ -49,23 +49,11 @@ class PostgresService extends SQLService {
         try {
           const dbc = new Client({ ...credentials, ...clientOptions })
           await dbc.connect()
-          // cds.Vector support for PG
-          // REVISIT: Check if module 'pgvector/pg' is installed
-          // More ideas:
-          // 1. Move CREATE EXTENSION to deployment (migration/deployment scripts). The CDS build/deploy could handle this
-          // 2. Only pgvector.registerTypes(dbc) - This registers type parsers with the pg client and may need to run per connection
-          // 3. Make it conditional - Only run if a config flag is set, e.g., cds.env.requires.db.vector: true
-          // 4. Lazy initialization - Only initialize vector support when a vector operation is first attempted
-          // 5. Run once per process - Use a module-level flag
-          /*
-          try {
-            await dbc.query('CREATE EXTENSION IF NOT EXISTS vector')
-            await pgvector.registerTypes(dbc)
-          } catch (e) {
-            const LOG = cds.log('postgres')
-            LOG.debug('pgvector extension not available, skipping vector support:', e.message)
-          }*/
 
+          // Create pgvector extension if not exists
+          await dbc.query('CREATE EXTENSION IF NOT EXISTS vector')
+          // Register vector type parsers with the pg driver for proper serialization/deserialization
+          await pgvector.registerTypes(dbc)
           // Create default vector_embedding function (hash-based implementation for testing/development)
           // Users can override this with their own implementation if needed
           await dbc.query(`
