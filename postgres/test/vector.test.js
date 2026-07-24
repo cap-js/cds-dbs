@@ -7,7 +7,7 @@ describe('vector functions', () => {
 
   // Setup pgvector extension for test database
   beforeAll(async () => {
-    const testDb = process.env.TRAVIS_JOB_ID || process.env.GITHUB_RUN_ID || os.userInfo().username || 'test_db'
+    const testDb = process.env.GITHUB_RUN_ID || os.userInfo().username || 'test_db'
 
     // Connect to postgres db to ensure test db exists
     const adminClient = new Client({
