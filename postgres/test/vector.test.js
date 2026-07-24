@@ -22,7 +22,7 @@ describe('vector functions', () => {
     // Create test database if it doesn't exist
     try {
       await adminClient.query(`CREATE DATABASE "${testDb}"`)
-    } catch (e) {
+    } catch {
       // Database might already exist
     }
     await adminClient.end()

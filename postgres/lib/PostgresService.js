@@ -2,11 +2,14 @@ const { SQLService } = require('@cap-js/db-service')
 const { Client, Query } = require('pg')
 const cds = require('@sap/cds')
 const crypto = require('crypto')
-let pgvector // optional dependency
-try { pgvector = require('pgvector/pg') } catch (e) {}
+let pgvector
+try { pgvector = require('pgvector/pg') } catch { /* optional */ }
 
 const { Writable, Readable } = require('stream')
 const sessionVariableMap = require('./session.json')
+
+// Track which databases have had vector_embedding function initialized
+const vectorFunctionInitialized = new Set()
 
 const LOG = cds.log('sql|db')
 
@@ -54,11 +57,12 @@ class PostgresService extends SQLService {
           await dbc.connect()
 
           // Register vector type parsers (if pgvector module is available) - must run on EVERY connection
-          if (pgvector) { try { await pgvector.registerTypes(dbc) } catch (e) {} }
+          if (pgvector) { try { await pgvector.registerTypes(dbc) } catch { /* not available */ } }
 
-          // Create default hash-based vector_embedding function
+          // Create default hash-based vector_embedding function once per database
           // Users can override this with their own implementation if needed
-          try {
+          const dbKey = `${credentials.host}:${credentials.port}/${credentials.database}`
+          if (!vectorFunctionInitialized.has(dbKey)) {
             await dbc.query(`
               CREATE OR REPLACE FUNCTION public.vector_embedding(model text, input text)
               RETURNS text AS $$
@@ -68,7 +72,8 @@ class PostgresService extends SQLService {
                 END;
               $$ LANGUAGE SQL IMMUTABLE;
             `)
-          } catch (e) {}
+            vectorFunctionInitialized.add(dbKey)
+          }
 
           dbc.open = true
           dbc.on('end', () => { dbc.open = false })
