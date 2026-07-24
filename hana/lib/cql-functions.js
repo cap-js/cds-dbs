@@ -266,7 +266,7 @@ const HANAFunctions = {
 
   HIERARCHY: undefined,
   HIERARCHY_DESCENDANTS: undefined,
-  HIERARCHY_ANCESTORS: undefined,  
+  HIERARCHY_ANCESTORS: undefined,
 }
 
 for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunctions[each]
