@@ -1,10 +1,44 @@
 const cds = require('../../test/cds.js')
+const { Client } = require('pg')
+const os = require('os')
 
 describe('vector functions', () => {
   const { expect } = cds.test(__dirname + '/../../test/compliance/resources')
 
-  // Note: pgvector extension and vector_embedding function are now created
-  // automatically by PostgresService during connection initialization
+  // Setup pgvector extension for test database
+  beforeAll(async () => {
+    const testDb = process.env.TRAVIS_JOB_ID || process.env.GITHUB_RUN_ID || os.userInfo().username || 'test_db'
+
+    // Connect to postgres db to ensure test db exists
+    const adminClient = new Client({
+      host: 'localhost',
+      port: 5432,
+      user: 'postgres',
+      password: 'postgres',
+      database: 'postgres'
+    })
+    await adminClient.connect()
+
+    // Create test database if it doesn't exist
+    try {
+      await adminClient.query(`CREATE DATABASE "${testDb}"`)
+    } catch (e) {
+      // Database might already exist
+    }
+    await adminClient.end()
+
+    // Connect to the test database and set up extension
+    const client = new Client({
+      host: 'localhost',
+      port: 5432,
+      user: 'postgres',
+      password: 'postgres',
+      database: testDb
+    })
+    await client.connect()
+    await client.query('CREATE EXTENSION IF NOT EXISTS vector')
+    await client.end()
+  })
 
   describe('COSINE_SIMILARITY', () => {
     test('identical vectors return 1', async () => {

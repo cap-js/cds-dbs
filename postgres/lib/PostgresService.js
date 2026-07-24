@@ -2,7 +2,9 @@ const { SQLService } = require('@cap-js/db-service')
 const { Client, Query } = require('pg')
 const cds = require('@sap/cds')
 const crypto = require('crypto')
-const pgvector = require('pgvector')
+let pgvector // optional dependency
+try { pgvector = require('pgvector/pg') } catch (e) {}
+
 const { Writable, Readable } = require('stream')
 const sessionVariableMap = require('./session.json')
 
@@ -51,21 +53,22 @@ class PostgresService extends SQLService {
           const dbc = new Client({ ...credentials, ...clientOptions })
           await dbc.connect()
 
-          // Create pgvector extension if not exists
-          await dbc.query('CREATE EXTENSION IF NOT EXISTS vector')
-          // Register vector type parsers with the pg driver for proper serialization/deserialization
-          await pgvector.registerTypes(dbc)
-          // Create default vector_embedding function (hash-based implementation for testing/development)
+          // Register vector type parsers (if pgvector module is available) - must run on EVERY connection
+          if (pgvector) { try { await pgvector.registerTypes(dbc) } catch (e) {} }
+
+          // Create default hash-based vector_embedding function
           // Users can override this with their own implementation if needed
-          await dbc.query(`
-            CREATE OR REPLACE FUNCTION public.vector_embedding(model text, input text)
-            RETURNS text AS $$
-              SELECT CASE WHEN input IS NULL THEN NULL
-                ELSE (SELECT json_agg(sin(i * hashtext(input)::float8 / 1000))::text
-                      FROM generate_series(1, 384) i)
-              END;
-            $$ LANGUAGE SQL IMMUTABLE;
-          `)
+          try {
+            await dbc.query(`
+              CREATE OR REPLACE FUNCTION public.vector_embedding(model text, input text)
+              RETURNS text AS $$
+                SELECT CASE WHEN input IS NULL THEN NULL
+                  ELSE (SELECT json_agg(sin(i * hashtext(input)::float8 / 1000))::text
+                        FROM generate_series(1, 384) i)
+                END;
+              $$ LANGUAGE SQL IMMUTABLE;
+            `)
+          } catch (e) {}
 
           dbc.open = true
           dbc.on('end', () => { dbc.open = false })
