@@ -24,7 +24,7 @@
   ],
   "scripts": {
     "test": "npm start && cds-test",
-    "start": "docker compose -f pg-stack.yml up -d --wait && docker compose -f pg-stack.yml exec db bash -c 'until pg_isready -U postgres; do sleep 1; done' && docker compose -f pg-stack.yml exec db psql -U postgres -c 'CREATE EXTENSION IF NOT EXISTS vector;' || true"
+    "start": "docker compose -f pg-stack.yml up -d --wait && docker compose -f pg-stack.yml exec db psql -U postgres -c 'CREATE EXTENSION IF NOT EXISTS vector;' || true"
   },
   "dependencies": {
     "@cap-js/db-service": "^3.0.1",

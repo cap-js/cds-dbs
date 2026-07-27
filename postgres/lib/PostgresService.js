@@ -56,13 +56,15 @@ class PostgresService extends SQLService {
           const dbc = new Client({ ...credentials, ...clientOptions })
           await dbc.connect()
 
-          // Register vector type parsers (if pgvector module is available) - must run on EVERY connection
-          if (pgvector) { try { await pgvector.registerTypes(dbc) } catch { /* not available */ } }
+          // Register vector type parsers after connection (skip if connect is mocked in tests)
+          if (pgvector && dbc._connected !== false) {
+            try { await pgvector.registerTypes(dbc) } catch { /* not available or mocked */ }
+          }
 
           // Create default hash-based vector_embedding function once per database
-          // Skip in test environments where connect() is mocked or connection not open
+          // Skip in test environments where connect() is mocked
           const dbKey = `${credentials.host}:${credentials.port}/${credentials.database}`
-          if (!vectorFunctionInitialized.has(dbKey) && dbc.query && dbc._connected) {
+          if (!vectorFunctionInitialized.has(dbKey) && dbc.query && dbc._connected !== false) {
             try {
               await dbc.query(`
                 CREATE OR REPLACE FUNCTION public.vector_embedding(model text, input text)
