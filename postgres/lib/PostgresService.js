@@ -98,7 +98,7 @@ class PostgresService extends SQLService {
         JSON.stringify(env),
       ]),
       ...(this.options?.credentials?.schema
-        ? [this.exec(`SET search_path TO "${this.options?.credentials?.schema}"${pgvector ? ', public' : ''};`)] // include public for extensions like pgvector when available
+        ? [this.exec(`SET search_path TO "${this.options?.credentials?.schema}", public;`)]
         : []),
 
       ...(!this._initalCollateCheck ? [this._checkCollation()] : []),
