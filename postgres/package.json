@@ -31,14 +31,17 @@
     "pg": "^8.22.0"
   },
   "devDependencies": {
-    "pgvector": "^0.3.0"
   },
   "peerDependencies": {
     "@sap/cds": "^10",
-    "@sap/cds-dk": "^10"
+    "@sap/cds-dk": "^10",
+    "pgvector": "^0.3.0"
   },
   "peerDependenciesMeta": {
     "@sap/cds-dk": {
+      "optional": true
+    },
+    "pgvector": {
       "optional": true
     }
   },
