@@ -60,19 +60,21 @@ class PostgresService extends SQLService {
           if (pgvector) { try { await pgvector.registerTypes(dbc) } catch { /* not available */ } }
 
           // Create default hash-based vector_embedding function once per database
-          // Skip in test environments where connect() is mocked
+          // Skip in test environments where connect() is mocked or connection not open
           const dbKey = `${credentials.host}:${credentials.port}/${credentials.database}`
-          if (!vectorFunctionInitialized.has(dbKey) && dbc.query) {
-            await dbc.query(`
-              CREATE OR REPLACE FUNCTION public.vector_embedding(model text, input text)
-              RETURNS text AS $$
-                SELECT CASE WHEN input IS NULL THEN NULL
-                  ELSE (SELECT json_agg(sin(i * hashtext(input)::float8 / 1000))::text
-                        FROM generate_series(1, 384) i)
-                END;
-              $$ LANGUAGE SQL IMMUTABLE;
-            `)
-            vectorFunctionInitialized.add(dbKey)
+          if (!vectorFunctionInitialized.has(dbKey) && dbc.query && dbc._connected) {
+            try {
+              await dbc.query(`
+                CREATE OR REPLACE FUNCTION public.vector_embedding(model text, input text)
+                RETURNS text AS $$
+                  SELECT CASE WHEN input IS NULL THEN NULL
+                    ELSE (SELECT json_agg(sin(i * hashtext(input)::float8 / 1000))::text
+                          FROM generate_series(1, 384) i)
+                  END;
+                $$ LANGUAGE SQL IMMUTABLE;
+              `)
+              vectorFunctionInitialized.add(dbKey)
+            } catch { /* ignore if function creation fails in test/mock environments */ }
           }
 
           dbc.open = true
