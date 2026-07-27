@@ -8,9 +8,6 @@ try { pgvector = require('pgvector/pg') } catch { /* optional */ }
 const { Writable, Readable } = require('stream')
 const sessionVariableMap = require('./session.json')
 
-// Track which databases have had vector_embedding function initialized
-const vectorFunctionInitialized = new Set()
-
 const LOG = cds.log('sql|db')
 
 class PostgresService extends SQLService {
@@ -59,24 +56,6 @@ class PostgresService extends SQLService {
           // Register vector type parsers after connection (skip if connect is mocked in tests)
           if (pgvector && dbc._connected !== false) {
             try { await pgvector.registerTypes(dbc) } catch { /* not available or mocked */ }
-          }
-
-          // Create default hash-based vector_embedding function once per database
-          // Skip in test environments where connect() is mocked
-          const dbKey = `${credentials.host}:${credentials.port}/${credentials.database}`
-          if (!vectorFunctionInitialized.has(dbKey) && dbc.query && dbc._connected !== false) {
-            try {
-              await dbc.query(`
-                CREATE OR REPLACE FUNCTION public.vector_embedding(model text, input text)
-                RETURNS text AS $$
-                  SELECT CASE WHEN input IS NULL THEN NULL
-                    ELSE (SELECT json_agg(sin(i * hashtext(input)::float8 / 1000))::text
-                          FROM generate_series(1, 384) i)
-                  END;
-                $$ LANGUAGE SQL IMMUTABLE;
-              `)
-              vectorFunctionInitialized.add(dbKey)
-            } catch { /* ignore if function creation fails in test/mock environments */ }
           }
 
           dbc.open = true
@@ -633,6 +612,22 @@ GROUP BY k
     }
   }
 
+  async _createVectorEmbeddingFunction(database, credentials) {
+    try {
+      const con = await this.factory.create({ ...credentials, database })
+      await con.query(`
+        CREATE OR REPLACE FUNCTION public.vector_embedding(model text, input text)
+        RETURNS text AS $$
+          SELECT CASE WHEN input IS NULL THEN NULL
+            ELSE (SELECT json_agg(sin(i * hashtext(input)::float8 / 1000))::text
+                  FROM generate_series(1, 384) i)
+          END;
+        $$ LANGUAGE SQL IMMUTABLE;
+      `)
+      await con.end()
+    } catch { /* ignore if function creation fails */ }
+  }
+
   // REVISIT: find good names database/tenant/schema/instance
   async database({ database }) {
     const creds = {
@@ -712,7 +707,11 @@ GROUP BY k
       // Create new schema using schema owner
       await this.tx(async tx => {
         await tx.run(`DROP SCHEMA IF EXISTS "${creds.schema}" CASCADE`)
-        if (!clean) await tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`)
+        if (!clean) {
+          await tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`)
+          // Create vector_embedding function in public schema
+          await this._createVectorEmbeddingFunction(creds.database, this.options.credentials)
+        }
       })
     } finally {
       await this.disconnect()
