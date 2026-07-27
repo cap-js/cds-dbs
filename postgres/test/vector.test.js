@@ -1,52 +1,7 @@
 const cds = require('../../test/cds.js')
-const { Client } = require('pg')
-const os = require('os')
 
 describe('vector functions', () => {
   const { expect } = cds.test(__dirname + '/../../test/compliance/resources')
-
-  // Setup test database with vector extension and vector_embedding function
-  beforeAll(async () => {
-    const testDb = process.env.GITHUB_RUN_ID || os.userInfo().username || 'test_db'
-
-    // Create test database
-    const adminClient = new Client({
-      host: 'localhost',
-      port: 5432,
-      user: 'postgres',
-      password: 'postgres',
-      database: 'postgres'
-    })
-    await adminClient.connect()
-
-    try {
-      await adminClient.query(`CREATE DATABASE "${testDb}"`)
-    } catch {
-      // Database might already exist
-    }
-    await adminClient.end()
-
-    // Create vector extension and vector_embedding function in test database
-    const dbClient = new Client({
-      host: 'localhost',
-      port: 5432,
-      user: 'postgres',
-      password: 'postgres',
-      database: testDb
-    })
-    await dbClient.connect()
-    await dbClient.query('CREATE EXTENSION IF NOT EXISTS vector')
-    await dbClient.query(`
-      CREATE OR REPLACE FUNCTION public.vector_embedding(model text, input text)
-      RETURNS text AS $$
-        SELECT CASE WHEN input IS NULL THEN NULL
-          ELSE (SELECT json_agg(sin(i * hashtext(input)::float8 / 1000))::text
-                FROM generate_series(1, 384) i)
-        END;
-      $$ LANGUAGE SQL IMMUTABLE;
-    `)
-    await dbClient.end()
-  })
 
   describe('COSINE_SIMILARITY', () => {
     test('identical vectors return 1', async () => {

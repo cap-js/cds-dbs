@@ -50,7 +50,7 @@ class PostgresService extends SQLService {
             }),
         }
         try {
-          const dbc = new Client({ ...credentials, ...clientOptions })
+          const dbc = new Client({ ...credentials, ...clientOptions, ...tenant })
           await dbc.connect()
 
           // Register vector type parsers after connection (skip if connect is mocked in tests)
@@ -645,15 +645,31 @@ GROUP BY k
       await this.exec(`SELECT pg_advisory_lock(hashtext('${creds.database}'))`)
       const exists = await this.exec(`SELECT datname FROM pg_catalog.pg_database WHERE datname='${creds.database}'`)
 
-      if (exists.rowCount) return
-      await this.exec(`
-        DROP GROUP IF EXISTS "${creds.usergroup}";
-        DROP USER IF EXISTS "${creds.user}";
-        CREATE GROUP "${creds.usergroup}";
-        CREATE USER "${creds.user}" WITH CREATEROLE IN GROUP "${creds.usergroup}" PASSWORD '${creds.user}';
-        GRANT "${creds.usergroup}" TO "${creds.user}" WITH ADMIN OPTION;
-      `)
-      await this.exec(`CREATE DATABASE "${creds.database}" OWNER="${creds.user}" TEMPLATE=template0`)
+      if (!exists.rowCount) {
+        await this.exec(`
+          DROP GROUP IF EXISTS "${creds.usergroup}";
+          DROP USER IF EXISTS "${creds.user}";
+          CREATE GROUP "${creds.usergroup}";
+          CREATE USER "${creds.user}" WITH CREATEROLE IN GROUP "${creds.usergroup}" PASSWORD '${creds.user}';
+          GRANT "${creds.usergroup}" TO "${creds.user}" WITH ADMIN OPTION;
+        `)
+        await this.exec(`CREATE DATABASE "${creds.database}" OWNER="${creds.user}" TEMPLATE=template0`)
+      }
+
+      // Create vector extension and vector_embedding function in the database (whether new or existing)
+      try {
+        const targetCreds = { ...system, database: creds.database }
+        const dbCon = await this.factory.create(targetCreds)
+        try {
+          await dbCon.query('CREATE EXTENSION IF NOT EXISTS vector')
+        } finally {
+          await dbCon.end()
+        }
+        // Create vector_embedding function in public schema
+        await this._createVectorEmbeddingFunction(creds.database, system)
+      } catch {
+        /* ignore if extension/function creation fails */
+      }
     } catch {
       // Failed to connect to database
       if (!this.dbc) {
