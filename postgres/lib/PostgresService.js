@@ -60,9 +60,9 @@ class PostgresService extends SQLService {
           if (pgvector) { try { await pgvector.registerTypes(dbc) } catch { /* not available */ } }
 
           // Create default hash-based vector_embedding function once per database
-          // Users can override this with their own implementation if needed
+          // Skip in test environments where connect() is mocked
           const dbKey = `${credentials.host}:${credentials.port}/${credentials.database}`
-          if (!vectorFunctionInitialized.has(dbKey)) {
+          if (!vectorFunctionInitialized.has(dbKey) && dbc.query) {
             await dbc.query(`
               CREATE OR REPLACE FUNCTION public.vector_embedding(model text, input text)
               RETURNS text AS $$
@@ -115,7 +115,7 @@ class PostgresService extends SQLService {
         JSON.stringify(env),
       ]),
       ...(this.options?.credentials?.schema
-        ? [this.exec(`SET search_path TO "${this.options?.credentials?.schema}", public;`)] // include public for extensions like pgvector
+        ? [this.exec(`SET search_path TO "${this.options?.credentials?.schema}"${pgvector ? ', public' : ''};`)] // include public for extensions like pgvector when available
         : []),
 
       ...(!this._initalCollateCheck ? [this._checkCollation()] : []),
