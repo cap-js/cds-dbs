@@ -39,7 +39,7 @@ class SQLiteService extends SQLService {
           dbc.function('COSINE_SIMILARITY', deterministic, (a, b) => cosineSimilarity(toFloatArray(a), toFloatArray(b)))
           dbc.function('L2DISTANCE', deterministic, (a, b) => l2Distance(toFloatArray(a), toFloatArray(b)))
           dbc.function('L2NORMALIZE', deterministic, v => v == null ? null : fromFloatArray(l2Normalize(toFloatArray(v)), v))
-          dbc.function('VECTOR_EMBEDDING', deterministic, (model, text) => text == null ? null : JSON.stringify(hashEmbedding(String(text))))
+          dbc.function('VECTOR_EMBEDDING', deterministic, (input, text_type, model_and_version) => input == null ? null : JSON.stringify(hashEmbedding(String(input))))
           if (database !== ':memory:') dbc.pragma?.('journal_mode = WAL') || dbc.exec('PRAGMA journal_mode = WAL')
           return dbc
         } catch (err) {

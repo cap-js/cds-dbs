@@ -706,7 +706,7 @@ GROUP BY k
           await tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`)
           // Create vector_embedding function in tenant schema
           await tx.run(`
-            CREATE OR REPLACE FUNCTION "${creds.schema}".vector_embedding(model text, input text)
+            CREATE OR REPLACE FUNCTION "${creds.schema}".vector_embedding(input text, text_type text, model_and_version text)
             RETURNS text AS $$
               SELECT CASE WHEN input IS NULL THEN NULL
                 ELSE (SELECT json_agg(sin(i * hashtext(input)::float8 / 1000))::text
