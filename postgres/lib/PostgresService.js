@@ -612,22 +612,6 @@ GROUP BY k
     }
   }
 
-  async _createVectorEmbeddingFunction(database, credentials) {
-    try {
-      const con = await this.factory.create({ ...credentials, database })
-      await con.query(`
-        CREATE OR REPLACE FUNCTION public.vector_embedding(model text, input text)
-        RETURNS text AS $$
-          SELECT CASE WHEN input IS NULL THEN NULL
-            ELSE (SELECT json_agg(sin(i * hashtext(input)::float8 / 1000))::text
-                  FROM generate_series(1, 384) i)
-          END;
-        $$ LANGUAGE SQL IMMUTABLE;
-      `)
-      await con.end()
-    } catch { /* ignore if function creation fails */ }
-  }
-
   // REVISIT: find good names database/tenant/schema/instance
   async database({ database }) {
     const creds = {
@@ -645,31 +629,35 @@ GROUP BY k
       await this.exec(`SELECT pg_advisory_lock(hashtext('${creds.database}'))`)
       const exists = await this.exec(`SELECT datname FROM pg_catalog.pg_database WHERE datname='${creds.database}'`)
 
-      if (!exists.rowCount) {
-        await this.exec(`
-          DROP GROUP IF EXISTS "${creds.usergroup}";
-          DROP USER IF EXISTS "${creds.user}";
-          CREATE GROUP "${creds.usergroup}";
-          CREATE USER "${creds.user}" WITH CREATEROLE IN GROUP "${creds.usergroup}" PASSWORD '${creds.user}';
-          GRANT "${creds.usergroup}" TO "${creds.user}" WITH ADMIN OPTION;
-        `)
-        await this.exec(`CREATE DATABASE "${creds.database}" OWNER="${creds.user}" TEMPLATE=template0`)
-      }
+      if (exists.rowCount) return
 
-      // Create vector extension and vector_embedding function in the database (whether new or existing)
+      await this.exec(`
+        DROP GROUP IF EXISTS "${creds.usergroup}";
+        DROP USER IF EXISTS "${creds.user}";
+        CREATE GROUP "${creds.usergroup}";
+        CREATE USER "${creds.user}" WITH CREATEROLE IN GROUP "${creds.usergroup}" PASSWORD '${creds.user}';
+        GRANT "${creds.usergroup}" TO "${creds.user}" WITH ADMIN OPTION;
+      `)
+      await this.exec(`CREATE DATABASE "${creds.database}" OWNER="${creds.user}" TEMPLATE=template0`)
+
+      // Create vector extension and embedding function in the new database
       try {
-        const targetCreds = { ...system, database: creds.database }
-        const dbCon = await this.factory.create(targetCreds)
+        const dbCon = await this.factory.create({ ...system, database: creds.database })
         try {
           await dbCon.query('CREATE EXTENSION IF NOT EXISTS vector')
+          await dbCon.query(`
+            CREATE OR REPLACE FUNCTION public.vector_embedding(model text, input text)
+            RETURNS text AS $$
+              SELECT CASE WHEN input IS NULL THEN NULL
+                ELSE (SELECT json_agg(sin(i * hashtext(input)::float8 / 1000))::text
+                      FROM generate_series(1, 384) i)
+              END;
+            $$ LANGUAGE SQL IMMUTABLE;
+          `)
         } finally {
           await dbCon.end()
         }
-        // Create vector_embedding function in public schema
-        await this._createVectorEmbeddingFunction(creds.database, system)
-      } catch {
-        /* ignore if extension/function creation fails */
-      }
+      } catch { /* ignore if extension/function creation fails */ }
     } catch {
       // Failed to connect to database
       if (!this.dbc) {
@@ -725,8 +713,6 @@ GROUP BY k
         await tx.run(`DROP SCHEMA IF EXISTS "${creds.schema}" CASCADE`)
         if (!clean) {
           await tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`)
-          // Create vector_embedding function in public schema
-          await this._createVectorEmbeddingFunction(creds.database, this.options.credentials)
         }
       })
     } finally {
