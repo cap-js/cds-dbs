@@ -7,11 +7,6 @@ entity db.fooTemporal : managed, temporal {
   key ID   : Integer;
 }
 
-entity db.Orders : managed {
-  key ID   : Integer;
-      name : String;
-}
-
 @path: '/test'
 service test {
   entity foo : managed {
@@ -39,8 +34,6 @@ service test {
   }
 
   entity fooTemporal as projection on db.fooTemporal;
-
-  entity Orders as projection on db.Orders { ID as renamedID };
 
   entity Images {
      key ID   : Integer;
