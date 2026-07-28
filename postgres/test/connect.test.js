@@ -6,9 +6,7 @@ const cds = require('../../test/cds.js')
 process.env.DEBUG && jest.setTimeout(100000)
 
 // fake the manifestation of the db connection
-Client.prototype.connect = () => Promise.resolve()
-// Prevent pgvector.registerTypes from hanging on mocked client
-Client.prototype.query = () => Promise.resolve({ rows: [] })
+Client.prototype.connect = () => { }
 
 describe('connect to pg db', () => {
   const { expect } = cds.test
