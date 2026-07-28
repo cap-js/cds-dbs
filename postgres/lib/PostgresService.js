@@ -52,12 +52,7 @@ class PostgresService extends SQLService {
         try {
           const dbc = new Client({ ...credentials, ...clientOptions, ...tenant })
           await dbc.connect()
-
-          // Register vector type parsers after connection (skip if connect is mocked in tests)
-          if (pgvector && dbc._connected !== false) {
-            try { await pgvector.registerTypes(dbc) } catch { /* not available or mocked */ }
-          }
-
+          if (pgvector) await pgvector.registerTypes(dbc)
           dbc.open = true
           dbc.on('end', () => { dbc.open = false })
           return dbc
