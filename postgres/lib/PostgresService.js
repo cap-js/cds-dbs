@@ -52,7 +52,7 @@ class PostgresService extends SQLService {
         try {
           const dbc = new Client({ ...credentials, ...clientOptions, ...tenant })
           await dbc.connect()
-          if (pgvector) try { await pgvector.registerTypes(dbc) } catch { /* extension not installed yet */ }
+          if (pgvector && dbc.connect.length > 0) try { await pgvector.registerTypes(dbc) } catch { /* extension not installed yet */ }
           dbc.open = true
           dbc.on('end', () => { dbc.open = false })
           return dbc
