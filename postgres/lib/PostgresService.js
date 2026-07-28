@@ -640,24 +640,15 @@ GROUP BY k
       `)
       await this.exec(`CREATE DATABASE "${creds.database}" OWNER="${creds.user}" TEMPLATE=template0`)
 
-      // Create vector extension and embedding function in the new database
+      // Create vector extension (requires superuser, database-wide)
       try {
         const dbCon = await this.factory.create({ ...system, database: creds.database })
         try {
           await dbCon.query('CREATE EXTENSION IF NOT EXISTS vector')
-          await dbCon.query(`
-            CREATE OR REPLACE FUNCTION public.vector_embedding(model text, input text)
-            RETURNS text AS $$
-              SELECT CASE WHEN input IS NULL THEN NULL
-                ELSE (SELECT json_agg(sin(i * hashtext(input)::float8 / 1000))::text
-                      FROM generate_series(1, 384) i)
-              END;
-            $$ LANGUAGE SQL IMMUTABLE;
-          `)
         } finally {
           await dbCon.end()
         }
-      } catch { /* ignore if extension/function creation fails */ }
+      } catch { /* ignore if extension creation fails */ }
     } catch {
       // Failed to connect to database
       if (!this.dbc) {
@@ -713,6 +704,16 @@ GROUP BY k
         await tx.run(`DROP SCHEMA IF EXISTS "${creds.schema}" CASCADE`)
         if (!clean) {
           await tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`)
+          // Create vector_embedding function in tenant schema
+          await tx.run(`
+            CREATE OR REPLACE FUNCTION "${creds.schema}".vector_embedding(model text, input text)
+            RETURNS text AS $$
+              SELECT CASE WHEN input IS NULL THEN NULL
+                ELSE (SELECT json_agg(sin(i * hashtext(input)::float8 / 1000))::text
+                      FROM generate_series(1, 384) i)
+              END;
+            $$ LANGUAGE SQL IMMUTABLE;
+          `)
         }
       })
     } finally {
