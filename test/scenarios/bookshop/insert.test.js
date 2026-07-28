@@ -50,12 +50,11 @@ describe('Bookshop - Insert', () => {
     expect(res.genre_ID).to.be.eq(10)
   })
 
-  test('insert with managed fields excluded from projection', async () => {
+  test('insert with default fields excluded from projection', async () => {
     const { RenameKeys, Books } = cds.entities('AdminService')
-    await cds.run(INSERT({ foo: 344 }).into(RenameKeys))
-    const res = await SELECT.from(Books, { ID: 344 })
-    expect(res.createdBy).to.equal('anonymous')
-    expect(res.modifiedBy).to.equal('anonymous')
+    await cds.run(INSERT({ foo: 345 }).into(RenameKeys))
+    const res = await SELECT.from(Books, { ID: 345 })
+    expect(res).to.containSubset({ genre_ID: 10, createdBy: 'anonymous', modifiedBy: 'anonymous' })
     expect(res.createdAt).to.not.be.null
     expect(res.modifiedAt).to.not.be.null
   })

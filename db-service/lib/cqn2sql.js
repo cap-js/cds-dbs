@@ -919,7 +919,7 @@ class CQN2SQLRenderer {
       this.entries = [[...this.values, stream]]
     }
 
-    const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), { ...transitions.target.elements, ...elements, })
+    const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), { ...transitions.target.elements, ...elements })
     return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${extractions.map(c => this.quote(transitions.mapping.get(c.name)?.ref?.[0] || c.name))
       }) SELECT ${extractions.map(c => c.insert)} FROM json_each(?)`)
   }
@@ -1511,7 +1511,7 @@ class CQN2SQLRenderer {
           if (columns.find(c => c.name === e)) return false
           return true
         })
-        .map(name => ({ name, sql: 'NULL' }))
+        .map(name => ({ name }))
 
     const keys = ObjectKeys(elements).filter(e => elements[e].key && !elements[e].isAssociation)
     const keyZero = keys[0] && this.quote(keys[0])
