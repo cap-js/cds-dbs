@@ -886,16 +886,16 @@ class CQN2SQLRenderer {
       return // REVISIT: mtx sends an insert statement without entries and no reference entity
     }
     const transitions = this.srv.resolve.transitions(q)
-    const targetElements = transitions.target.elements
-    const filteredElements = elements
-      ? ObjectKeys(elements).filter(c => this.physical_column(elements, c)
-        && (c = transitions.mapping.get(c)?.ref?.[0] || c)
-        && c in targetElements
-        && this.physical_column(targetElements, c)
-      ).reduce( (res, key) => (res[key] = elements[key], res), {} )
-      : ObjectKeys(INSERT.entries[0])
+    const transitionsTargetElements = transitions.target.elements
     
-    const columns = ObjectKeys(filteredElements)
+    const filteredElements = !elements ? {} :
+      ObjectKeys(elements).filter(c => this.physical_column(elements, c)
+        && (c = transitions.mapping.get(c)?.ref?.[0] || c)
+        && c in transitionsTargetElements
+        && this.physical_column(transitionsTargetElements, c)
+      ).reduce( (res, key) => (res[key] = elements[key], res), {} )
+    
+    const columns = elements ? ObjectKeys(filteredElements) : ObjectKeys(INSERT.entries[0])
 
     /** @type {string[]} */
     this.columns = columns
@@ -922,11 +922,12 @@ class CQN2SQLRenderer {
       this.entries = [[...this.values, stream]]
     }
 
-    const mappedTargets = new Set(columns.map(c => transitions.mapping.get(c)?.ref?.[0]).filter(Boolean))
-    const targetElementsFiltered = {}
-    for (const key of ObjectKeys(targetElements)) {
-      if (!mappedTargets.has(key)) targetElementsFiltered[key] = targetElements[key]
-    }
+    const mappedTransitionsTargets = new Set(columns.map(c => transitions.mapping.get(c)?.ref?.[0]).filter(Boolean))
+    const targetElementsFiltered = Object.fromEntries(
+      ObjectKeys(transitionsTargetElements)
+        .filter(key => !mappedTransitionsTargets.has(key))
+        .map(key => [key, transitionsTargetElements[key]]),
+    )
 
     const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), { ...targetElementsFiltered, ...filteredElements })
     return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${extractions.map(c => this.quote(transitions.mapping.get(c.name)?.ref?.[0] || c.name))

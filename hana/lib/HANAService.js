@@ -792,24 +792,24 @@ class HANAService extends SQLService {
 
       const entity = q._target ? this.table_name(q) : INSERT.into.ref[0]
       const transitions = this.srv.resolve.transitions(q)
-      const targetElements = transitions.target.elements
+      const transitionsTargetElements = transitions.target.elements
 
-      const filteredElements = elements
-        ? ObjectKeys(elements).filter(c => this.physical_column(elements, c)
+      const filteredElements = !elements ? {} :
+        ObjectKeys(elements).filter(c => this.physical_column(elements, c)
           && (c = transitions.mapping.get(c)?.ref?.[0] || c)
-          && c in targetElements
-          && this.physical_column(targetElements, c)
+          && c in transitionsTargetElements
+          && this.physical_column(transitionsTargetElements, c)
           && !elements[c]?.[SYSTEM_VERSIONED]
         ).reduce( (res, key) => (res[key] = elements[key], res), {} )
-        : ObjectKeys(INSERT.entries[0])
 
-      const columns = ObjectKeys(filteredElements)
-      this.columns = columns
-      const mappedTargets = new Set(columns.map(c => transitions.mapping.get(c)?.ref?.[0]).filter(Boolean))
-      const targetElementsFiltered = {}
-      for (const key of ObjectKeys(targetElements)) {
-        if (!mappedTargets.has(key)) targetElementsFiltered[key] = targetElements[key]
-      }
+      const columns = this.columns = elements ? ObjectKeys(filteredElements) : ObjectKeys(INSERT.entries[0])
+
+      const mappedTransitionsTargets = new Set(columns.map(c => transitions.mapping.get(c)?.ref?.[0]).filter(Boolean))
+      const targetElementsFiltered = Object.fromEntries(
+        ObjectKeys(transitionsTargetElements)
+          .filter(key => !mappedTransitionsTargets.has(key))
+          .map(key => [key, transitionsTargetElements[key]]),
+      )
 
       const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), { ...targetElementsFiltered, ...filteredElements })
 
