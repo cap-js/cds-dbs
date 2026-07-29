@@ -886,13 +886,16 @@ class CQN2SQLRenderer {
       return // REVISIT: mtx sends an insert statement without entries and no reference entity
     }
     const transitions = this.srv.resolve.transitions(q)
-    const columns = elements
+    const targetElements = transitions.target.elements
+    const filteredElements = elements
       ? ObjectKeys(elements).filter(c => this.physical_column(elements, c)
         && (c = transitions.mapping.get(c)?.ref?.[0] || c)
-        && c in transitions.target.elements
-        && this.physical_column(transitions.target.elements, c)
-      )
+        && c in targetElements
+        && this.physical_column(targetElements, c)
+      ).reduce( (res, key) => (res[key] = elements[key], res), {} )
       : ObjectKeys(INSERT.entries[0])
+    
+    const columns = ObjectKeys(filteredElements)
 
     /** @type {string[]} */
     this.columns = columns
@@ -919,7 +922,13 @@ class CQN2SQLRenderer {
       this.entries = [[...this.values, stream]]
     }
 
-    const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), { ...transitions.target.elements, ...elements }).filter(e => !transitions.mapping.get(e.name)?.ref[1])
+    const mappedTargets = new Set(columns.map(c => transitions.mapping.get(c)?.ref?.[0]).filter(Boolean))
+    const targetElementsFiltered = {}
+    for (const key of ObjectKeys(targetElements)) {
+      if (!mappedTargets.has(key)) targetElementsFiltered[key] = targetElements[key]
+    }
+
+    const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), { ...targetElementsFiltered, ...filteredElements })
     return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${extractions.map(c => this.quote(transitions.mapping.get(c.name)?.ref?.[0] || c.name))
       }) SELECT ${extractions.map(c => c.insert)} FROM json_each(?)`)
   }

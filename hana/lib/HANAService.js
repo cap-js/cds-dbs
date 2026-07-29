@@ -792,18 +792,26 @@ class HANAService extends SQLService {
 
       const entity = q._target ? this.table_name(q) : INSERT.into.ref[0]
       const transitions = this.srv.resolve.transitions(q)
+      const targetElements = transitions.target.elements
 
-      const columns = elements
+      const filteredElements = elements
         ? ObjectKeys(elements).filter(c => this.physical_column(elements, c)
           && (c = transitions.mapping.get(c)?.ref?.[0] || c)
-          && c in transitions.target.elements
-          && this.physical_column(transitions.target.elements, c)
+          && c in targetElements
+          && this.physical_column(targetElements, c)
           && !elements[c]?.[SYSTEM_VERSIONED]
-        )
+        ).reduce( (res, key) => (res[key] = elements[key], res), {} )
         : ObjectKeys(INSERT.entries[0])
-      this.columns = columns
 
-      const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), { ...transitions.target.elements, ...elements })
+      const columns = ObjectKeys(filteredElements)
+      this.columns = columns
+      const mappedTargets = new Set(columns.map(c => transitions.mapping.get(c)?.ref?.[0]).filter(Boolean))
+      const targetElementsFiltered = {}
+      for (const key of ObjectKeys(targetElements)) {
+        if (!mappedTargets.has(key)) targetElementsFiltered[key] = targetElements[key]
+      }
+
+      const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), { ...targetElementsFiltered, ...filteredElements })
 
       // REVISIT: @cds.extension required
       const extraction = extractions.map(c => c.extract)
