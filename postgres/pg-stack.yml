@@ -13,6 +13,12 @@ services:
     ports:
       - '5432:5432'
     command: ['postgres', '-c', 'log_statement=all']
+    healthcheck:
+    # && docker exec -it postgres-db-1 psql -U postgres -d template1 -c 'CREATE EXTENSION IF NOT EXISTS vector' && docker exec -it postgres-db-1 psql -U postgres -c 'CREATE EXTENSION IF NOT EXISTS vector'
+      test: ["CMD-SHELL", "pg_isready -U postgres && psql -U postgres -d template1 -c 'CREATE EXTENSION IF NOT EXISTS vector' && psql -U postgres -c 'CREATE EXTENSION IF NOT EXISTS vector'"]
+      interval: 1s
+      timeout: 5s
+      retries: 100
   ### use at will at dev time - save mem on ci time
   # adminer:
   #   image: adminer

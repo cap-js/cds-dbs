@@ -50,9 +50,9 @@ class PostgresService extends SQLService {
             }),
         }
         try {
-          const dbc = new Client({ ...credentials, ...clientOptions, ...tenant })
+          const dbc = new Client({ ...credentials, ...clientOptions })
           await dbc.connect()
-          if (pgvector && dbc.connect.length > 0) try { await pgvector.registerTypes(dbc) } catch { /* extension not installed yet */ }
+          if (pgvector) await pgvector.registerTypes(dbc)
           dbc.open = true
           dbc.on('end', () => { dbc.open = false })
           return dbc
@@ -619,7 +619,7 @@ GROUP BY k
     const system = cds.requires.db.credentials
 
     try {
-      const con = await this.factory.create(system)
+      const con = await this.factory.create()
       this.dbc = con
       await this.exec(`SELECT pg_advisory_lock(hashtext('${creds.database}'))`)
       const exists = await this.exec(`SELECT datname FROM pg_catalog.pg_database WHERE datname='${creds.database}'`)
@@ -633,23 +633,10 @@ GROUP BY k
         CREATE USER "${creds.user}" WITH CREATEROLE IN GROUP "${creds.usergroup}" PASSWORD '${creds.user}';
         GRANT "${creds.usergroup}" TO "${creds.user}" WITH ADMIN OPTION;
       `)
-      await this.exec(`CREATE DATABASE "${creds.database}" OWNER="${creds.user}" TEMPLATE=template0`)
-
-      // Create vector extension (requires superuser, database-wide)
-      try {
-        const dbCon = await this.factory.create({ ...system, database: creds.database })
-        try {
-          await dbCon.query('CREATE EXTENSION IF NOT EXISTS vector')
-        } finally {
-          await dbCon.end()
-        }
-      } catch { /* ignore if extension creation fails */ }
-    } catch {
+      await this.exec(`CREATE DATABASE "${creds.database}" OWNER="${creds.user}" TEMPLATE=template1`)
+    } catch (err) {
       // Failed to connect to database
-      if (!this.dbc) {
-        return this.database({ database })
-      }
-      // Failed to reset database
+      if (!this.dbc) return this.database({ database })
     } finally {
       // Only clean when successfully connected
       if (this.dbc) {
