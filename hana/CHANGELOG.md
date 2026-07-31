@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.0.2](https://github.com/cap-js/cds-dbs/compare/hana-v3.0.1...hana-v3.0.2) (2026-07-27)
+
+
+### Fixed
+
+* invalid credentials created a useless retry ([#1684](https://github.com/cap-js/cds-dbs/issues/1684)) ([33024d7](https://github.com/cap-js/cds-dbs/commit/33024d7c4d04dcd005f01d2d3e2e7f914a81db45)), closes [#1680](https://github.com/cap-js/cds-dbs/issues/1680)
+
 ## [3.0.1](https://github.com/cap-js/cds-dbs/compare/hana-v3.0.0...hana-v3.0.1) (2026-06-29)
 
 
