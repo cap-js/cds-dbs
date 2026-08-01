@@ -588,9 +588,12 @@ GROUP BY k
       Association: e => `jsonb(${e})`,
       struct: e => `jsonb(${e})`,
       array: e => `jsonb(${e})`,
+      // REVISIT: Didn't our recent analyses show that PostgreSQL drivers are doing that already by default?
+      // So, why do we have to do anything here at all?
       // Reading int64 as string to not loose precision
       Int64: cds.env.features.ieee754compatible ? expr => `cast(${expr} as varchar)` : undefined,
-      // REVISIT: always cast to string in next major
+      // REVISIT: Didn't our recent analyses show that PostgreSQL drivers are doing that already by default?
+      // So, why do we have to do anything here at all?
       // Reading decimal as string to not loose precision
       Decimal: cds.env.features.ieee754compatible ? (expr, elem) => elem?.scale
         ? `to_char(${expr},'FM${'0'.padStart(elem.precision, '9')}${'D'.padEnd(elem.scale + 1, '0')}')`
