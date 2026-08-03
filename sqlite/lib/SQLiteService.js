@@ -26,6 +26,14 @@ class SQLiteService extends SQLService {
           const dbc = new sqlite(database, this.options.client || {})
           await dbc.ready
 
+          if (!SQLiteService._aiEmbeddingChecked) {
+            SQLiteService._aiEmbeddingChecked = true
+            try {
+              const aiPlugin = await import('@cap-js/ai/vector-embedding')
+              SQLiteService._aiEmbedding = aiPlugin.vector_embedding
+            } catch {}
+          }
+
           const deterministic = { deterministic: true }
           dbc.function('session_context', key => dbc[$session][key])
           dbc.function('regexp', deterministic, (re, x) => (RegExp(re).test(x) ? 1 : 0))
@@ -39,7 +47,14 @@ class SQLiteService extends SQLService {
           dbc.function('COSINE_SIMILARITY', deterministic, (a, b) => cosineSimilarity(toFloatArray(a), toFloatArray(b)))
           dbc.function('L2DISTANCE', deterministic, (a, b) => l2Distance(toFloatArray(a), toFloatArray(b)))
           dbc.function('L2NORMALIZE', deterministic, v => v == null ? null : fromFloatArray(l2Normalize(toFloatArray(v)), v))
-          dbc.function('VECTOR_EMBEDDING', deterministic, (input, text_type, model_and_version) => input == null ? null : JSON.stringify(hashEmbedding(String(input))))
+          dbc.function('VECTOR_EMBEDDING', deterministic, (input, text_type, model_and_version) => {
+            if (input == null) return null
+            if (SQLiteService._aiEmbedding) {
+              try { return SQLiteService._aiEmbedding(input, text_type, model_and_version) }
+              catch {}
+            }
+            return JSON.stringify(hashEmbedding(String(input)))
+          })
           if (database !== ':memory:') dbc.pragma?.('journal_mode = WAL') || dbc.exec('PRAGMA journal_mode = WAL')
           return dbc
         } catch (err) {

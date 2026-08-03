@@ -58,6 +58,9 @@ describe('vector functions', () => {
   })
 
   describe('VECTOR_EMBEDDING', () => {
+    let hasAIPlugin = false
+    try { hasAIPlugin = !!require.resolve('@cap-js/ai/vector-embedding') } catch {}
+
     test('computes embedding', async () => {
       const res = await SELECT.from('complex.associations.Books')
         .columns`VECTOR_EMBEDDING(title, 'text', 'model') as embedding`
@@ -66,20 +69,78 @@ describe('vector functions', () => {
       expect(Array.isArray(embedding)).to.eq(true)
       expect(embedding.length).to.eq(384)
     })
+
     test('deterministic', async () => {
       const res = await SELECT.from('complex.associations.Books')
         .columns`vector_embedding('test', 'text', 'model') as e1, vector_embedding('test', 'text', 'model') as e2`
       expect(res[0].e1).to.eq(res[0].e2)
     })
+
     test('different inputs different outputs', async () => {
       const res = await SELECT.from('complex.associations.Books')
         .columns`vector_embedding('hello', 'text', 'model') as e1, vector_embedding('world', 'text', 'model') as e2`
       expect(res[0].e1).to.not.eq(res[0].e2)
     })
+
     test('null returns null', async () => {
       const res = await SELECT.from('complex.associations.Books')
         .columns`vector_embedding(null, 'text', 'model') as embedding`
       expect(res[0].embedding).to.eq(null)
     })
+
+    // AI plugin specific tests
+    if (hasAIPlugin) {
+      describe('with AI plugin', () => {
+        test('produces semantic embeddings', async () => {
+          const res = await SELECT.from('complex.associations.Books')
+            .columns`
+              vector_embedding('I love programming', 'DOCUMENT', 'SAP_GXY.20250407') as e1,
+              vector_embedding('I enjoy coding', 'DOCUMENT', 'SAP_GXY.20250407') as e2,
+              vector_embedding('The weather is nice today', 'DOCUMENT', 'SAP_GXY.20250407') as e3`
+
+          const v1 = JSON.parse(res[0].e1)
+          const v2 = JSON.parse(res[0].e2)
+          const v3 = JSON.parse(res[0].e3)
+
+          const sim12 = cosineSimilarity(v1, v2) // Similar sentences
+          const sim13 = cosineSimilarity(v1, v3) // Different topics
+
+          expect(sim12).to.be.greaterThan(sim13)
+          expect(sim12).to.be.greaterThan(0.7)
+          expect(sim13).to.be.lessThan(0.2)
+        })
+
+        test('embeddings are normalized', async () => {
+          const res = await SELECT.from('complex.associations.Books')
+            .columns`vector_embedding('test text', 'DOCUMENT', 'SAP_GXY.20250407') as embedding`
+
+          const embedding = JSON.parse(res[0].embedding)
+
+          // Calculate L2 norm
+          const norm = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0))
+
+          // Should be very close to 1 (normalized)
+          expect(Math.abs(norm - 1)).to.be.lessThan(0.001)
+        })
+      })
+    }
   })
 })
+
+// Helper function to calculate cosine similarity
+function cosineSimilarity(a, b) {
+  if (a.length !== b.length) throw new Error('Vectors must have same length')
+
+  let dotProduct = 0
+  let normA = 0
+  let normB = 0
+
+  for (let i = 0; i < a.length; i++) {
+    dotProduct += a[i] * b[i]
+    normA += a[i] * a[i]
+    normB += b[i] * b[i]
+  }
+
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB))
+}
+
