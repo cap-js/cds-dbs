@@ -59,7 +59,7 @@ describe('vector functions', () => {
 
   describe('VECTOR_EMBEDDING', () => {
     let hasAIPlugin = false
-    try { hasAIPlugin = !!require.resolve('@cap-js/ai/vector-embedding') } catch {}
+    try { hasAIPlugin = !!require.resolve('@cap-js/ai/lib/vector_embedding') } catch {}
 
     test('computes embedding', async () => {
       const res = await SELECT.from('complex.associations.Books')
