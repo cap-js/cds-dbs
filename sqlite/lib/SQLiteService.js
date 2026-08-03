@@ -31,7 +31,7 @@ class SQLiteService extends SQLService {
             try {
               const aiPlugin = await import('@cap-js/ai/lib/vector_embedding/index.js')
               SQLiteService._aiEmbedding = aiPlugin.vector_embedding
-            } catch {}
+            } catch { /* optional plugin */ }
           }
 
           const deterministic = { deterministic: true }
@@ -51,7 +51,7 @@ class SQLiteService extends SQLService {
             if (input == null) return null
             if (SQLiteService._aiEmbedding) {
               try { return SQLiteService._aiEmbedding(input, text_type, model_and_version) }
-              catch {}
+              catch { /* fallback to hash */ }
             }
             return JSON.stringify(hashEmbedding(String(input)))
           })
