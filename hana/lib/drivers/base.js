@@ -220,7 +220,8 @@ const handleLevel = function (levels, path, expands) {
       // Check if the current row is an expand of the current level
       const property = `${path.slice(level.path.length + 2, -7)}`
       if (property && property in level.expands) {
-        const is2Many = level.expands[property]
+        const expandValue = level.expands[property]
+        const is2Many = expandValue
         delete level.expands[property]
         if (level.hasProperties) {
           buffer += ','
@@ -236,7 +237,7 @@ const handleLevel = function (levels, path, expands) {
           index: 1,
           suffix: is2Many ? ']' : '',
           path: path.slice(0, -6),
-          result: level.expands[property],
+          result: expandValue,
           expands,
         })
       } else {
