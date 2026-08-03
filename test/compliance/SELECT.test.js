@@ -1221,6 +1221,60 @@ describe('SELECT', () => {
       for await (const row of cqn.clone()) process.call(aggregate, row)
       expect(aggregate).deep.eq(expected)
     }))
+
+    test('async iterator with to-many expand', () => cds.tx(async () => {
+      const { Authors } = cds.entities('complex.associations')
+      const cqn = SELECT([{ ref: ['ID'] }, { ref: ['name'] }, { ref: ['books'], expand: ['*'] }]).from(Authors)
+
+      const expected = await cqn.clone()
+
+      const rows = []
+      for await (const row of cqn.clone()) rows.push(row)
+
+      expect(rows).deep.eq(expected)
+      expect(rows[0].books).to.be.an('array')
+      expect(rows[0].books[0].title).to.equal('Wuthering Heights')
+    }))
+
+    test('async iterator with to-one expand', () => cds.tx(async () => {
+      const { Books } = cds.entities('complex.associations')
+      const cqn = SELECT([{ ref: ['ID'] }, { ref: ['title'] }, { ref: ['author'], expand: ['*'] }]).from(Books)
+
+      const expected = await cqn.clone()
+
+      const rows = []
+      for await (const row of cqn.clone()) rows.push(row)
+
+      expect(rows).deep.eq(expected)
+      expect(rows[0].author.name).to.equal('Emily')
+    }))
+
+    test('async iterator with a paused consumer', () => cds.tx(async () => {
+      // Regression: the hdb driver eagerly prefetches the next chunk on every
+      // `next()`. If the consumer pauses between rows (e.g. awaiting an async
+      // side-effect like writing each row to storage), the HANA ResultSet can
+      // close mid-stream and the orphaned prefetch promise rejects with
+      // ERR_STREAM_PREMATURE_CLOSE — previously surfacing as an unhandled
+      // rejection. Use an expand query so the hdb rsIterator object-mode path
+      // is active (the affected code path), and introduce a real async pause
+      // between rows to let the underlying ResultSet settle while the consumer
+      // is suspended.
+      const { Authors } = cds.entities('complex.associations')
+      const cqn = SELECT([{ ref: ['ID'] }, { ref: ['name'] }, { ref: ['books'], expand: ['*'] }]).from(Authors)
+
+      const expected = await cqn.clone()
+
+      const rows = []
+      for await (const row of cqn.clone()) {
+        // Simulate a slow per-row async side-effect (e.g. writing to object storage).
+        // This pauses the async iterator while the HANA ResultSet is still open,
+        // triggering the prefetch orphan on the next read cycle.
+        await new Promise((resolve) => setTimeout(resolve, 50))
+        rows.push(row)
+      }
+
+      expect(rows).deep.eq(expected)
+    }))
   })
 
   describe('pipeline', () => {
