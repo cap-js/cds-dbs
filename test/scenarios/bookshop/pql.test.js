@@ -9,7 +9,9 @@ const admin = {
 
 describe('Bookshop - pql', () => {
   cds.log('pql', 'debug')
-  const { GET, expect } = cds.test(bookshop)
+  cds.log('sql', 'debug')
+  const { GET, expect, log: _testLog } = cds.test(bookshop)
+  const testLog = _testLog()
 
   test('groupby simple properties', async () => {
     const res = await GET('/admin/Books?$apply=groupby((ID))', admin)
@@ -19,5 +21,7 @@ describe('Bookshop - pql', () => {
   test('groupby path expression', async () => {
     const res = await GET('/admin/Books?$apply=groupby((author/placeOfBirth))', admin)
     expect(res.status).to.be.eq(200)
+
+    expect(testLog.output).not.to.be(null)
   })
 })
