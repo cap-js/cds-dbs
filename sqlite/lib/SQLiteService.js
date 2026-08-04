@@ -331,10 +331,10 @@ function loadSQLite(driver) {
 }
 
 // define date and time functions in js to allow for throwing errors
-const isTime = /^\d{1,2}:\d{1,2}:\d{1,2}$/
-const hasTimezone = /([+-]\d{1,2}:?\d{0,2}|Z)$/
+const isTime = d => /^\d{1,2}:\d{1,2}:\d{1,2}$/.test(d)
+const hasTimezone = d => /([+-]\d{1,2}:?\d{0,2}|Z)$/.test(d)
 const toDate = (d, allowTime = false) => {
-  const date = new Date(allowTime && isTime.test(d) ? `1970-01-01T${d}Z` : hasTimezone.test(d) ? d : d + 'Z')
+  const date = new Date(allowTime && isTime(d) ? `1970-01-01T${d}Z` : hasTimezone(d) ? d : d + 'Z')
   if (Number.isNaN(date.getTime())) throw new Error(`Value does not contain a valid ${allowTime ? 'time' : 'date'} "${d}"`)
   return date
 }
