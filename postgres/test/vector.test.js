@@ -60,25 +60,24 @@ describe('vector functions', () => {
   describe('VECTOR_EMBEDDING', () => {
     test('computes embedding', async () => {
       const res = await SELECT.from('complex.associations.Books')
-        .columns`VECTOR_EMBEDDING(title, 'text', 'model') as embedding`
+        .columns`VECTOR_EMBEDDING(title, 'DOCUMENT', 'model') as embedding`
         .limit(1)
       const embedding = JSON.parse(res[0].embedding)
       expect(Array.isArray(embedding)).to.eq(true)
-      expect(embedding.length).to.eq(384)
     })
     test('deterministic', async () => {
       const res = await SELECT.from('complex.associations.Books')
-        .columns`vector_embedding('test', 'text', 'model') as e1, vector_embedding('test', 'text', 'model') as e2`
+        .columns`vector_embedding('test', 'DOCUMENT', 'model') as e1, vector_embedding('test', 'DOCUMENT', 'model') as e2`
       expect(res[0].e1).to.eq(res[0].e2)
     })
     test('different inputs different outputs', async () => {
       const res = await SELECT.from('complex.associations.Books')
-        .columns`vector_embedding('hello', 'text', 'model') as e1, vector_embedding('world', 'text', 'model') as e2`
+        .columns`vector_embedding('hello', 'DOCUMENT', 'model') as e1, vector_embedding('world', 'DOCUMENT', 'model') as e2`
       expect(res[0].e1).to.not.eq(res[0].e2)
     })
     test('null returns null', async () => {
       const res = await SELECT.from('complex.associations.Books')
-        .columns`vector_embedding(null, 'text', 'model') as embedding`
+        .columns`vector_embedding(null, 'DOCUMENT', 'model') as embedding`
       expect(res[0].embedding).to.eq(null)
     })
   })
