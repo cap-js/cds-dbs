@@ -41,6 +41,9 @@
       "optional": true
     }
   },
+  "devDependencies": {
+    "@cap-js/ai": "git+https://github.com/cap-js/ai.git#sqlite-embeddings"
+  },
   "cds": {
     "requires": {
       "kinds": {
