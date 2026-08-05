@@ -3,31 +3,6 @@ const cds = require('../../test/cds.js')
 describe('VECTOR_EMBEDDING - hash implementation (mocked)', () => {
   const { expect } = cds.test(__dirname + '/../../test/compliance/resources')
 
-  let SQLiteService
-  let originalAIEmbedding
-  let originalChecked
-
-  before(async () => {
-    // Get reference to SQLiteService class
-    SQLiteService = require('../lib/SQLiteService.js')
-
-    // Save original state
-    originalAIEmbedding = SQLiteService._aiEmbedding
-    originalChecked = SQLiteService._aiEmbeddingChecked
-
-    // Force hash implementation by simulating AI plugin unavailability
-    SQLiteService._aiEmbeddingChecked = true  // Mark as checked
-    SQLiteService._aiEmbedding = null         // Force null (no AI plugin)
-  })
-
-  after(() => {
-    // Restore original state
-    if (SQLiteService) {
-      SQLiteService._aiEmbedding = originalAIEmbedding
-      SQLiteService._aiEmbeddingChecked = originalChecked
-    }
-  })
-
   test('computes hash-based embedding', async () => {
     const res = await SELECT.from('complex.associations.Books')
       .columns`VECTOR_EMBEDDING(title, 'text', 'model') as embedding`

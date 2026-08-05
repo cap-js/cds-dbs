@@ -58,9 +58,6 @@ describe('vector functions', () => {
   })
 
   describe('VECTOR_EMBEDDING', () => {
-    let hasAIPlugin = false
-    try { hasAIPlugin = !!require.resolve('@cap-js/ai/lib/vector_embedding') } catch { /* optional plugin */ }
-
     test('computes embedding', async () => {
       const res = await SELECT.from('complex.associations.Books')
         .columns`VECTOR_EMBEDDING(title, 'text', 'model') as embedding`
