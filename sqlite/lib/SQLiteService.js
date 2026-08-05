@@ -26,14 +26,6 @@ class SQLiteService extends SQLService {
           const dbc = new sqlite(database, this.options.client || {})
           await dbc.ready
 
-          if (!SQLiteService._aiEmbeddingChecked) {
-            SQLiteService._aiEmbeddingChecked = true
-            try {
-              const aiPlugin = await import('@cap-js/ai/lib/vector_embedding/index.js')
-              SQLiteService._aiEmbedding = aiPlugin.vector_embedding
-            } catch { /* optional plugin */ }
-          }
-
           const deterministic = { deterministic: true }
           dbc.function('session_context', key => dbc[$session][key])
           dbc.function('regexp', deterministic, (re, x) => (RegExp(re).test(x) ? 1 : 0))
@@ -47,14 +39,7 @@ class SQLiteService extends SQLService {
           dbc.function('COSINE_SIMILARITY', deterministic, (a, b) => cosineSimilarity(toFloatArray(a), toFloatArray(b)))
           dbc.function('L2DISTANCE', deterministic, (a, b) => l2Distance(toFloatArray(a), toFloatArray(b)))
           dbc.function('L2NORMALIZE', deterministic, v => v == null ? null : fromFloatArray(l2Normalize(toFloatArray(v)), v))
-          dbc.function('VECTOR_EMBEDDING', deterministic, (input, text_type, model_and_version) => {
-            if (input == null) return null
-            if (SQLiteService._aiEmbedding) {
-              try { return SQLiteService._aiEmbedding(input, text_type, model_and_version) }
-              catch { /* fallback to hash */ }
-            }
-            return JSON.stringify(hashEmbedding(String(input)))
-          })
+          dbc.function('VECTOR_EMBEDDING', deterministic, (input, text_type, model_and_version) => input == null ? null : JSON.stringify(hashEmbedding(String(input))))
           if (database !== ':memory:') dbc.pragma?.('journal_mode = WAL') || dbc.exec('PRAGMA journal_mode = WAL')
           return dbc
         } catch (err) {
@@ -193,7 +178,7 @@ class SQLiteService extends SQLService {
     let ps = await this.prepare(sql)
     const vals = await this._prepareStreams(values)
     const { changes } = await ps.run(vals)
-    return this._return_affected (changes)
+    return this._return_affected(changes)
   }
 
   onPlainSQL({ query, data }, next) {
@@ -282,9 +267,9 @@ class SQLiteService extends SQLService {
       // Reading decimal as string to not loose precision
       Decimal: cds.env.features.ieee754compatible
         ? (expr, elem) =>
-            elem?.scale
-              ? `CASE WHEN ${expr} IS NULL THEN NULL ELSE format('%.${elem.scale}f', ${expr}) END`
-              : `CASE WHEN ${expr} IS NULL THEN NULL ELSE rtrim(rtrim(format('%.999f', ${expr}), '0'), '.') END`
+          elem?.scale
+            ? `CASE WHEN ${expr} IS NULL THEN NULL ELSE format('%.${elem.scale}f', ${expr}) END`
+            : `CASE WHEN ${expr} IS NULL THEN NULL ELSE rtrim(rtrim(format('%.999f', ${expr}), '0'), '.') END`
         : undefined,
       // Binary is not allowed in json objects
       Binary: expr => `${expr} || ''`,
