@@ -84,7 +84,8 @@ class HANAService extends SQLService {
       } catch (err) {
         if (!cds.env.features.use_generic_pool) {
           if (err.status === 404 || err.status === 429) {
-            throw new Error(`Pool failed connecting to '${tenant}'`, { cause: err })
+            err.message = `Pool failed connecting to '${tenant}'. ${err.message}`
+            throw err
           }
           const deadline = start + acquireTimeoutMillis
           if (attempt <= maxRetries && Date.now() < deadline) {
