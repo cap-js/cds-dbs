@@ -18,7 +18,7 @@ class CQN2PQLRenderer extends CQN2SQL {
 
   column_expr(x, q) {
     // omit alias when target is a single source
-    if (q.SELECT.from.ref && x?.ref) x.ref = x.ref.slice(-1)
+    if (q.SELECT.from?.ref && x?.ref) x.ref = x.ref.slice(-1)
     return super.column_expr(x, q)
   }
 
