@@ -1224,7 +1224,7 @@ describe('SELECT', () => {
 
     test('async iterator with to-many expand', () => cds.tx(async () => {
       const { Authors } = cds.entities('complex.associations')
-      const cqn = SELECT([{ ref: ['ID'] }, { ref: ['name'] }, { ref: ['books'], expand: ['*'] }]).from(Authors)
+      const cqn = SELECT([{ ref: ['ID'] }, { ref: ['name'] }, { ref: ['books'], expand: ['*'] }]).from(Authors).orderBy('ID')
 
       const expected = await cqn.clone()
 
@@ -1238,7 +1238,7 @@ describe('SELECT', () => {
 
     test('async iterator with to-one expand', () => cds.tx(async () => {
       const { Books } = cds.entities('complex.associations')
-      const cqn = SELECT([{ ref: ['ID'] }, { ref: ['title'] }, { ref: ['author'], expand: ['*'] }]).from(Books)
+      const cqn = SELECT([{ ref: ['ID'] }, { ref: ['title'] }, { ref: ['author'], expand: ['*'] }]).from(Books).orderBy('ID')
 
       const expected = await cqn.clone()
 
@@ -1260,7 +1260,7 @@ describe('SELECT', () => {
       // between rows to let the underlying ResultSet settle while the consumer
       // is suspended.
       const { Authors } = cds.entities('complex.associations')
-      const cqn = SELECT([{ ref: ['ID'] }, { ref: ['name'] }, { ref: ['books'], expand: ['*'] }]).from(Authors)
+      const cqn = SELECT([{ ref: ['ID'] }, { ref: ['name'] }, { ref: ['books'], expand: ['*'] }]).from(Authors).orderBy('ID')
 
       const expected = await cqn.clone()
 
