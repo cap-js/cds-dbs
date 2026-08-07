@@ -97,7 +97,7 @@ entity BooksAnnotated as projection on Books;
 /** Inventory tracks the status and reorder priority of book stock entries */
 entity Inventory {
   key ID       : Integer;
-      book_ID  : Integer;
+      book     : Association to one Books;
       status   : StockStatus;
       priority : Priority;
 }

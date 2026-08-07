@@ -4,6 +4,69 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.0.1](https://github.com/cap-js/cds-dbs/compare/db-service-v3.0.0...db-service-v3.0.1) (2026-06-29)
+
+
+### Fixed
+
+* calculated elements in drafts ([#1635](https://github.com/cap-js/cds-dbs/issues/1635)) ([cf42350](https://github.com/cap-js/cds-dbs/commit/cf42350a4a65756773eb877c360c43f27dee0141))
+* consolidated flags to cds.features.use_generic_pool ([#1653](https://github.com/cap-js/cds-dbs/issues/1653)) ([1dc0e61](https://github.com/cap-js/cds-dbs/commit/1dc0e6185c9068a53f454aa8c91b19a48190bbf8))
+
+## [3.0.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.11.0...db-service-v3.0.0) (2026-06-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* require cds10 ([#1628](https://github.com/cap-js/cds-dbs/issues/1628))
+
+### Added
+
+* own flag for db service results ([#1630](https://github.com/cap-js/cds-dbs/issues/1630)) ([3946e59](https://github.com/cap-js/cds-dbs/commit/3946e59b19ca11afda999d44babeeff835c23817))
+* **pool:** make builtin pool the default ([#1537](https://github.com/cap-js/cds-dbs/issues/1537)) ([919dfe6](https://github.com/cap-js/cds-dbs/commit/919dfe6c5d0cf0ee37a695d2edcc870c1353a93d))
+* require cds10 ([#1628](https://github.com/cap-js/cds-dbs/issues/1628)) ([93e8305](https://github.com/cap-js/cds-dbs/commit/93e83053679f9ef94293caa08917855404db880d))
+
+
+### Fixed
+
+* **builtin-pool:** ignore released/destroyed resource if already draining ([#1631](https://github.com/cap-js/cds-dbs/issues/1631)) ([de37489](https://github.com/cap-js/cds-dbs/commit/de37489bb80b25be1d292a284119c1c0f6405970))
+* calc element with exists through association ([#1608](https://github.com/cap-js/cds-dbs/issues/1608)) ([0d24b28](https://github.com/cap-js/cds-dbs/commit/0d24b285ae8eb71eeca0c6f4bf811a729a8cff4b))
+* InsertResult for keyless entities ([#1617](https://github.com/cap-js/cds-dbs/issues/1617)) ([2efe922](https://github.com/cap-js/cds-dbs/commit/2efe922e2eb4b0c750eb09a74dfd155e8febc9bc))
+* InsertResult is broken if entity has assoc keys ([#1616](https://github.com/cap-js/cds-dbs/issues/1616)) ([9925d22](https://github.com/cap-js/cds-dbs/commit/9925d22236846081e1013381f79249ab0f8f9447))
+* query results fixed gaps ([#1625](https://github.com/cap-js/cds-dbs/issues/1625)) ([5d60e7f](https://github.com/cap-js/cds-dbs/commit/5d60e7f15b4f0a9e7859b0662e690a1790b350ad))
+* resolve `$self` in infix filters with path expressions and nested exists ([#1604](https://github.com/cap-js/cds-dbs/issues/1604)) ([baa3528](https://github.com/cap-js/cds-dbs/commit/baa3528aa735cc3707c4c2a128cf6b57feaf913b))
+* resolve nested assoc-into-assoc inline path resolution ([#1602](https://github.com/cap-js/cds-dbs/issues/1602)) ([ec6fba0](https://github.com/cap-js/cds-dbs/commit/ec6fba0597c75bb206c859bea4e50ce61be40b40))
+* we can't return keys for `INSERT.from(SELECT.from(...))` ([#1622](https://github.com/cap-js/cds-dbs/issues/1622)) ([ccc9f88](https://github.com/cap-js/cds-dbs/commit/ccc9f881adc62cbc16f1feef13da7c658b27d551))
+
+## [2.11.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.10.1...db-service-v2.11.0) (2026-04-29)
+
+
+### Added
+
+* supersede potentially compromised release ([#1590](https://github.com/cap-js/cds-dbs/issues/1590)) ([3be4044](https://github.com/cap-js/cds-dbs/commit/3be404417229a2dd539e4b40393d3bd346e4388c))
+
+## [2.10.1](https://github.com/cap-js/cds-dbs/compare/db-service-v2.10.0...db-service-v2.10.1) (2026-04-29)
+
+
+### Fixed
+
+* supersede potentially compromised release ([#1589](https://github.com/cap-js/cds-dbs/issues/1589)) ([bd73895](https://github.com/cap-js/cds-dbs/commit/bd7389524d00ddd6ed73fc79308e19e7bf952b53))
+
+## [2.10.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.9.0...db-service-v2.10.0) (2026-04-22)
+
+
+### Added
+
+* `cds.features.count_as_string` ([#1556](https://github.com/cap-js/cds-dbs/issues/1556)) ([00e0e60](https://github.com/cap-js/cds-dbs/commit/00e0e60d68edf0d42c1fce2fae3bb1286aca131e))
+* **cqn4sql:** support for enums ([#1527](https://github.com/cap-js/cds-dbs/issues/1527)) ([27c4279](https://github.com/cap-js/cds-dbs/commit/27c4279c495fce8344c785e4489e3116d1a52c55))
+* pql ([#1532](https://github.com/cap-js/cds-dbs/issues/1532)) ([943f76a](https://github.com/cap-js/cds-dbs/commit/943f76a3e4405eb91f0f4b929590212500c49c30))
+
+
+### Fixed
+
+* `$self` reference to func column in `having` ([#1539](https://github.com/cap-js/cds-dbs/issues/1539)) ([9eac576](https://github.com/cap-js/cds-dbs/commit/9eac5762fc4d254a1bc54bded1dd6a492299f576)), closes [#1528](https://github.com/cap-js/cds-dbs/issues/1528)
+* foreign key not included in wildcard select from subquery ([#1540](https://github.com/cap-js/cds-dbs/issues/1540)) ([0fde4ed](https://github.com/cap-js/cds-dbs/commit/0fde4eda21a389c68982f348e9e7c3680c00dcb3)), closes [#1127](https://github.com/cap-js/cds-dbs/issues/1127)
+* sqlite generated key is named lastInsertRowid ([#1501](https://github.com/cap-js/cds-dbs/issues/1501)) ([a4d3437](https://github.com/cap-js/cds-dbs/commit/a4d34378297c8afdb13abb7e664165012c36eb8f))
+
 ## [2.9.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.8.2...db-service-v2.9.0) (2026-03-09)
 
 

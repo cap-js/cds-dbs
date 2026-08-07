@@ -88,7 +88,7 @@ describe('UPDATE', () => {
       try {
         await UPDATE(string).with({ nonExisting: { val: 'not updated' } })
         // should not get here
-        expect(0).to.be(1)
+        expect(0).to.eq(1)
       } catch (error) {
         // nonExisting is filtered, so the sql is incomplete
         expect(error.query).to.match(/UPDATE basic_literals_string AS ["]?\$s["]? SET [\n]?/i)
