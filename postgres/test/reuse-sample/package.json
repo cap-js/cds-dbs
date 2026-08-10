@@ -1,0 +1,15 @@
+{
+  "name": "reuse-sample",
+  "version": "1.0.0",
+  "description": "A CAP project consuming a reuse module, to test the build plugin",
+  "dependencies": {
+    "@cap-js/postgres": "../../."
+  },
+  "cds": {
+    "requires": {
+      "db": {
+        "kind": "postgres"
+      }
+    }
+  }
+}
