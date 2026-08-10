@@ -9,7 +9,7 @@ services:
       - backend
     command:
       - --init
-      - role=worker:services=indexserver,dpserver,diserver:database=H00:create
+      - role=worker:services=diserver,scriptserver,dpserver,indexserver,docstore,triplestore:database=H00:create
       - --system-password
       - text:Manager1
       - --database-password
