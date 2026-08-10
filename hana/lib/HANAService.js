@@ -1485,6 +1485,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
           break
         } catch (e) {
           err = e
+          await new Promise(r => setTimeout(r, 100))
         }
       }
       if (i === 100) {
