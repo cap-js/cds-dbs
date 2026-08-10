@@ -1477,7 +1477,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
 
       let i = 0
       let err
-      for (; i < 100; i++) {
+      for (; i < 1000; i++) {
         try {
           const stmt = await this.dbc.prepare(createContainerTenant.replaceAll('{{{GROUP}}}', creds.containerGroup))
           const res = this.ensureDBC() && await stmt.run([creds.user, creds.password, creds.schema, !clean])
@@ -1488,7 +1488,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
           await new Promise(r => setTimeout(r, 100))
         }
       }
-      if (i === 100) {
+      if (i === 1000) {
         throw new Error(`Failed to create tenant: ${err.message || err.stack || err}`)
       }
     } finally {
