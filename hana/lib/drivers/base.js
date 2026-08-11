@@ -221,7 +221,7 @@ const handleLevel = function (levels, path, expands) {
       const property = `${path.slice(level.path.length + 2, -7)}`
       if (property && property in level.expands) {
         const expandValue = level.expands[property]
-        const is2Many = expandValue
+        const is2Many = expandValue?.push  // Readable has .push; resolve functions and null don't
         delete level.expands[property]
         if (level.hasProperties) {
           buffer += ','
@@ -266,10 +266,13 @@ const handleLevel = function (levels, path, expands) {
       }
       if (level.suffix) buffer += level.suffix
       if (level.isExpand) {
-        level.result?.push(null)
+        if (typeof level.result === 'function') level.result(null)  // to-one: resolve with null
+        else level.result?.push(null)                                // to-many: terminate stream
       } else if (level.expands) {
         for (const expand in level.expands) {
-          if (level.expands[expand]?.push) level.expands[expand]?.push(null)
+          const v = level.expands[expand]
+          if (typeof v === 'function') v(null)      // to-one resolver never entered
+          else if (v?.push) v.push(null)            // to-many stream never entered
         }
       }
     }
