@@ -51,9 +51,8 @@ describe('SELECT', () => {
       await cds.tx(async () => {
           for await (const row of cqn.clone()) {
             books.push(row)
-            for await (const a of row.author) {
-              authors.push(a)
-            }
+            const a = await row.author
+            authors.push(a)
           }
       })
       expect(authors).deep.eq([expected[0].author])
