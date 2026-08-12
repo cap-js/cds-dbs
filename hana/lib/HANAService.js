@@ -1472,8 +1472,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     creds.password = creds.user + 'Val1d' // Password restrictions require Aa1
 
     try {
-      const con = await this.factory.create(this.options.credentials)
-      this.dbc = con
+      this.dbc = await this.factory.create(this.options.credentials)
 
       let i = 0
       let err
@@ -1485,7 +1484,8 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
           break
         } catch (e) {
           err = e
-          await new Promise(r => setTimeout(r, 100))
+          await this.dbc.disconnect()
+          this.dbc = await this.factory.create(this.options.credentials)
         }
       }
       if (i === 1000) {
