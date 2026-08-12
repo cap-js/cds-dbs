@@ -211,12 +211,12 @@ class SQLiteService extends SQLService {
     val(v) {
       if (typeof v.val === 'boolean') v.val = v.val ? 1 : 0
       else if (Buffer.isBuffer(v.val)) v.val = v.val.toString('base64')
-      // intercept DateTime values and convert to Date objects to compare ISO Strings
-      else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(.\d{1,9})?(Z|[+-]\d{2}(:?\d{2})?)$/.test(v.val)) {
+      // Normalize ISO datetime strings without a timezone offset to ms-precision UTC
+      // so comparisons match what SQLite stores via ISO() (always .000Z).
+      // Offset strings are already handled by super.val().
+      else if (typeof v.val === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(.\d{1,9})?Z$/.test(v.val)) {
         const date = new Date(v.val)
-        if (!Number.isNaN(date.getTime())) {
-          v.val = date
-        }
+        if (!Number.isNaN(date.getTime())) v.val = date
       }
       return super.val(v)
     }

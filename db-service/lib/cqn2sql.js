@@ -1366,6 +1366,14 @@ class CQN2SQLRenderer {
       case 'undefined': val = null
         break
       case 'boolean': return `${val}`
+      case 'string':
+        // Normalize ISO datetime strings with non-UTC offsets to UTC before binding,
+        // so all DB engines receive a consistent Z-string regardless of how the CQN was built.
+        if (val.length > 19 && val[10] === 'T' && /[+-]\d{2}:?\d{2}$/.test(val)) {
+          const d = new Date(val)
+          if (!isNaN(d)) val = d.toJSON()
+        }
+        break
       case 'object':
         if (val !== null) {
           if (val instanceof Date) val = val.toJSON() // returns null if invalid

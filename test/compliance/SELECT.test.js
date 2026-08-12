@@ -392,6 +392,21 @@ describe('SELECT', () => {
       expect(await sel.clone().where(`dateTime = `, timestamp.toISOString())).length(1)
     })
 
+    test('compare with DateTime column using non-UTC offset string', async () => {
+      const { dateTime: entity } = cds.entities('basic.literals')
+      const sel = SELECT('dateTime').from(entity)
+      const [{ dateTime }] = await sel.clone()
+      const timestamp = new Date(dateTime)
+      // Build an equivalent ISO string with a non-UTC offset representing the same instant.
+      // e.g. 1970-02-02T10:09:34Z → 1970-02-02T12:09:34+02:00
+      const offsetMs = 2 * 60 * 60 * 1000
+      const shifted = new Date(timestamp.getTime() + offsetMs)
+      const pad = n => String(n).padStart(2, '0')
+      const offsetStr = `${shifted.toISOString().replace('Z', '')}+${pad(2)}:${pad(0)}`
+
+      expect(await sel.clone().where(`dateTime = `, offsetStr)).length(1)
+    })
+
     test('combine expr with nested functions and other compare', async () => {
       const { string } = cds.entities('basic.literals')
       const res = await cds.run(cds.ql`SELECT string FROM ${string} WHERE string != ${'foo'} and contains(tolower(string),tolower(${'bar'}))`)
