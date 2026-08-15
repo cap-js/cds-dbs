@@ -1,81 +1,50 @@
 const cds = require('../cds.js')
-const { text } = require('stream/consumers')
+const { json } = require('stream/consumers')
 
 describe('SELECT', () => {
   const { expect, data } = cds.test(__dirname + '/resources')
-  data.autoReset()
 
   describe('foreach', () => {
-    test('consume to many with single row', async () => {
-      const { Authors, Books } = cds.entities('complex.associations')
-      const cqn = SELECT([{ ref: ['ID'] }, { ref: ['name'] }, { ref: ['books'], expand: ['*'] }]).from(Authors).orderBy('ID')
-      const expected =await cqn.clone()
+    test('consume to many', async () => {
+      const { Authors } = cds.entities('complex.associations')
+      const cqn = cds.ql`SELECT ID, name, books[order by ID asc]{*} FROM ${Authors} order by ID asc`
       const authors = []
-      const books = []
       await cds.tx(async () => {
-          for await (const row of cqn.clone()) {
-            authors.push(row)
-            for await (const b of row.books) {
-              books.push(b)
-            }
-          }
+        for await (const author of cqn.clone()) {
+          authors.push(author)
+          const books = author.books
+          author.books = []
+          for await (const book of books) author.books.push(book)
+        }
       })
-      expect(books).deep.eq(expected[0].books)
-    })
-
-    test('consume to many expand with multiple rows', async () => {
-      const { Authors, Books } = cds.entities('complex.associations')
-      await INSERT.into(Authors).entries({ ID: 2348 })
-      await INSERT.into(Books).entries([{ ID: 9001, author_ID: 1}, { ID: 9002, author_ID: 1}, { ID: 9003, author_ID: 1}, { ID: 9004, author_ID: 1}, { ID: 9005, author_ID: 1}, { ID: 9006, author_ID: 1}, { ID: 9007, author_ID: 1}])
-      const cqn = SELECT([{ ref: ['ID'] }, { ref: ['name'] }, { ref: ['books'], expand: ['*'] }]).from(Authors).orderBy('ID')
-      const expected =await cqn.clone()
-      const authors = []
-      const books = []
-      await cds.tx(async () => {
-          for await (const row of cqn.clone()) {
-            authors.push(row)
-            for await (const b of row.books) {
-              books.push(b)
-            }
-          }
-      })
-      expect(books).deep.eq(expected[0].books)
+      expect(authors).deep.eq(await cqn.clone())
     })
 
     test('consume to one expand', async () => {
       const { Books } = cds.entities('complex.associations')
-      const cqn = SELECT([{ ref: ['ID'] }, { ref: ['title'] }, { ref: ['author'], expand: ['*'] }]).from(Books).orderBy('ID')
-      const expected =await cqn.clone()
-      const authors = []
+      const cqn = cds.ql`SELECT ID, title, author{*} FROM ${Books} order by ID asc`
       const books = []
       await cds.tx(async () => {
-          for await (const row of cqn.clone()) {
-            books.push(row)
-            const a = await row.author
-            authors.push(a)
-          }
+        for await (const book of cqn.clone()) {
+          book.author = await book.author
+          books.push(book)
+        }
       })
-      expect(authors).deep.eq([expected[0].author])
+      expect(books).deep.eq(await cqn.clone())
     })
   })
 
   describe('raw expand streams', () => {
     test('consume to many expand stream', () => cds.tx(async () => {
       const { Authors } = cds.entities('complex.associations')
-      const cqn = SELECT([{ ref: ['ID'] }, { ref: ['name'] }, { ref: ['books'], expand: ['*'] }]).from(Authors).orderBy('ID')
-      const expected =await cqn.clone()
-      const stream = await cqn.clone().stream()
-      const authors = JSON.parse(await text(stream))
-      expect(authors).deep.eq(expected)
+      const cqn = cds.ql`SELECT ID, name, books {*} FROM ${Authors} order by ID asc`
+      expect(await json(await cqn.clone().stream())).deep.eq(await cqn.clone())
     }))
 
     test('consume to one expand stream', () => cds.tx(async () => {
       const { Books } = cds.entities('complex.associations')
-      const cqn = SELECT([{ ref: ['ID'] }, { ref: ['title'] }, { ref: ['author'], expand: ['*'] }]).from(Books).orderBy('ID')
-      const expected =await cqn.clone()
-      const stream = await cqn.clone().stream()
-      const authors = JSON.parse(await text(stream))
-      expect(authors).deep.eq(expected)
+      const cqn = cds.ql`SELECT ID, title, author {*} FROM ${Books} order by ID asc`
+      expect(await json(await cqn.clone().stream())).deep.eq(await cqn.clone())
     }))
   })
 })

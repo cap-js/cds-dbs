@@ -67,24 +67,14 @@ function rsNextObjectMode(state, next) {
   // Expose expanded columns as recursive streams or thenables
   for (const expandName in expands) {
     if (expands[expandName] !== null) {
-      // to-many: expose as Readable stream
       level.expands[expandName] = json[expandName] = new Readable({
         objectMode: true,
-        read() {
-          state.stream.resume()
-        }
+        read() { state.stream.resume() }
       })
     } else {
-      // to-one: expose as lazy thenable that resumes the stream on await
-      let resolve
-      const promise = new Promise(r => { resolve = r })
-      json[expandName] = {
-        then(onFulfilled, onRejected) {
-          state.stream.resume()
-          return promise.then(onFulfilled, onRejected)
-        }
-      }
-      level.expands[expandName] = resolve
+      const prom = Promise.withResolvers()
+      json[expandName] = prom.promise
+      level.expands[expandName] = prom.resolve
     }
   }
 

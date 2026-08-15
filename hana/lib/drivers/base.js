@@ -239,7 +239,6 @@ const handleLevel = function (levels, path, expands) {
           path: path.slice(0, -6),
           result: expandValue,
           expands,
-          isExpand: true,
         })
       } else {
         // Current row is on the same level now so incrementing the index
@@ -265,14 +264,11 @@ const handleLevel = function (levels, path, expands) {
         }
       }
       if (level.suffix) buffer += level.suffix
-      if (level.isExpand) {
-        if (typeof level.result === 'function') level.result(null)  // to-one: resolve with null
-        else level.result?.push(null)                                // to-many: terminate stream
-      } else if (level.expands) {
+      if (levels.length && level.suffix === ']' && level.result.push) level.result.push(null)
+      if (level.expands) {
         for (const expand in level.expands) {
-          const v = level.expands[expand]
-          if (typeof v === 'function') v(null)      // to-one resolver never entered
-          else if (v?.push) v.push(null)            // to-many stream never entered
+          if (typeof level.expands[expand] === 'function') level.expands[expand](null)
+          else if (level.expands[expand]?.push) level.expands[expand]?.push(null)
         }
       }
     }
