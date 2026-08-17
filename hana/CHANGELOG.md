@@ -4,6 +4,29 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.0.2](https://github.com/cap-js/cds-dbs/compare/hana-v3.0.1...hana-v3.0.2) (2026-07-27)
+
+
+### Fixed
+
+* invalid credentials created a useless retry ([#1684](https://github.com/cap-js/cds-dbs/issues/1684)) ([33024d7](https://github.com/cap-js/cds-dbs/commit/33024d7c4d04dcd005f01d2d3e2e7f914a81db45)), closes [#1680](https://github.com/cap-js/cds-dbs/issues/1680)
+
+## [3.0.1](https://github.com/cap-js/cds-dbs/compare/hana-v3.0.0...hana-v3.0.1) (2026-06-29)
+
+
+### Fixed
+
+* consolidated flags to cds.features.use_generic_pool ([#1653](https://github.com/cap-js/cds-dbs/issues/1653)) ([1dc0e61](https://github.com/cap-js/cds-dbs/commit/1dc0e6185c9068a53f454aa8c91b19a48190bbf8))
+* **hana:** align builtin-pool condition with db-service default ([#1645](https://github.com/cap-js/cds-dbs/issues/1645)) ([dd11c58](https://github.com/cap-js/cds-dbs/commit/dd11c58511de6adc0b9e5efe05def33e0deacb72))
+* transient retries before invalidating credentials in built-in connection pool ([#1646](https://github.com/cap-js/cds-dbs/issues/1646)) ([9833ecf](https://github.com/cap-js/cds-dbs/commit/9833ecf954923109a427b2077d3731aa41800071))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^3.0.0 to ^3.0.1
+
 ## [3.0.0](https://github.com/cap-js/cds-dbs/compare/hana-v2.8.0...hana-v3.0.0) (2026-06-01)
 
 
