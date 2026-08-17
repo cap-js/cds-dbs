@@ -117,9 +117,8 @@ class HDBDriver extends driver {
     // hyper streaming setup
     ret.stream = async (values, one, objectMode) => {
       const stmt = await ret._prep
-      const message = require('hdb/lib/protocol/reply/index.js')
       const connection = stmt._connection
-      const socket = connection._socket
+      const socket = connection._socket ?? connection._physicalConnections?.getAnchorConnection()?._socket
 
       let ondata
       async function* slice(queue, stream) {
@@ -132,9 +131,11 @@ class HDBDriver extends driver {
           let segment
           let packetLength
           let packetRead = 0
-          let rssize
           let streamsize
           let streamRead = 0
+          let leftOver = ''
+          let brackets = 0
+          let quotes = 0
           const it = stream.iterator({ destroyOnReturn: false })
           for await (const chunk of it) {
             let offset = 0
@@ -179,7 +180,28 @@ class HDBDriver extends driver {
             if (offset < chunk.length && streamsize) {
               const part = chunk.subarray(offset)
               streamRead += part.length
-              yield part // iconv.decode(part, 'cesu8')
+              if (objectMode) {
+                let end
+                // Don't mind a bit of counting
+                for (let x = 0; x < part.length; x++) {
+                  const char = part[x]
+                  if (char === 92) x++ // \ skip next character
+                  else if (char === 34) quotes++  // "
+                  else if (quotes % 2 === 0) { // outside of string
+                    if (char === 123) brackets++  // {
+                    else if (char === 125) brackets--  // }
+                    if (brackets === 0) end = x
+                  }
+                }
+
+                if (end != null) {
+                  // TODO: these objects MUST also go through `_changeToStreams` to be fully correct
+                  yield* JSON.parse('[' + (leftOver + part.subarray(0, end)).replace(/[,[]/, '') + ']')
+                  leftOver = part.subarray(end)
+                }
+              } else {
+                yield part // iconv.decode(part, 'cesu8') // TODO: test cesu8
+              }
             }
             if (packetRead >= packetLength) break
           }
@@ -192,7 +214,7 @@ class HDBDriver extends driver {
 
       const stream = Readable.from(slice(new Promise(resolve => {
         connection._queue.push({ run: (next) => { resolve(); next() } })
-      }), socket), { objectMode: false })
+      }), socket), { objectMode })
       stmt.exec(values || [], (err, res) => {
         if (err) { return }
         res.close()

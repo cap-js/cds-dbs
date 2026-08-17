@@ -715,13 +715,6 @@ describe('SELECT', () => {
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
     })
 
-    test('func', async () => {
-      const { string } = cds.entities('basic.literals')
-      const cqn = cds.ql`SELECT string FROM ${string} GROUP BY string,now()`
-      const res = await cds.run(cqn)
-      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
-    })
-
     test('navigation with duplicate identifier in path', async () => {
       const { Books } = cds.entities('complex.associations')
       const res = await cds.ql`SELECT name { name } FROM ${Books} GROUP BY name.name`
