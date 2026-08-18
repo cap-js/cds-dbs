@@ -29,7 +29,7 @@ class SQLiteService extends SQLService {
           if (!SQLiteService._aiEmbeddingChecked) {
             SQLiteService._aiEmbeddingChecked = true
             try {
-              const aiPlugin = await import('@cap-js/ai/lib/vector_embedding/index.js')
+              const aiPlugin = await import('@cap-js/ai/vector_embedding')
               SQLiteService._aiEmbedding = aiPlugin.vector_embedding
             } catch { /* optional plugin */ }
           }
