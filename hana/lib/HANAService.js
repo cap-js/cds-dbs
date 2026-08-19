@@ -59,7 +59,11 @@ class HANAService extends SQLService {
         service.server.major = dbc.server.major || service.server.major
         return dbc
       } catch (err) {
-        if (err.code === 10) return // authentication error, see error handler below
+        if (err.code === 10) {
+          // delay the shutdown by a tick to have the db error show up
+          setImmediate(() => cds.shutdown(err))
+          throw err
+        }
         if (attempt < maxRetries) {
           LOG.debug('connection failed:', err, '- retrying attempt', attempt, 'of', maxRetries)
           return createSingleTenant(tenant, attempt + 1)
@@ -80,7 +84,8 @@ class HANAService extends SQLService {
       } catch (err) {
         if (!cds.env.features.use_generic_pool) {
           if (err.status === 404 || err.status === 429) {
-            throw new Error(`Pool failed connecting to '${tenant}'`, { cause: err })
+            err.message = `Pool failed connecting to '${tenant}'. ${err.message}`
+            throw err
           }
           const deadline = start + acquireTimeoutMillis
           if (attempt <= maxRetries && Date.now() < deadline) {
@@ -112,6 +117,7 @@ class HANAService extends SQLService {
     return {
       options: this.options.pool || {},
       create: isMultitenant ? createMultiTenant : createSingleTenant,
+       // only used by generic-pool, we can remove once we rm generic-pool compat
       error: (err /*, tenant*/) => {
         // Check whether the connection error was an authentication error
         if (err.code === 10) {

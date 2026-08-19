@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.0.2](https://github.com/cap-js/cds-dbs/compare/sqlite-v3.0.1...sqlite-v3.0.2) (2026-07-01)
+
+
+### Fixed
+
+* prevent SQLite in memory connection from being cleaned up ([#1672](https://github.com/cap-js/cds-dbs/issues/1672)) ([9b9e2b3](https://github.com/cap-js/cds-dbs/commit/9b9e2b33da721a362bc7548ebbfe4389bcd628c3))
+
 ## [3.0.1](https://github.com/cap-js/cds-dbs/compare/sqlite-v3.0.0...sqlite-v3.0.1) (2026-06-29)
 
 
