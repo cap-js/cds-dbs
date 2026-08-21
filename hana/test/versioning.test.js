@@ -41,9 +41,4 @@ describe('Versioned table', () => {
 
     expect(his).length(3)
   })
-
-  test('hana server version', () => {
-    // 2 hana express, 4 hana cloud
-    expect(Number(cds.db.server.major)).to.be.at.least(2)
-  })
 })

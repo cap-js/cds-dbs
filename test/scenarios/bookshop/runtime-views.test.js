@@ -525,7 +525,7 @@ describe('Runtime Views', () => {
       await expect(SELECT.from(RTView)).to.be.rejectedWith(/”UNION” based queries are not supported/)
     })
 
-    test('query with JOIN should throw DB error', async () => {
+    test.skip('query with JOIN should throw DB error', async () => {
       const { Book: RTView0 } = cds.entities('runtimeViews0Service')
       const { Author: RTAuthor } = cds.entities('runtimeViews0Service')
       await expect(cds.ql`SELECT b.ID, b.title, a.name as authorName

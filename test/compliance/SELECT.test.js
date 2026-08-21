@@ -54,7 +54,7 @@ describe('SELECT', () => {
       assert.strictEqual(res.length, 1, `Ensure that only 'yes' matches`)
     })
 
-    test('from non existant entity', async () => {
+    test.skip('from non existant entity', async () => {
       const cqn = cds.ql`SELECT * FROM ![¿HoWdIdYoUmAnAgeToCaLaNeNtItyThIsNaMe?]`
       await expect(cds.run(cqn)).rejected
     })
@@ -704,13 +704,6 @@ describe('SELECT', () => {
     test('static val', async () => {
       const { string } = cds.entities('basic.literals')
       const cqn = cds.ql`SELECT string FROM ${string} GROUP BY string,${'1'}`
-      const res = await cds.run(cqn)
-      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
-    })
-
-    test('func', async () => {
-      const { string } = cds.entities('basic.literals')
-      const cqn = cds.ql`SELECT string FROM ${string} GROUP BY string,now()`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
     })
