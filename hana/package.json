@@ -1,6 +1,6 @@
 {
   "name": "@cap-js/hana",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "CDS database service for SAP HANA",
   "homepage": "https://cap.cloud.sap/",
   "repository": {
@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "@cap-js/db-service": "^3.0.1",
-    "hdb": "^2.29.5"
+    "hdb": "^2.29.6"
   },
   "peerDependencies": {
     "@sap/cds": "^10",
