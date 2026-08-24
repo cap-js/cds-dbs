@@ -18,6 +18,12 @@ describe('Bookshop - Read', () => {
     expect(res.data.value.length).to.be.eq(totalBooks)
   })
 
+  test('deeply nested $filter parentheses do not crash the server', async () => {
+    const nested = '('.repeat(2000) + 'ID eq 1' + ')'.repeat(2000)
+    const err = await GET(`/browse/Books?$filter=${nested}`).catch(e => e)
+    expect(err.response.status).to.be.eq(400)
+  })
+
   test('Books $count with $top=0', async () => {
     const res = await GET('/browse/ListOfBooks?$count=true&$top=0')
     expect(res.status).to.be.eq(200)

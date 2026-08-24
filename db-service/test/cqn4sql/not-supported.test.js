@@ -16,4 +16,13 @@ describe('not supported features', () => {
     expect(cqn4sql(query, model)).to.deep.equal(_inferred(query, model))
     // .to.throw(/Queries with multiple query sources are not supported/)
   })
+
+  it('rejects excessively nested expressions instead of overflowing the stack', () => {
+    // deeply nested parens (e.g. crafted OData `$filter`) become nested `xpr`s
+    let inner = { xpr: [{ ref: ['ID'] }, '=', { val: 1 }] }
+    for (let i = 0; i < 3000; i++) inner = { xpr: [inner] }
+    const query = cds.ql`SELECT from bookshop.Books`
+    query.SELECT.where = [inner]
+    expect(() => cqn4sql(query, model)).to.throw(/nesting depth/)
+  })
 })
