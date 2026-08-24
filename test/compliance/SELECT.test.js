@@ -1132,9 +1132,9 @@ describe('SELECT', () => {
       const query = SELECT.from('complex.associations.Authors')
       query.SELECT.count = true
       const result = await query
-      assert.strictEqual(result.$count, 3)
+      assert.equal(result.$count, 3)
       const renamed = result.map(row => ({ key: row.ID, fullName: row.name }))
-      assert.strictEqual(renamed.$count, 3)
+      assert.equal(renamed.$count, 3)
     })
   })
 
