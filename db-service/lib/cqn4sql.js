@@ -34,21 +34,7 @@ const notSupportedOps = [['>'], ['<'], ['>='], ['<='], ['*'], ['+'], ['-'], ['/'
 const allOps = eqOps.concat(eqOps).concat(notEqOps).concat(notSupportedOps)
 
 
-// Wraps a recursive fn so its live depth is bounded, throwing a catchable 400
-// at the limit. Depth is per wrapper instance, i.e. per `cqn4sql` call.
-const MAX_RECURSION_DEPTH = 300
-function depthGuarded(fn) {
-  let depth = 0
-  return function (...args) {
-    if (++depth > MAX_RECURSION_DEPTH)
-      throw cds.error(400, `Expression exceeds the maximum nesting depth of ${MAX_RECURSION_DEPTH}`)
-    try {
-      return fn.apply(this, args)
-    } finally {
-      depth--
-    }
-  }
-}
+const { depthGuarded, guardEntry } = require('./recursion-guard')
 
 const { pseudos } = require('./infer/pseudos')
 /**
@@ -72,17 +58,17 @@ const { pseudos } = require('./infer/pseudos')
  * @returns {object} transformedQuery the transformed query
  */
 function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
+  // guardEntry bounds subquery nesting and resets the depth budget per top-level call
+  return guardEntry(_cqn4sql)(originalQuery, model, useTechnicalAlias)
+}
+
+function _cqn4sql(originalQuery, model, useTechnicalAlias = true) {
   const getImplicitAlias = str => _getImplicitAlias(str, useTechnicalAlias)
-  // guard the input-driven recursive transforms against stack overflow from
-  // nested input
+  // guard xpr and inline/expand-on-struct nesting
   // eslint-disable-next-line no-func-assign
-  ;[getTransformedTokenStream, getFlatColumnsFor, nestedProjectionOnStructure, expandColumn, transformSubquery] = [
-    getTransformedTokenStream,
-    getFlatColumnsFor,
-    nestedProjectionOnStructure,
-    expandColumn,
-    transformSubquery,
-  ].map(depthGuarded)
+  getTransformedTokenStream = depthGuarded(getTransformedTokenStream)
+  // eslint-disable-next-line no-func-assign
+  nestedProjectionOnStructure = depthGuarded(nestedProjectionOnStructure)
   let inferred = typeof originalQuery === 'string' ? cds.parse.cql(originalQuery) : cds.ql.clone(originalQuery)
   const hasCustomJoins =
     originalQuery.SELECT?.from.args && (!originalQuery.joinTree || originalQuery.joinTree.isInitial)
@@ -410,6 +396,8 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
    */
   function translateAssocsToJoins() {
     let from
+    // guard association-path length
+    const joinForBranch = depthGuarded(_joinForBranch)
     /**
      * remember already seen aliases, do not create a join for them again
      */
@@ -433,7 +421,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
     })
     return from.args.length > 1 ? from : from.args[0]
 
-    function joinForBranch(lhs, node) {
+    function _joinForBranch(lhs, node) {
       const nextAssoc = inferred.joinTree.findNextAssoc(node)
       if (!nextAssoc || alreadySeen.has(nextAssoc.$refLink.alias)) return lhs.args.length > 1 ? lhs : lhs.args[0]
 
