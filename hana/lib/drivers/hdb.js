@@ -205,6 +205,15 @@ async function rsIterator(rs, one, objectMode, onDone) {
     next() {
       const ret = this._prefetch || raw.next()
       this._prefetch = raw.next()
+      // The eagerly-started prefetch may never be consumed (e.g. the stream ends
+      // on the current `ret`, or the consumer pauses long enough for the HANA
+      // ResultSet to close mid-stream). In that case its rejection
+      // (ERR_STREAM_PREMATURE_CLOSE) would surface as an unhandledRejection and
+      // crash the process. Attach a no-op catch; the value is re-fetched via
+      // `ret` on the next call when it is actually needed.
+      if (this._prefetch && typeof this._prefetch.catch === 'function') {
+        this._prefetch.catch(() => {})
+      }
       return ret
     },
     done() {

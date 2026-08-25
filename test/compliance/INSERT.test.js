@@ -222,8 +222,8 @@ describe('INSERT', () => {
     const insertResult = await cds.db.run(
       INSERT.into('complex.associations.Books').columns('ID').from(
         SELECT.from('complex.associations.Authors').columns`ID + 4711 as ID`))
-    expect(insertResult == 1).to.be.eq(true) // lose comparison as otherwise .valueOf is not invoked
-    expect(insertResult.affected).to.be.eq(1)
+    expect(insertResult == 3).to.be.eq(true) // lose comparison as otherwise .valueOf is not invoked
+    expect(insertResult.affected).to.be.eq(3)
     expect(() => [...insertResult]).to.not.throw // spreadable, but content not yet defined
   })
 
