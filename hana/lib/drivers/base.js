@@ -1,3 +1,5 @@
+const cds = require('@sap/cds')
+
 /**
  * Base class for the HANA native driver wrapper
  */
@@ -10,16 +12,24 @@ class HANADriver {
     this._creds = creds
     this.connected = false
     this.statements = {}
+
+    // statement cache kill switch
+    if (cds.env.requires.db.hana_statements_cache === false) {
+      this._prepare = this._prepare_stmt
+    }
+  }
+
+  _prepare_stmt(sql) {
+    return module.exports.prom(this._native, 'prepare')(sql)
+      .then(stmt => {
+        stmt._parentConnection = this._native
+        return stmt
+      })
   }
 
   _prepare(sql, detached) {
-    let prep = (!detached && this.statements[sql]) || module.exports.prom(
-      this._native,
-      'prepare',
-    )(sql).then(stmt => {
-      stmt._parentConnection = this._native
-      return stmt
-    })
+    let prep = (!detached && this.statements[sql]) || this._prepare_stmt(sql)
+
     if (!detached) {
       const release = {} // TODO: for node@22 use Promise.withResolvers()
       release.promise = new Promise((resolve, reject) => {
