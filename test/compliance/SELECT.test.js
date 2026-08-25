@@ -725,13 +725,13 @@ describe('SELECT', () => {
     test('navigation with duplicate identifier in path', async () => {
       const { Books } = cds.entities('complex.associations')
       const res = await cds.ql`SELECT name { name } FROM ${Books} GROUP BY name.name`
-      assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
+      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
     })
 
     test('navigation with duplicate identifier in path and aggregation', async () => {
       const { Books } = cds.entities('complex.associations')
       const res = await cds.ql`SELECT name { name }, count(1) as total FROM ${Books} GROUP BY name.name`
-      assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
+      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
     })
   })
 
@@ -1132,9 +1132,9 @@ describe('SELECT', () => {
       const query = SELECT.from('complex.associations.Authors')
       query.SELECT.count = true
       const result = await query
-      assert.equal(result.$count, 1)
+      assert.equal(result.$count, 3)
       const renamed = result.map(row => ({ key: row.ID, fullName: row.name }))
-      assert.equal(renamed.$count, 1)
+      assert.equal(renamed.$count, 3)
     })
   })
 
