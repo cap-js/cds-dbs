@@ -62,6 +62,7 @@ entity WithVector {
   name     : String;
   embedding: Vector;
   image    : LargeBinary;
+  self     : Association to WithVector;
   struct: {
     embedding : Vector;
     deepImage : LargeBinary;

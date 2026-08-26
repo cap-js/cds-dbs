@@ -367,7 +367,8 @@ describe('wildcard expansion and exclude clause', () => {
     )
     const expected = cds.ql`SELECT from bookshop.WithVector as WithVector {
       WithVector.ID,
-      WithVector.name
+      WithVector.name,
+      WithVector.self_ID
     }`
     expect(starExpansion).to.deep.equal(expected)
     expect(noColumnsExpansion).to.deep.equal(expected)
@@ -384,6 +385,27 @@ describe('wildcard expansion and exclude clause', () => {
         WithVector.ID,
         WithVector.struct_embedding,
         WithVector.struct_deepImage
+      }`,
+    )
+  })
+
+  it('expand subquery wildcard excludes Vector and LargeBinary', () => {
+    // The expand correlated-subquery goes through the same infer wildcard path,
+    // so Vector and LargeBinary are already excluded — no special handling needed.
+    const query = cqn4sql(
+      cds.ql`SELECT from bookshop.WithVector as WithVector { ID, self { * } }`,
+      model,
+    )
+    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(
+      cds.ql`SELECT from bookshop.WithVector as WithVector {
+        WithVector.ID,
+        (
+          SELECT from bookshop.WithVector as $s {
+            $s.ID,
+            $s.name,
+            $s.self_ID
+          } where WithVector.self_ID = $s.ID
+        ) as self
       }`,
     )
   })
