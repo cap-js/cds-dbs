@@ -4,6 +4,15 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.11.1](https://github.com/cap-js/cds-dbs/compare/db-service-v2.11.0...db-service-v2.11.1) (2026-06-22)
+
+
+### Fixed
+
+* calc element with exists through association ([#1608](https://github.com/cap-js/cds-dbs/issues/1608)) ([#1663](https://github.com/cap-js/cds-dbs/issues/1663)) ([85f8a49](https://github.com/cap-js/cds-dbs/commit/85f8a49063f5615781adbdacc1ef051379203f12))
+* resolve `$self` in infix filters /w path expressions and nested exists ([#1649](https://github.com/cap-js/cds-dbs/issues/1649)) ([86206b7](https://github.com/cap-js/cds-dbs/commit/86206b7e1e0d22a3fe6e89b1b4d41757aa893763))
+* resolve nested assoc-into-assoc inline path resolution ([#1648](https://github.com/cap-js/cds-dbs/issues/1648)) ([c69220d](https://github.com/cap-js/cds-dbs/commit/c69220d6fea84f2be370d1e75ea9608fa35c3001))
+
 ## [2.11.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.10.1...db-service-v2.11.0) (2026-04-29)
 
 
