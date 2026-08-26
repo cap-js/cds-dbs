@@ -356,6 +356,38 @@ describe('wildcard expansion and exclude clause', () => {
     )
   })
 
+  it('top-level wildcard excludes Vector and LargeBinary', () => {
+    let starExpansion = cqn4sql(
+      cds.ql`SELECT from bookshop.WithVector as WithVector { * }`,
+      model,
+    )
+    let noColumnsExpansion = cqn4sql(
+      cds.ql`SELECT from bookshop.WithVector as WithVector`,
+      model,
+    )
+    const expected = cds.ql`SELECT from bookshop.WithVector as WithVector {
+      WithVector.ID,
+      WithVector.name
+    }`
+    expect(starExpansion).to.deep.equal(expected)
+    expect(noColumnsExpansion).to.deep.equal(expected)
+  })
+
+  it('inline wildcard does not ignore vectors', () => {
+    let inlineWildcard = cds.ql`SELECT from bookshop.WithVector as WithVector {
+      ID,
+      struct.{ * }
+    }`
+
+    expect(cqn4sql(inlineWildcard, model)).to.deep.equal(
+      cds.ql`SELECT from bookshop.WithVector as WithVector {
+        WithVector.ID,
+        WithVector.struct_embedding,
+        WithVector.struct_deepImage
+      }`,
+    )
+  })
+
   it('MUST transform wildcard into explicit column refs (1)', () => {
     const input = cds.ql`SELECT from bookshop.Bar as Bar { * }`
     const inputClone = JSON.parse(JSON.stringify(input))

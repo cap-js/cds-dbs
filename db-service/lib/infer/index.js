@@ -1095,7 +1095,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
       for (const k in elements) {
         if (!exclude(k)) {
           const element = elements[k]
-          if (element.type !== 'cds.LargeBinary') {
+          if (element.type !== 'cds.LargeBinary' && element.type !== 'cds.Vector') {
             queryElements[k] = element
           }
           // only relevant if we actually select the calculated element
@@ -1115,7 +1115,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
       }
       if (exclude(name) || name in queryElements) return true
       const element = tableAliases[0].tableAlias.elements[name]
-      if (element.type !== 'cds.LargeBinary') queryElements[name] = element
+      if (element.type !== 'cds.LargeBinary' && element.type !== 'cds.Vector') queryElements[name] = element
       if (isCalculatedOnRead(element)) {
         linkCalculatedElement(element)
       }
