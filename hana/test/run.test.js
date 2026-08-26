@@ -111,7 +111,7 @@ describe('stored procedures', () => {
         await cds.run(`INSERT INTO sap_capire_TestEntity (ID,title) VALUES (20,'FROM TX')`)
 
         // Call the procedure with ASYNC
-        const { ASYNC_CALL_ID } = await cds.run(`CALL WRITE_PROC() ASYNC`, [])
+        const { ASYNC_CALL_ID } = await cds.run(`CALL WRITE_PROC() ASYNC`)
         const status = await cds.run(`DO (IN ID INTEGER => ?)
 BEGIN
   USING SQLSCRIPT_SYNC AS SYNCLIB;
@@ -125,7 +125,7 @@ BEGIN
   SELECT ERROR_CODE, ERROR_TEXT, :dur AS WAITED_SECONDS FROM M_PROCEDURE_ASYNC_EXECUTIONS WHERE ASYNC_CALL_ID = :ID;
 END;`, [ASYNC_CALL_ID])
         // Ensure that the procedure succeeded
-        expect(status.changes[1][0].ERROR_CODE).to.eq(0)
+        expect(status.changes?.[0]?.ERROR_CODE ?? status.changes?.[1]?.[0]?.ERROR_CODE).to.eq(0)
         throw new Error('ROLLBACK')
       }).catch((err) => { if (err.message !== 'ROLLBACK') throw err })
 
