@@ -2,8 +2,13 @@ const { SQLService } = require('@cap-js/db-service')
 const { Client, Query } = require('pg')
 const cds = require('@sap/cds')
 const crypto = require('crypto')
+let pgvector
+try { pgvector = require('pgvector/pg') } catch { /* optional */ }
+
 const { Writable, Readable } = require('stream')
 const sessionVariableMap = require('./session.json')
+
+const LOG = cds.log('sql|db')
 
 class PostgresService extends SQLService {
   init() {
@@ -18,10 +23,12 @@ class PostgresService extends SQLService {
   }
 
   get factory() {
+    const service = this
+    const maxRetries = 3
     return {
       options: this.options.pool || {},
-      create: async () => {
-        const { credentials: cr = {}, client: clientOptions = {} } = this.options
+      create: async function create(tenant, attempt = 1) {
+        const { credentials: cr = {}, client: clientOptions = {} } = service.options
         const credentials = {
           // Cloud Foundry provides the user in the field username the pg npm module expects user
           user: cr.username || cr.user,
@@ -42,11 +49,18 @@ class PostgresService extends SQLService {
               ca: cr.sslrootcert,
             }),
         }
-        const dbc = new Client({ ...credentials, ...clientOptions })
-        await dbc.connect()
-        dbc.open = true
-        dbc.on('end', () => { dbc.open = false })
-        return dbc
+        try {
+          const dbc = new Client({ ...credentials, ...clientOptions })
+          await dbc.connect()
+          if (pgvector) await pgvector.registerTypes(dbc)
+          dbc.open = true
+          dbc.on('end', () => { dbc.open = false })
+          return dbc
+        } catch (err) {
+          if (attempt >= maxRetries) throw err
+          LOG.debug('connection failed:', err, '- retrying attempt', attempt, 'of', maxRetries)
+          return create(tenant, attempt + 1)
+        }
       },
       destroy: dbc => dbc.end(),
       validate: dbc => dbc.open,
@@ -79,7 +93,7 @@ class PostgresService extends SQLService {
         JSON.stringify(env),
       ]),
       ...(this.options?.credentials?.schema
-        ? [this.exec(`SET search_path TO "${this.options?.credentials?.schema}";`)]
+        ? [this.exec(`SET search_path TO "${this.options?.credentials?.schema}", public;`)]
         : []),
 
       ...(!this._initalCollateCheck ? [this._checkCollation()] : []),
@@ -527,6 +541,7 @@ GROUP BY k
       DateTime: () => 'TIMESTAMP',
       Timestamp: () => 'TIMESTAMP',
       Map: () => 'JSONB',
+      Vector: () => 'VECTOR',
 
       // HANA Types
       'cds.hana.CLOB': () => 'BYTEA',
@@ -606,13 +621,13 @@ GROUP BY k
     const system = cds.requires.db.credentials
 
     try {
-      const con = await this.factory.create(system)
+      const con = await this.factory.create()
       this.dbc = con
+      await this.exec(`SELECT pg_advisory_lock(hashtext('${creds.database}'))`)
       const exists = await this.exec(`SELECT datname FROM pg_catalog.pg_database WHERE datname='${creds.database}'`)
 
       if (exists.rowCount) return
-      // REVISIT: cleanup database for local development
-      if (!process._send) await this.exec(`DROP DATABASE IF EXISTS "${creds.database}"`)
+
       await this.exec(`
         DROP GROUP IF EXISTS "${creds.usergroup}";
         DROP USER IF EXISTS "${creds.user}";
@@ -620,13 +635,10 @@ GROUP BY k
         CREATE USER "${creds.user}" WITH CREATEROLE IN GROUP "${creds.usergroup}" PASSWORD '${creds.user}';
         GRANT "${creds.usergroup}" TO "${creds.user}" WITH ADMIN OPTION;
       `)
-      await this.exec(`CREATE DATABASE "${creds.database}" OWNER="${creds.user}" TEMPLATE=template0`)
-    } catch {
+      await this.exec(`CREATE DATABASE "${creds.database}" OWNER="${creds.user}" TEMPLATE=template1`)
+    } catch (err) {
       // Failed to connect to database
-      if (!this.dbc) {
-        return this.database({ database })
-      }
-      // Failed to reset database
+      if (!this.dbc) return this.database({ database })
     } finally {
       // Only clean when successfully connected
       if (this.dbc) {
@@ -674,7 +686,19 @@ GROUP BY k
       // Create new schema using schema owner
       await this.tx(async tx => {
         await tx.run(`DROP SCHEMA IF EXISTS "${creds.schema}" CASCADE`)
-        if (!clean) await tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`)
+        if (!clean) {
+          await tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`)
+          // Create vector_embedding function in tenant schema
+          await tx.run(`
+            CREATE OR REPLACE FUNCTION "${creds.schema}".vector_embedding(input text, text_type text, model_and_version text)
+            RETURNS text AS $$
+              SELECT CASE WHEN input IS NULL THEN NULL
+                ELSE (SELECT json_agg(sin(i * hashtext(input)::float8 / 1000))::text
+                      FROM generate_series(1, 384) i)
+              END;
+            $$ LANGUAGE SQL IMMUTABLE;
+          `)
+        }
       })
     } finally {
       await this.disconnect()
