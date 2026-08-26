@@ -33,6 +33,9 @@ const notSupportedOps = [['>'], ['<'], ['>='], ['<='], ['*'], ['+'], ['-'], ['/'
 
 const allOps = eqOps.concat(eqOps).concat(notEqOps).concat(notSupportedOps)
 
+
+const { depthGuarded, guardEntry } = require('./recursion-guard')
+
 const { pseudos } = require('./infer/pseudos')
 /**
  * Transforms a CDL style query into SQL-Like CQN:
@@ -55,7 +58,17 @@ const { pseudos } = require('./infer/pseudos')
  * @returns {object} transformedQuery the transformed query
  */
 function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
+  // guardEntry bounds subquery nesting and resets the depth budget per top-level call
+  return guardEntry(_cqn4sql)(originalQuery, model, useTechnicalAlias)
+}
+
+function _cqn4sql(originalQuery, model, useTechnicalAlias = true) {
   const getImplicitAlias = str => _getImplicitAlias(str, useTechnicalAlias)
+  // guard xpr and inline/expand-on-struct nesting
+  // eslint-disable-next-line no-func-assign
+  getTransformedTokenStream = depthGuarded(getTransformedTokenStream)
+  // eslint-disable-next-line no-func-assign
+  nestedProjectionOnStructure = depthGuarded(nestedProjectionOnStructure)
   let inferred = typeof originalQuery === 'string' ? cds.parse.cql(originalQuery) : cds.ql.clone(originalQuery)
   const hasCustomJoins =
     originalQuery.SELECT?.from.args && (!originalQuery.joinTree || originalQuery.joinTree.isInitial)
@@ -182,7 +195,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
   /**
    * If the target entity is annotated with persistence skip and has an underlying db entity,
    * we treat it as a runtime view and transform it into a CTE.
-   * 
+   *
    * @param {object} transformedQuery - The query object to be transformed.
    * @param {string} model - The data model used for inference and transformation.
    */
@@ -198,10 +211,10 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
   }
 
   /**
-   * Recursively call cqn4sql for all nested runtime views to calculate cte and 
+   * Recursively call cqn4sql for all nested runtime views to calculate cte and
    * add it as a with clause to the transformed query.
    * Alias the runtime view with a unique alias and update all references to the runtime view to point to the alias.
-   * 
+   *
    * @param {object} rootDefinition - The root definition of the query. This is used to recursively process nested runtime views.
    * @param {object} transformedQuery - The query object to be transformed.
    * @param {string} model - The data model used for infer and cqn4sql.
@@ -383,6 +396,8 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
    */
   function translateAssocsToJoins() {
     let from
+    // guard association-path length
+    const joinForBranch = depthGuarded(_joinForBranch)
     /**
      * remember already seen aliases, do not create a join for them again
      */
@@ -406,7 +421,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
     })
     return from.args.length > 1 ? from : from.args[0]
 
-    function joinForBranch(lhs, node) {
+    function _joinForBranch(lhs, node) {
       const nextAssoc = inferred.joinTree.findNextAssoc(node)
       if (!nextAssoc || alreadySeen.has(nextAssoc.$refLink.alias)) return lhs.args.length > 1 ? lhs : lhs.args[0]
 
@@ -995,11 +1010,11 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
             const keyName = k.as || k.ref.join('_')
             const fkName = `${elemName}_${keyName}`  // e.g., 'head_id'
             const fkFullName = `${columnAlias}_${fkName}`  // e.g., 'department_head_id'
-            
+
             // Check if this FK is excluded
             if (exclude.some(e => (e.ref?.at(-1) || e.as || e) === fkName)) continue
             if (exclude.some(e => (e.ref?.at(-1) || e.as || e) === fkFullName)) continue
-            
+
             const flatColumn = {
               ref: [joinAlias, fkName],
               as: fkFullName,
@@ -1017,7 +1032,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
             calcElement.as = fullName
           }
           res.push(calcElement)
-        }        
+        }
         else {
           // Scalar element
           const flatColumn = {
