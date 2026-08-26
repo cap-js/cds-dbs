@@ -64,20 +64,28 @@ function rsNextObjectMode(state, next) {
 
   const level = state.levels.at(-1)
 
-  // Expose expanded columns as recursive Readable streams
+  // Expose expanded columns as recursive streams or thenables
   for (const expandName in expands) {
-    level.expands[expandName] = json[expandName] = new Readable({
-      objectMode: true,
-      read() {
-        state.stream.resume()
-      }
-    })
+    if (expands[expandName] !== null) {
+      level.expands[expandName] = json[expandName] = new Readable({
+        objectMode: true,
+        read() { state.stream.resume() }
+      })
+    } else {
+      const prom = Promise.withResolvers()
+      json[expandName] = prom.promise
+      level.expands[expandName] = prom.resolve
+    }
   }
 
-  // Push current
+  // Push current row to its result target
   const resultStream = level.result
-  resultStream.push(json)
-  resultStream._reading--
+  if (typeof resultStream === 'function') {
+    resultStream(json)
+  } else if (resultStream) {
+    resultStream.push(json)
+    resultStream._reading--
+  }
 
   return {
     // Iterator pattern
@@ -134,7 +142,7 @@ function rsNextRaw(state, next) {
   return writeBlobs ? writeBlobs.then(_return) : _return()
 }
 
-async function rsIterator(state, one, objectMode) {
+async function rsIterator(state, one, objectMode, onDone) {
   const stream = state.stream = new Readable({
     objectMode,
     async read() {
@@ -159,6 +167,8 @@ async function rsIterator(state, one, objectMode) {
   if (!objectMode && !one) {
     stream.push('[')
   }
+
+  if (onDone) { stream.on('close', onDone) }
 
   return stream
 }

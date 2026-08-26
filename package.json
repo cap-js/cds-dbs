@@ -10,14 +10,9 @@
     "hana"
   ],
   "devDependencies": {
-    "@cap-js/cds-test": "^1.0.1",
-    "better-sqlite3": "^12.11.1",
-    "sql.js": "^1.13.0"
-  },
-  "overrides": {
-    "@sap/cds": {
-      "@sap/cds-compiler": "6"
-    }
+    "@cap-js/cds-test": "^1.0.2",
+    "better-sqlite3": "^13.0.3",
+    "sql.js": "^1.14.2"
   },
   "scripts": {
     "test": "npm t -w db-service -w sqlite",
