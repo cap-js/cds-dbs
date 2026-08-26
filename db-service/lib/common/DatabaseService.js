@@ -71,7 +71,7 @@ class DatabaseService extends cds.Service {
       await this.set(new SessionContext(ctx))
       await this.send('BEGIN')
     } catch (e) {
-      this.release()
+      await this.destroy() // set()/BEGIN may have left the connection in an unusable state, so don't return it to the pool
       throw e
     }
     return this
@@ -82,8 +82,13 @@ class DatabaseService extends cds.Service {
    */
   async commit() {
     if (!this.dbc) return
-    await this.send('COMMIT')
-    this.release() // only release on successful commit as otherwise released on rollback
+    try {
+      await this.send('COMMIT')
+      this.release() // only release on successful commit as otherwise released on rollback
+    } catch (e) {
+      await this.destroy() // COMMIT may have left the connection in an unusable state, so don't return it to the pool
+      throw e
+    }
   }
 
   /**
@@ -93,8 +98,10 @@ class DatabaseService extends cds.Service {
     if (!this.dbc) return
     try {
       await this.send('ROLLBACK')
-    } finally {
       this.release()
+    } catch (e) {
+      await this.destroy() // ROLLBACK may have left the connection in an unusable state, so don't return it to the pool
+      throw e
     }
   }
 
