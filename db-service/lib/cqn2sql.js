@@ -1088,7 +1088,7 @@ class CQN2SQLRenderer {
 
     const extractions = this._managed = this.managed(columns.map(c => ({ name: c, sql: `NEW.${this.quote(c)}` })), elements)
     const sql = extractions.length > columns.length
-      ? `SELECT ${extractions.map(c => `${c.insert} AS ${this.quote(c.name)}`)} FROM (${this.SELECT(src)}) AS NEW`
+      ? `SELECT ${extractions.map((c, i) => `${i < columns.length ? c.insert : c.onInsert} AS ${this.quote(c.name)}`)} FROM (${this.SELECT(src)}) AS NEW`
       : this.SELECT(src)
     if (extractions.length > columns.length) columns = this.columns = extractions.map(c => c.name)
     this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))}) ${sql}`
@@ -1161,12 +1161,12 @@ class CQN2SQLRenderer {
       const extractions = this._managed
       if (this.values) this.values = [] // Clear previously computed values
       const src = this.cqn4sql(UPSERT.from || UPSERT.as)
-      const aliasedQuery = cds.ql.SELECT
-        .columns(src.SELECT.columns
-          .map((c, i) => ({ ref: [this.column_name(c)], as: this.columns[i] }))
-        )
-        .from(src)
-      sql = `SELECT ${extractions.map(c => `${c.upsert}`)} FROM (${this.SELECT(aliasedQuery)}) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+      const aliasedQuery = `SELECT ${[
+        ...src.SELECT.columns.map((c, i) => this.column_expr({ ref: [this.column_name(c)], as: this.columns[i] })),
+        ...extractions.slice(src.SELECT.columns.length).map(c => `${elements[c.name].key ? c.onInsert : 'NULL'} AS ${this.quote(c.name)}`), // fill in missing default values
+      ]} FROM (${this.SELECT(src)})`
+
+      sql = `SELECT ${extractions.map(c => elements[c.name].key ? `NEW.${this.quote(c.name)}` : c.upsert)} FROM(${aliasedQuery}) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare} `
       if (extractions.length > columns.length) columns = this.columns = extractions.map(c => c.name)
       this.entries = [this.values]
     }
@@ -1574,9 +1574,11 @@ class CQN2SQLRenderer {
 
   managed_extract(name, element, converter) {
     const { UPSERT, INSERT } = this.cqn
-    const extract = !(INSERT?.entries || UPSERT?.entries) && (INSERT?.rows || UPSERT?.rows)
-      ? `value->>${this.string(`$[${this.columns.indexOf(name)}]`)}`
-      : `value->>${this.string(`$.${JSON.stringify(name)}`)}`
+    const extract = (INSERT?.entries || UPSERT?.entries)
+      ? `value->>${this.string(`$.${JSON.stringify(name)}`)}`
+      : (INSERT?.rows || UPSERT?.rows)
+        ? `value->>${this.string(`$[${this.columns.indexOf(name)}]`)}`
+        : `NEW.${this.quote(name)}` // in case of (INSERT?.from || UPSERT?.from)
     const sql = converter?.(extract) || extract
     return { extract, sql }
   }
@@ -1587,7 +1589,9 @@ class CQN2SQLRenderer {
   }
 
   managed_default(name, managed, src) {
-    return `(CASE WHEN json_type(value,${this.managed_extract(name).extract.slice(8)}) IS NULL THEN ${managed} ELSE ${src} END)`
+    const { UPSERT, INSERT } = this.cqn
+    const isJson = INSERT?.entries || UPSERT?.entries || INSERT?.rows || UPSERT?.rows
+    return `(CASE WHEN ${isJson ? `json_type(value,${this.managed_extract(name).extract.slice(8)})` : `NEW.${this.quote(name)}`} IS NULL THEN ${managed} ELSE ${src} END)`
   }
 }
 
