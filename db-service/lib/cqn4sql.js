@@ -2611,19 +2611,15 @@ function _cqn4sql(originalQuery, model, useTechnicalAlias = true) {
   /**
    * Builds the ORDER BY entry ranking rows by $search relevance, sorted desc.
    *
-   * Flat search: the score is computed on the outer row itself, so the entry is just the
-   * search() func with the numeric flag (`true`) appended.
+   * Flat search: the score is on the outer row, so the entry is the search() func with the
+   * numeric flag appended.
    *
-   * Deep search: the score lives in a semi-join sub-select, so we emit a CORRELATED scalar
-   * sub-select that selects the numeric score and binds its inner key(s) to the outer row:
+   * Deep search: the score lives in a semi-join sub-select, so we emit a correlated scalar
+   * sub-select selecting the score, keyed back to the outer row:
    *   (SELECT search(<cols>, <val>, true) FROM <same source> WHERE innerKey = <outerAlias>.key) DESC
-   *
-   * The correlation cannot be expressed by pre-qualifying the outer key here: the sub-select's
-   * source is the same entity as the outer query, so infer() would re-resolve an outer-qualified
-   * ref back to the sub-select's own source. Instead we build both sides of each key comparison
-   * unqualified (they resolve to the sub-select's own alias) and mark the entry as `$searchRank`,
-   * so it can be correlated to the outer alias AFTER transformation (see correlateSearchRank) —
-   * the same "rewrite the inner alias to the outer alias" trick used by expand's _correlate.
+   * Both sides of the key comparison are seeded unqualified so infer() binds them to the
+   * sub-select's own source; the rhs is redirected to the outer alias afterwards, see
+   * correlateSearchRank.
    *
    * @param {object} searchTerm the search term as returned by getSearch (func or xpr shape)
    * @returns {object|null} an orderBy entry, or null if there is nothing to rank by
@@ -2639,8 +2635,7 @@ function _cqn4sql(originalQuery, model, useTechnicalAlias = true) {
     const where = []
     for (let i = 0; i < innerKeys.length; i++) {
       if (i) where.push('and')
-      // both sides unqualified -> resolve to the sub-select's own alias; the right-hand side is
-      // rewired to the outer alias post-transform in correlateSearchRank
+      // seeded unqualified on both sides; correlateSearchRank redirects the rhs to the outer row
       where.push({ ref: [...innerKeys[i].ref] }, '=', { ref: [...innerKeys[i].ref] })
     }
 
