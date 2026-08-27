@@ -184,8 +184,12 @@ const StandardFunctions = {
         }
         fuzzy += ` MINIMAL SCORE ${e.element?.['@Search.fuzzinessThreshold'] || fuzzyIndex} SIMILARITY CALCULATION MODE 'search'`
         // rewrite ref to xpr to mix in search config
-        // ensure in place modification to reuse .toString method that ensures quoting
-        e.xpr = [{ ref: e.ref }, fuzzy]
+        // ensure in place modification to reuse .toString method that ensures quoting.
+        // idempotent: the same search() args may be rendered twice (e.g. WHERE predicate and the
+        // injected ranking ORDER BY), so recover the original ref from a prior rewrite instead of
+        // reading a now-deleted e.ref.
+        const originalRef = e.ref || e.xpr?.[0]?.ref
+        e.xpr = [{ ref: originalRef }, fuzzy]
         delete e.ref
       })
     } else {

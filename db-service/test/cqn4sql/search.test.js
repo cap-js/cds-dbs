@@ -3,6 +3,18 @@ const cqn4sql = require('../../lib/cqn4sql')
 const cds = require('@sap/cds')
 const { expect } = cds.test
 
+// PR #1564 injects an `ORDER BY <search-score> DESC` into every search query so results are
+// ranked by relevance. Each test asserts the full transformed query — including that order-by —
+// as a single cds.ql template, so a regression in the injected ranking is caught.
+//
+// Flat (non-navigation) search: the score is computed on the row itself, so the order-by is just
+// the search() func with the numeric flag `true` appended, sorted desc.
+//
+// Deep (path-expression) search: the where clause is a semi-join `outerKey in (SELECT key FROM
+// <joins> WHERE search(...))`; the order-by is a scalar sub-select over the SAME joins that
+// selects the numeric score (`search(..., true) as search`) and is correlated to the current
+// outer row via `innerKey = outerKey` (AND-chained for structured keys).
+
 describe('Replace attribute search by search predicate', () => {
   let model
   beforeAll(async () => {
@@ -18,7 +30,8 @@ describe('Replace attribute search by search predicate', () => {
     // single val is stored as val directly, not as expr with val
     const expected = cds.ql`
       SELECT from bookshop.WithStructuredKey as wsk { wsk.second }
-      where search(wsk.second, 'x')`
+      where search(wsk.second, 'x')
+      order by search(wsk.second, 'x', true) desc`
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
@@ -30,7 +43,8 @@ describe('Replace attribute search by search predicate', () => {
     let res = cqn4sql(query, model)
     const expected = cds.ql`
       SELECT from bookshop.WithStructuredKey as wsk { wsk.second }
-      where search(wsk.second, ('x' OR 'y'))`
+      where search(wsk.second, ('x' OR 'y'))
+      order by search(wsk.second, ('x' or 'y'), true) desc`
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
@@ -39,9 +53,11 @@ describe('Replace attribute search by search predicate', () => {
     query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
-    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(cds.ql`SELECT from bookshop.Genres as Genres {
+    const expected = cds.ql`SELECT from bookshop.Genres as Genres {
       Genres.ID
-    } where search((Genres.name, Genres.descr, Genres.code), ('x' OR 'y'))`)
+    } where search((Genres.name, Genres.descr, Genres.code), ('x' OR 'y'))
+      order by search((Genres.name, Genres.descr, Genres.code), ('x' or 'y'), true) desc`
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
   it('with existing WHERE clause', () => {
@@ -52,7 +68,8 @@ describe('Replace attribute search by search predicate', () => {
     const expected = cds.ql`SELECT from bookshop.Genres as Genres {
       Genres.ID
     } where (Genres.ID < 4 or Genres.ID > 5)
-      and search((Genres.name, Genres.descr, Genres.code), ('x' OR 'y'))`
+      and search((Genres.name, Genres.descr, Genres.code), ('x' OR 'y'))
+      order by search((Genres.name, Genres.descr, Genres.code), ('x' or 'y'), true) desc`
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
@@ -81,6 +98,17 @@ describe('Replace attribute search by search predicate', () => {
             func: 'search',
           },
         ],
+        orderBy: [
+          {
+            func: 'search',
+            args: [
+              { list: [{ ref: ['Genres', 'name'] }, { ref: ['Genres', 'descr'] }, { ref: ['Genres', 'code'] }] },
+              { xpr: [{ val: 'x' }, 'or', { val: 'y' }] },
+              { val: true },
+            ],
+            sort: 'desc',
+          },
+        ],
       },
     }
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
@@ -93,7 +121,8 @@ describe('Replace attribute search by search predicate', () => {
     let res = cqn4sql(query, model)
     const expected = cds.ql`SELECT from bookshop.Person as Person {
       Person.ID
-    } where (search((Person.name, Person.placeOfBirth, Person.placeOfDeath, Person.address_street, Person.address_city), ('x' OR 'y')))`
+    } where (search((Person.name, Person.placeOfBirth, Person.placeOfDeath, Person.address_street, Person.address_city), ('x' OR 'y')))
+      order by search((Person.name, Person.placeOfBirth, Person.placeOfDeath, Person.address_street, Person.address_city), ('x' or 'y'), true) desc`
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
@@ -102,6 +131,7 @@ describe('Replace attribute search by search predicate', () => {
     query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
+    // no searchable string elements → no search predicate and no ranking order-by
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(cds.ql`SELECT from bookshop.Foo as Foo {
       Foo.ID
     }`)
@@ -111,16 +141,16 @@ describe('Replace attribute search by search predicate', () => {
     query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
-    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(
-      cds.ql`
+    const expected = cds.ql`
       SELECT from bookshop.Books as Books
         left join bookshop.Authors as author on author.ID = Books.author_ID
         left join bookshop.Books as books2 on  books2.author_ID = author.ID
       {
         Books.ID,
         books2.title as authorsBook
-      } where search((Books.createdBy, Books.modifiedBy, Books.anotherText, Books.title, Books.descr, Books.currency_code, Books.dedication_text, Books.dedication_sub_foo, Books.dedication_dedication), ('x' OR 'y'))`,
-    )
+      } where search((Books.createdBy, Books.modifiedBy, Books.anotherText, Books.title, Books.descr, Books.currency_code, Books.dedication_text, Books.dedication_sub_foo, Books.dedication_dedication), ('x' OR 'y'))
+      order by search((Books.createdBy, Books.modifiedBy, Books.anotherText, Books.title, Books.descr, Books.currency_code, Books.dedication_text, Books.dedication_sub_foo, Books.dedication_dedication), ('x' or 'y'), true) desc`
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
   it('Search columns if result is grouped', () => {
     // in this case, we actually search the "title" which comes from the join
@@ -135,7 +165,8 @@ describe('Replace attribute search by search predicate', () => {
     {
       Books.ID,
       books2.title as authorsBook
-    } where search(books2.title, ('x' OR 'y')) group by Books.title `
+    } where search(books2.title, ('x' OR 'y')) group by Books.title
+      order by search(books2.title, ('x' or 'y'), true) desc`
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
   it('Search on navigation', () => {
@@ -152,7 +183,8 @@ describe('Replace attribute search by search predicate', () => {
           SELECT 1 from bookshop.Authors as $A
           where $A.ID = books.author_ID
         )
-      and search((books.createdBy, books.modifiedBy, books.anotherText, books.title, books.descr, books.currency_code, books.dedication_text, books.dedication_sub_foo, books.dedication_dedication), ('x' OR 'y'))`
+      and search((books.createdBy, books.modifiedBy, books.anotherText, books.title, books.descr, books.currency_code, books.dedication_text, books.dedication_sub_foo, books.dedication_dedication), ('x' OR 'y'))
+      order by search((books.createdBy, books.modifiedBy, books.anotherText, books.title, books.descr, books.currency_code, books.dedication_text, books.dedication_sub_foo, books.dedication_dedication), ('x' or 'y'), true) desc`
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
   it('Search with aggregated column and groupby must be put into having', () => {
@@ -166,7 +198,8 @@ describe('Replace attribute search by search predicate', () => {
     const expected = cds.ql`
     SELECT from bookshop.Books as Books {
       MIN(Books.title) as firstInAlphabet
-    } group by Books.title having search(MIN(Books.title), 'Cat')`
+    } group by Books.title having search(MIN(Books.title), 'Cat')
+      order by search(MIN(Books.title), 'Cat', true) desc`
     expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(expected)
   })
 
@@ -180,7 +213,8 @@ describe('Replace attribute search by search predicate', () => {
     const expected = cds.ql`
     SELECT from bookshop.Books as Books {
       min(Books.title) as firstInAlphabet
-    } group by Books.title having search(min(Books.title), 'Cat')`
+    } group by Books.title having search(min(Books.title), 'Cat')
+      order by search(min(Books.title), 'Cat', true) desc`
     expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(expected)
   })
 
@@ -197,7 +231,8 @@ describe('Replace attribute search by search predicate', () => {
     SELECT from bookshop.Books as Books {
       Books.title,
       AVG(Books.stock) as searchRelevant,
-    } where search(Books.title, 'x') group by Books.title`
+    } where search(Books.title, 'x') group by Books.title
+      order by search(Books.title, 'x', true) desc`
     expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(expected)
   })
   it('aggregations which are not of type string are not searched', () => {
@@ -210,6 +245,7 @@ describe('Replace attribute search by search predicate', () => {
 
     query.SELECT.search = [{ val: 'x' }]
 
+    // no searchable string column → no search predicate and no ranking order-by
     expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(cds.ql`
       SELECT from bookshop.Books as Books {
         Books.ID,
@@ -231,7 +267,8 @@ describe('Replace attribute search by search predicate', () => {
     SELECT from bookshop.Books as Books {
       Books.ID,
       substring(Books.stock) as searchRelevantViaCast: cds.String,
-    } group by Books.title having search(substring(Books.stock), 'x')`
+    } group by Books.title having search(substring(Books.stock), 'x')
+      order by search(substring(Books.stock), 'x', true) desc`
 
     expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(expected)
   })
@@ -254,6 +291,7 @@ describe('Replace attribute search by search predicate', () => {
       ('1' + '2' + '3') as notSearchRelevant: cds.Integer,
     } group by Books.title
       having search(('very' + 'useful' + 'string'), 'x')
+      order by search(('very' + 'useful' + 'string'), 'x', true) desc
     `
     expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(expected)
   })
@@ -276,11 +314,53 @@ describe('search w/ path expressions', () => {
       BooksSearchAuthorName.ID,
       BooksSearchAuthorName.title
     } where BooksSearchAuthorName.ID in (
-      SELECT from search.BooksSearchAuthorName as $B left join search.Authors as author on author.ID = $B.author_ID 
+      SELECT from search.BooksSearchAuthorName as $B left join search.Authors as author on author.ID = $B.author_ID
       {
         $B.ID
       } where search(author.lastName, 'x')
-    )`
+    )
+    order by (
+      SELECT from search.BooksSearchAuthorName as $B
+        left join search.Authors as author on author.ID = $B.author_ID
+      { max(search(author.lastName, 'x', true)) as max }
+      where $B.ID = BooksSearchAuthorName.ID
+    ) desc`
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+  })
+
+  // Documents the gap behind the TODO in cqn4sql (PR #1564), per BobdenOs' review note.
+  // For a to-many search path the match score genuinely lives inside a semi-join subquery
+  // (one author matches via many books), not on the outer row. The WHERE clause is correlated
+  // to the outer row through the `ID in (SELECT ...)` pattern. To ALSO rank the outer result
+  // the ORDER BY must carry a subquery that is likewise correlated to the current outer row.
+  // The PR currently reuses the search expression WITHOUT that correlation — this test fails
+  // until cqn4sql binds the order-by sub-select to the outer row.
+  it('deep search along to-many path ranks the outer row by its own correlated score', () => {
+    // @cds.search: {books, books.genre.name}
+    let query = cds.ql`SELECT from search.AuthorSearchBooks as A { ID }`
+    query.SELECT.search = [{ val: 'x' }]
+
+    let res = cqn4sql(query, model)
+
+    const expected = cds.ql`
+    SELECT from search.AuthorSearchBooks as A {
+      A.ID
+    } where A.ID in (
+      SELECT from search.AuthorSearchBooks as $A
+        left join search.Books as books on books.author_ID = $A.ID
+        left join search.Genres as genre on genre.ID = books.genre_ID
+      {
+        $A.ID
+      } where search((books.title, genre.name), 'x')
+    )
+    order by (
+      SELECT from search.AuthorSearchBooks as $A
+        left join search.Books as books on books.author_ID = $A.ID
+        left join search.Genres as genre on genre.ID = books.genre_ID
+      { max(search((books.title, genre.name), 'x', true)) as max }
+      where $A.ID = A.ID
+    ) desc`
+
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
@@ -304,7 +384,14 @@ describe('search w/ path expressions', () => {
         $M.toMulti_ID2,
         $M.toMulti_ID3
       } where search(toMulti.text, 'x')
-    )`
+    )
+    order by (
+      SELECT from search.MultipleLeafAssocAsKey as $M
+        left join search.MultipleKeys as toMulti
+          on toMulti.ID1 = $M.toMulti_ID1 and toMulti.ID2 = $M.toMulti_ID2 and toMulti.ID3 = $M.toMulti_ID3
+      { max(search(toMulti.text, 'x', true)) as max }
+      where $M.toMulti_ID1 = M.toMulti_ID1 and $M.toMulti_ID2 = M.toMulti_ID2 and $M.toMulti_ID3 = M.toMulti_ID3
+    ) desc`
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
@@ -316,7 +403,8 @@ describe('search w/ path expressions', () => {
     const expected = cds.ql`
     SELECT from search.PathInSearchNotProjected as PathInSearchNotProjected {
       PathInSearchNotProjected.title
-    }  where search(PathInSearchNotProjected.title, 'x')`
+    }  where search(PathInSearchNotProjected.title, 'x')
+    order by search(PathInSearchNotProjected.title, 'x', true) desc`
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
@@ -347,7 +435,13 @@ describe('search w/ path expressions', () => {
       {
         $B.ID
       } where search(($B.title, author.lastName, author.firstName), 'x')
-    )`
+    )
+    order by (
+      SELECT from search.BooksSearchAuthor as $B
+        left join search.Authors as author on author.ID = $B.author_ID
+      { max(search(($B.title, author.lastName, author.firstName), 'x', true)) as max }
+      where $B.ID = Books.ID
+    ) desc`
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
@@ -368,7 +462,14 @@ describe('search w/ path expressions', () => {
       {
         $B.ID
       } where search(($B.title, authorWithAddress.note, address.city), 'x')
-    )`
+    )
+    order by (
+      SELECT from search.BooksSearchAuthorAndAddress as $B
+        left join search.AuthorsSearchAddresses as authorWithAddress on authorWithAddress.ID = $B.authorWithAddress_ID
+        left join search.Addresses as address on address.ID = authorWithAddress.address_ID
+      { max(search(($B.title, authorWithAddress.note, address.city), 'x', true)) as max }
+      where $B.ID = Books.ID
+    ) desc`
 
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
@@ -388,7 +489,14 @@ describe('search w/ path expressions', () => {
       {
         $A.ID
       } where search((books.title, genre.name), 'x')
-    )`
+    )
+    order by (
+      SELECT from search.AuthorSearchBooks as $A
+        left join search.Books as books on books.author_ID = $A.ID
+        left join search.Genres as genre on genre.ID = books.genre_ID
+      { max(search((books.title, genre.name), 'x', true)) as max }
+      where $A.ID = A.ID
+    ) desc`
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
@@ -402,7 +510,8 @@ describe('search w/ path expressions', () => {
     {
       BookShelf.ID,
       BookShelf.genre
-    }  where search(BookShelf.genre, 'Harry Plotter')`
+    }  where search(BookShelf.genre, 'Harry Plotter')
+    order by search(BookShelf.genre, 'Harry Plotter', true) desc`
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 })
@@ -428,10 +537,20 @@ describe('calculated elements', () => {
         {
           $A.ID
         } where search(
-          ( $A.note, (address.street || ' ' || address.zip || '' || address.city) ), 
+          ( $A.note, (address.street || ' ' || address.zip || '' || address.city) ),
           'x'
         )
-      )`
+      )
+      order by (
+        SELECT from search.AuthorsSearchCalculatedAddress as $A
+          left join search.CalculatedAddresses as address on address.ID = $A.address_ID
+        { max(search(
+          ( $A.note, (address.street || ' ' || address.zip || '' || address.city) ),
+          'x',
+          true
+        )) as max }
+        where $A.ID = Authors.ID
+      ) desc`
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
@@ -444,7 +563,8 @@ describe('calculated elements', () => {
       SELECT from search.CalculatedAddressesWithoutAnno as Address
       {
         Address.ID
-      } where search(Address.city, 'x')`
+      } where search(Address.city, 'x')
+      order by search(Address.city, 'x', true) desc`
 
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
@@ -466,14 +586,20 @@ describe('caching searchable fields', () => {
     {
       Books.ID,
       Books.title
-    } 
+    }
     where Books.ID in (
       SELECT from search.BooksSearchAuthor as $B
         left join search.Authors as author on author.ID = $B.author_ID
       {
         $B.ID
       } where search(($B.title, author.lastName, author.firstName), 'x')
-    )`
+    )
+    order by (
+      SELECT from search.BooksSearchAuthor as $B
+        left join search.Authors as author on author.ID = $B.author_ID
+      { max(search(($B.title, author.lastName, author.firstName), 'x', true)) as max }
+      where $B.ID = Books.ID
+    ) desc`
 
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
     // test caching
@@ -536,8 +662,15 @@ describe('include / exclude logic', () => {
         left join search.Addresses as address on address.ID = authorWithAddress.address_ID
       {
         $B.ID
-      } where search(($B.title, authorWithAddress.note, address.city), 'x') 
-    )`
+      } where search(($B.title, authorWithAddress.note, address.city), 'x')
+    )
+    order by (
+      SELECT from search.BooksSearchAuthorAndAddress as $B
+        left join search.AuthorsSearchAddresses as authorWithAddress on authorWithAddress.ID = $B.authorWithAddress_ID
+        left join search.Addresses as address on address.ID = authorWithAddress.address_ID
+      { max(search(($B.title, authorWithAddress.note, address.city), 'x', true)) as max }
+      where $B.ID = Books.ID
+    ) desc`
     expect(JSON.parse(JSON.stringify(transformed))).to.deep.equal(expected)
   })
 
@@ -550,7 +683,8 @@ describe('include / exclude logic', () => {
       Books.ID,
       Books.description,
       Books.title
-    } where search(Books.description, 'x')`
+    } where search(Books.description, 'x')
+    order by search(Books.description, 'x', true) desc`
     expect(JSON.parse(JSON.stringify(transformed))).to.deep.equal(expected)
   })
 
@@ -566,8 +700,14 @@ describe('include / exclude logic', () => {
         left join search.Books as books on books.author_ID = $A.ID
       {
         $A.ID
-      } where search(books.title, 'x') 
-    )`
+      } where search(books.title, 'x')
+    )
+    order by (
+      SELECT from search.AuthorSearchOnlyBooksTitle as $A
+        left join search.Books as books on books.author_ID = $A.ID
+      { max(search(books.title, 'x', true)) as max }
+      where $A.ID = A.ID
+    ) desc`
     expect(JSON.parse(JSON.stringify(transformed))).to.deep.equal(expected)
   })
 
@@ -578,7 +718,8 @@ describe('include / exclude logic', () => {
     const expected = cds.ql`
     SELECT from search.Addresses as Addresses {
       Addresses.ID
-    } where search(Addresses.city, 'x')`
+    } where search(Addresses.city, 'x')
+    order by search(Addresses.city, 'x', true) desc`
     expect(JSON.parse(JSON.stringify(transformed))).to.deep.equal(expected)
   })
 
@@ -589,7 +730,8 @@ describe('include / exclude logic', () => {
     const expected = cds.ql`
     SELECT from search.BooksIgnoreVirtualElement as Books {
       Books.ID
-    } where search(Books.title, 'x')`
+    } where search(Books.title, 'x')
+    order by search(Books.title, 'x', true) desc`
     expect(JSON.parse(JSON.stringify(transformed))).to.deep.equal(expected)
   })
 
@@ -600,7 +742,8 @@ describe('include / exclude logic', () => {
     const expected = cds.ql`
     SELECT from search.BooksIgnoreExplicitVirtualElement as Books {
       Books.ID
-    } where search(Books.title, 'x')`
+    } where search(Books.title, 'x')
+    order by search(Books.title, 'x', true) desc`
     expect(JSON.parse(JSON.stringify(transformed))).to.deep.equal(expected)
   })
 
@@ -613,7 +756,8 @@ describe('include / exclude logic', () => {
       SELECT from search.CalculatedAddressesExclude as Address
       {
         Address.ID
-      } where search(Address.city, 'x')`
+      } where search(Address.city, 'x')
+      order by search(Address.city, 'x', true) desc`
 
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
@@ -638,7 +782,8 @@ describe('include / exclude logic', () => {
     SELECT from search.BooksDontSearchAuthor as Books
     {
       Books.ID
-    } where search(Books.title, 'x')`
+    } where search(Books.title, 'x')
+    order by search(Books.title, 'x', true) desc`
     expect(JSON.parse(JSON.stringify(noAuthor))).to.deep.equal(expected)
   })
 })
