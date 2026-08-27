@@ -3,9 +3,8 @@ const cqn4sql = require('../../lib/cqn4sql')
 const cds = require('@sap/cds')
 const { expect } = cds.test
 
-// PR #1564 injects an `ORDER BY <search-score> DESC` into every search query so results are
-// ranked by relevance. Each test asserts the full transformed query — including that order-by —
-// as a single cds.ql template, so a regression in the injected ranking is caught.
+// An `ORDER BY <search-score> DESC` is injected into every search query so results are
+// ranked by relevance.
 //
 // Flat (non-navigation) search: the score is computed on the row itself, so the order-by is just
 // the search() func with the numeric flag `true` appended, sorted desc.
@@ -328,13 +327,10 @@ describe('search w/ path expressions', () => {
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
-  // Documents the gap behind the TODO in cqn4sql (PR #1564), per BobdenOs' review note.
-  // For a to-many search path the match score genuinely lives inside a semi-join subquery
+  // For a to-many search path the match score lives inside a semi-join subquery
   // (one author matches via many books), not on the outer row. The WHERE clause is correlated
   // to the outer row through the `ID in (SELECT ...)` pattern. To ALSO rank the outer result
   // the ORDER BY must carry a subquery that is likewise correlated to the current outer row.
-  // The PR currently reuses the search expression WITHOUT that correlation — this test fails
-  // until cqn4sql binds the order-by sub-select to the outer row.
   it('deep search along to-many path ranks the outer row by its own correlated score', () => {
     // @cds.search: {books, books.genre.name}
     let query = cds.ql`SELECT from search.AuthorSearchBooks as A { ID }`

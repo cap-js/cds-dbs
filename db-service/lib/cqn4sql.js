@@ -2646,8 +2646,8 @@ function _cqn4sql(originalQuery, model, useTechnicalAlias = true) {
 
     const entry = {
       __proto__: SELECT.from(searchSelect.SELECT.from)
-        // one correlated outer row fans out to many joined child rows -> MAX collapses them to a
-        // single value so the scalar sub-select is well-defined: rank by the best-matching score
+        // one correlated outer may lead to many joined child rows -> MAX collapses them to a
+        // single value so the scalar sub-select is valid in the context of order by: rank by the best-matching score
         .columns({ func: 'max', args: [{ func: searchFunc.func, args: [...searchFunc.args, { val: true }] }] })
         .where(where),
       sort: 'desc',
@@ -2659,19 +2659,23 @@ function _cqn4sql(originalQuery, model, useTechnicalAlias = true) {
   /**
    * Correlates the deep-search ranking sub-select to the outer row, after it has been transformed.
    *
-   * The transformed sub-select's WHERE is a chain of `innerKey = innerKey` comparisons, both sides
-   * resolved to the sub-select's own leading source alias. This rewrites the right-hand side of each
-   * comparison to `<outerAlias>.<key>`, turning the tautology into a correlation to the outer row.
+   * `buildSearchRankOrderBy` seeds the sub-select's WHERE as a chain of `innerKey = innerKey`
+   * comparisons (`ref '=' ref ['and' ref '=' ref ...]`), both sides resolved to the sub-select's
+   * own leading source alias. For each such `=` comparison this rewrites the right-hand ref to
+   * `<outerAlias>.<key>`, turning the tautology into a correlation to the outer row. Driven off the
+   * `=` operator (not a fixed stride) so it stays correct regardless of key count.
    *
    * @param {object} entry the transformed orderBy entry produced from a `$searchRank` sub-select
    * @param {string} outerAlias the final table alias of the outer query source
    */
   function correlateSearchRank(entry, outerAlias) {
     const where = entry.SELECT.where
-    // comparisons are laid out as: ref '=' ref ['and' ref '=' ref ...] -> every 3rd token (rhs)
-    for (let i = 2; i < where.length; i += 4) {
-      const rhs = where[i]
-      rhs.ref = [outerAlias, ...rhs.ref.slice(1)]
+    for (let i = 1; i < where.length; i++) {
+      // seeded comparisons are exactly `<ref> = <ref>`; rewrite the rhs ref to the outer row
+      if (where[i] === '=' && where[i - 1]?.ref && where[i + 1]?.ref) {
+        const rhs = where[i + 1]
+        rhs.ref = [outerAlias, ...rhs.ref.slice(1)]
+      }
     }
   }
 

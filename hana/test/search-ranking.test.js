@@ -1,10 +1,8 @@
 const cds = require('../../test/cds')
 
-// End-to-end verification of $search relevance ranking on a real HANA (needs SCORE()).
 // A to-many search path (SearchAuthors -> books.title / books.genre.name) makes one author
 // fan out to many joined child rows; the ranking ORDER BY is a correlated MAX(SCORE(...))
-// sub-select. This asserts the actual row order and de-duplication end to end — something
-// SQLite/Postgres cannot validate because they have no relevance score.
+// sub-select.
 describe('search ranking (e2e, HANA only)', () => {
   const { expect } = cds.test(__dirname, 'search-ranking.cds')
 

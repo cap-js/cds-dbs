@@ -13,7 +13,6 @@ entity Books {
 }
 
 // to-many searchable path: an author matches via any of its books' title or genre name.
-// The ranking ORDER BY must correlate a MAX(SCORE(...)) sub-select to each author row.
 @cds.search: {books.title, books.genre.name}
 entity SearchAuthors {
   key ID    : Integer;
