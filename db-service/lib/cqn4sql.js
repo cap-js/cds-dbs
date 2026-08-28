@@ -1412,8 +1412,13 @@ function _cqn4sql(originalQuery, model, useTechnicalAlias = true) {
       if (!exclude.includes(k)) {
         const { index, tableAlias } = inferred.$combinedElements[k][0]
         const element = tableAlias.elements[k]
-        // ignore FK for odata csn (but not for subquery sources where FK is not a separate element) / ignore blobs from wildcard expansion
-        if ((!tableAlias.SELECT && isManagedAssocInFlatMode(element)) || element.type === 'cds.LargeBinary') continue
+        // ignore FK for odata csn (but not for subquery sources where FK is not a separate element) / ignore blobs and vectors from wildcard expansion
+        if (
+          (!tableAlias.SELECT && isManagedAssocInFlatMode(element)) ||
+          element.type === 'cds.LargeBinary' ||
+          element.type === 'cds.Vector'
+        )
+          continue
         // for wildcard on subquery in from, just reference the elements
         if (tableAlias.SELECT && !element.elements && !element.target) {
           wildcardColumns.push(index ? { ref: [index, k] } : { ref: [k] })
@@ -1476,7 +1481,7 @@ function _cqn4sql(originalQuery, model, useTechnicalAlias = true) {
    *   - `tableAlias` — table alias prepended to the column ref.
    * @param {string[]} [csnPath=[]] - Accumulated CSN element path (used for `_csnPath` metadata on leaf columns).
    * @param {{ exclude?: Array, replace?: Array }} [excludeAndReplace] - Columns to exclude or replace during wildcard expansion.
-   * @param {boolean} [isWildcard=false] - Whether this expansion originates from a wildcard; filters out LargeBinary.
+   * @param {boolean} [isWildcard=false] - Whether this expansion originates from a wildcard; filters out LargeBinary and Vector.
    * @returns {object[]} Flat column(s) for the given element.
    */
   function getFlatColumnsFor(column, names, csnPath = [], excludeAndReplace, isWildcard = false) {
@@ -1489,7 +1494,7 @@ function _cqn4sql(originalQuery, model, useTechnicalAlias = true) {
     const { $refLinks, flatName, isJoinRelevant } = column
     let firstNonJoinRelevantAssoc, stepAfterAssoc
     let element = $refLinks ? $refLinks[$refLinks.length - 1].definition : column
-    if (isWildcard && element.type === 'cds.LargeBinary') return []
+    if (isWildcard && (element.type === 'cds.LargeBinary' || element.type === 'cds.Vector')) return []
     if (element.on && !element.keys) return [] // unmanaged doesn't make it into columns
     if (element.virtual === true) return []
 
