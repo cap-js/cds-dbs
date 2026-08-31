@@ -64,9 +64,8 @@ describe('search', () => {
       const { Books } = cds.entities('sap.capire.bookshop')
       const cqn = SELECT.from(Books).search('"autobio"').columns('1')
       const { sql } = cds.db.cqn2sql(cqn)
-      // 5 columns to be searched createdBy, modifiedBy, title, descr, currency_code — once in
-      // the WHERE and once more in the injected ranking ORDER BY (search relevance)
-      expect(sql.match(/(like)/g).length).to.eq(10)
+      // 5 columns to be searched createdBy, modifiedBy, title, descr, currency_code
+      expect(sql.match(/(like)/g).length).to.eq(5)
       const res = await cqn
       expect(res.length).to.eq(2) // Eleonora and Jane Eyre
     })
@@ -75,8 +74,8 @@ describe('search', () => {
       const { Books } = cds.entities('sap.capire.bookshop')
       const cqn = SELECT.from(Books).search('"autobio"', '"Jane"').columns('1')
       const { sql, values } = cds.db.cqn2sql(cqn)
-      // 5 searched columns × 2 terms, in WHERE and again in the ranking ORDER BY
-      expect(sql.match(/(like)/g).length).to.eq(20)
+      // 5 columns to be searched createdBy, modifiedBy, title, descr, currency_code
+      expect(sql.match(/(like)/g).length).to.eq(10)
       expect(values).to.include('%autobio%')
       expect(values).to.include('%jane%')
       const res = await cqn
@@ -87,8 +86,8 @@ describe('search', () => {
       const { Books } = cds.entities('sap.capire.bookshop')
       const cqn = SELECT.from(Books).search('"1847"', '1846', '"\\"Ellis Bell\\""').columns('1')
       const { sql, values } = cds.db.cqn2sql(cqn)
-      // 5 searched columns × 3 terms, in WHERE and again in the ranking ORDER BY
-      expect(sql.match(/(like)/g).length).to.eq(30)
+      // 5 columns to be searched createdBy, modifiedBy, title, descr, currency_code
+      expect(sql.match(/(like)/g).length).to.eq(15)
       expect(values).to.include('%1847%')
       expect(values).to.include('%1846%')
       expect(values).to.include('%"ellis bell"%')
