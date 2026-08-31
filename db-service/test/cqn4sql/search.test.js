@@ -3,8 +3,10 @@ const cqn4sql = require('../../lib/cqn4sql')
 const cds = require('@sap/cds')
 const { expect } = cds.test
 
-// An `ORDER BY <search-score> DESC` is injected into every search query so results are
-// ranked by relevance.
+// An `ORDER BY <search-score> DESC` is injected into search queries so results are ranked by
+// relevance. This is a HANA fuzzy-search feature (other DBs have no relevance score), so it is
+// only emitted when the active db is HANA with fuzzy enabled. The tests below therefore run with
+// a HANA db kind + fuzzy on; the dedicated test at the end asserts it is skipped otherwise.
 //
 // Flat (non-navigation) search: the score is computed on the row itself, so the order-by is just
 // the search() func with the numeric flag `true` appended, sorted desc.
@@ -13,6 +15,20 @@ const { expect } = cds.test
 // <joins> WHERE search(...))`; the order-by is a scalar sub-select over the SAME joins that
 // selects the numeric score (`search(..., true) as search`) and is correlated to the current
 // outer row via `innerKey = outerKey` (AND-chained for structured keys).
+
+let _db, _fuzzy
+beforeAll(() => {
+  // ranking is gated on `cds.db.kind === 'hana' && cds.env.hana.fuzzy !== false`
+  _db = cds.db
+  _fuzzy = cds.env.hana?.fuzzy
+  cds.db = { kind: 'hana' }
+  ;(cds.env.hana ??= {}).fuzzy = true
+})
+afterAll(() => {
+  cds.db = _db
+  if (_fuzzy === undefined) delete cds.env.hana.fuzzy
+  else cds.env.hana.fuzzy = _fuzzy
+})
 
 describe('Replace attribute search by search predicate', () => {
   let model
@@ -781,5 +797,41 @@ describe('include / exclude logic', () => {
     } where search(Books.title, 'x')
     order by search(Books.title, 'x', true) desc`
     expect(JSON.parse(JSON.stringify(noAuthor))).to.deep.equal(expected)
+  })
+})
+
+describe('no search ranking without HANA fuzzy scoring', () => {
+  // ranking is gated on `cds.db.kind === 'hana' && cds.env.hana.fuzzy !== false`; when the active
+  // db has no relevance score the injected order-by would sort by a constant, so it is skipped.
+  let model, _db, _fuzzy
+  beforeAll(async () => {
+    model = cds.model = cds.compile.for.nodejs(await cds.load(`${__dirname}/../bookshop/db/schema`).then(cds.linked))
+    _db = cds.db
+    _fuzzy = cds.env.hana?.fuzzy
+  })
+  afterAll(() => {
+    cds.db = _db
+    if (_fuzzy === undefined) delete cds.env.hana.fuzzy
+    else cds.env.hana.fuzzy = _fuzzy
+  })
+
+  it('non-HANA db does not get a ranking order-by', () => {
+    cds.db = { kind: 'sqlite' }
+    ;(cds.env.hana ??= {}).fuzzy = true // irrelevant for non-HANA
+    const query = cds.ql`SELECT from bookshop.Genres as Genres { ID }`
+    query.SELECT.search = [{ val: 'x' }]
+
+    const res = cqn4sql(query, model)
+    expect(res.SELECT.orderBy).to.be.undefined
+  })
+
+  it('HANA with fuzzy=false does not get a ranking order-by', () => {
+    cds.db = { kind: 'hana' }
+    cds.env.hana.fuzzy = false
+    const query = cds.ql`SELECT from bookshop.Genres as Genres { ID }`
+    query.SELECT.search = [{ val: 'x' }]
+
+    const res = cqn4sql(query, model)
+    expect(res.SELECT.orderBy).to.be.undefined
   })
 })

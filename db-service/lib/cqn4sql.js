@@ -334,11 +334,12 @@ function _cqn4sql(originalQuery, model, useTechnicalAlias = true) {
     // Since all the expressions in the SELECT part of the query have been computed,
     // one can reference aliases of the queries columns in the orderBy clause.
     let effectiveOrderBy = orderBy
-    // Rank by $search relevance. Only HANA fuzzy search yields a score; without it the ranking
-    // would sort by a constant boolean, so skip it. Prepended here (post-infer) so the deep-search
-    // scalar sub-select can be correlated to the OUTER row, whose alias is only known now.
-    const searchRank =
-      inferred.$searchRank && cds.env.hana?.fuzzy !== false && buildSearchRankOrderBy(inferred.$searchRank)
+    // Rank by $search relevance. Only HANA fuzzy search yields a score; on other DBs (or with
+    // hana.fuzzy === false) search() is a boolean, so ranking would sort by a constant — skip it.
+    // Prepended here (post-infer) so the deep-search scalar sub-select can be correlated to the
+    // OUTER row, whose alias is only known now.
+    const ranksSearch = cds.db?.kind === 'hana' && cds.env.hana?.fuzzy !== false
+    const searchRank = ranksSearch && inferred.$searchRank && buildSearchRankOrderBy(inferred.$searchRank)
     if (searchRank) effectiveOrderBy = [searchRank, ...(orderBy || [])]
     if (effectiveOrderBy) {
       const transformedOrderBy = getTransformedOrderByGroupBy(effectiveOrderBy, true)
