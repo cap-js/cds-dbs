@@ -14,7 +14,7 @@ const hanaKeywords = keywords.reduce((prev, curr) => {
   return prev
 }, {})
 
-const DEBUG = cds.debug('sql|db')
+const LOG = cds.log('sql|db'), DEBUG = cds.debug('sql|db')
 const SYSTEM_VERSIONED = '@hana.systemversioned'
 
 /**
@@ -50,47 +50,74 @@ class HANAService extends SQLService {
     }
     const isMultitenant = !!service.options.credentials.sm_url || !!service.options.credentials.baseurl || ('multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy)
     const acquireTimeoutMillis = this.options.pool?.acquireTimeoutMillis || (cds.env.profiles.includes('production') ? 1000 : 10000)
+    const maxRetries = 3
+
+    async function createSingleTenant(tenant, attempt = 1) {
+      try {
+        const dbc = new driver({ ...service.options.credentials, ...clientOptions })
+        await dbc.connect()
+        service.server.major = dbc.server.major || service.server.major
+        return dbc
+      } catch (err) {
+        if (err.code === 10) {
+          // delay the shutdown by a tick to have the db error show up
+          setImmediate(() => cds.shutdown(err))
+          throw err
+        }
+        if (attempt < maxRetries) {
+          LOG.debug('connection failed:', err, '- retrying attempt', attempt, 'of', maxRetries)
+          return createSingleTenant(tenant, attempt + 1)
+        }
+        throw err
+      }
+    }
+
+    async function createMultiTenant(tenant, start = Date.now(), attempt = 1) {
+      let credentials
+      try {
+        const smTenant = await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: false })
+        credentials = smTenant.credentials
+        const dbc = new driver({ ...credentials, ...clientOptions })
+        await dbc.connect()
+        service.server.major = dbc.server.major || service.server.major
+        return dbc
+      } catch (err) {
+        if (!cds.env.features.use_generic_pool) {
+          if (err.status === 404 || err.status === 429) {
+            err.message = `Pool failed connecting to '${tenant}'. ${err.message}`
+            throw err
+          }
+          const deadline = start + acquireTimeoutMillis
+          if (attempt <= maxRetries && Date.now() < deadline) {
+            // Retry transient connection failures before invalidating credentials
+            LOG.debug('connection failed:', err, '- retrying attempt', attempt, 'of', maxRetries)
+            return createMultiTenant(tenant, start, attempt + 1)
+          }
+          try {
+            await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { invalidCredentials: credentials, retryUntil: deadline })
+          } catch (smErr) {
+            smErr.cause = err
+            throw new Error(`Failed connecting to pool - could not get valid credentials from Service Manager`, { cause: smErr })
+          }
+          if (Date.now() < deadline) return createMultiTenant(tenant, start)
+          else throw new Error(`Pool exceeded for '${tenant}' within ${acquireTimeoutMillis}ms`, { cause: err })
+        } else {
+          // Stop trying when the tenant does not exist or is rate limited
+          if (err.status == 404 || err.status == 429) {
+            return new Promise(function (_, reject) { // break retry loop for generic-pool
+              setTimeout(() => reject(err), acquireTimeoutMillis)
+            })
+          }
+          await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true })
+          throw new Error(`Pool failed connecting to'${tenant}'`, { cause: err }) // generic-pool will retry on errors
+        }
+      }
+    }
+
     return {
       options: this.options.pool || {},
-      create: async function create(tenant, start = Date.now()) {
-        let credentials
-        try {
-          const smTenant = isMultitenant
-            ? await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: false })
-            : service.options
-          credentials = smTenant.credentials
-          const dbc = new driver({ ...credentials, ...clientOptions })
-          await dbc.connect()
-          service.server.major = dbc.server.major || service.server.major
-          return dbc
-        } catch (err) {
-          if (isMultitenant) {
-            if (cds.requires.db?.pool?.builtin || cds.env.features.pool === 'builtin') {
-              if (err.status === 404 || err.status === 429) {
-                throw new Error(`Pool failed connecting to '${tenant}'`, { cause: err })
-              }
-              const deadline = start + acquireTimeoutMillis
-              try {
-                await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true, invalidCredentials: credentials, retryUntil: deadline })
-              } catch (smErr) {
-                 smErr.cause = err
-                 throw new Error(`Failed connecting to pool - could not get valid credentials from Service Manager`, { cause: smErr })
-              }
-              if (Date.now() < deadline) return create(tenant, start)
-              else throw new Error(`Pool exceeded for '${tenant}' within ${acquireTimeoutMillis}ms`, { cause: err })
-            } else {
-              // Stop trying when the tenant does not exist or is rate limited
-              if (err.status == 404 || err.status == 429) {
-                return new Promise(function (_, reject) { // break retry loop for generic-pool
-                  setTimeout(() => reject(err), acquireTimeoutMillis)
-                })
-              }
-              await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true })
-              throw new Error(`Pool failed connecting to'${tenant}'`, { cause: err }) // generic-pool will retry on errors
-            }
-          } else if (err.code !== 10) throw err
-        }
-      },
+      create: isMultitenant ? createMultiTenant : createSingleTenant,
+      // only used by generic-pool, we can remove once we rm generic-pool compat
       error: (err /*, tenant*/) => {
         // Check whether the connection error was an authentication error
         if (err.code === 10) {
@@ -147,11 +174,9 @@ class HANAService extends SQLService {
     }
 
     const isLockQuery = query.SELECT.forUpdate || query.SELECT.forShareLock
-    if (!isLockQuery) {
-      // REVISIT: disable this for queries like (SELECT 1)
-      // Will return multiple rows with objects inside
-      query.SELECT.expand = 'root'
-    }
+    // REVISIT: disable this for queries like (SELECT 1)
+    // Will return multiple rows with objects inside
+    if (!isLockQuery) query.SELECT.expand = 'root'
 
     const { cqn, sql, temporary, blobs, withclause, values } = this.cqn2sql(query, data)
     delete query.SELECT.expand
@@ -164,6 +189,7 @@ class HANAService extends SQLService {
     let sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
     const { hints } = query.SELECT
     if (hints) sqlScript += ` WITH HINT (${hints.join(',')})`
+
     let rows
     if (values?.length || blobs.length > 0 || isStream) {
       const ps = await this.prepare(sqlScript, blobs.length)
@@ -177,15 +203,20 @@ class HANAService extends SQLService {
       const resultQuery = query.clone()
       resultQuery.SELECT.forUpdate = undefined
       resultQuery.SELECT.forShareLock = undefined
+
       const keys = Object.keys(req.target?.keys || {})
+
       if (keys.length && query.SELECT.forUpdate?.ignoreLocked) {
-        // REVISIT: No support for count
-        // where [keys] in [values]
+        // Exit early when no row was found in the inital query
+        if (rows.length === 0) return isOne ? undefined : []
+
+        // Filter for those rows that were locked by the initial query
         const left = { list: keys.map(k => ({ ref: [k] })) }
         const right = { list: rows.map(r => ({ list: keys.map(k => ({ val: r[k.toUpperCase()] })) })) }
         resultQuery.SELECT.limit = undefined
         resultQuery.SELECT.where = [left, 'in', right]
       }
+
       return this.onSELECT({ query: resultQuery, __proto__: req })
     }
 
@@ -210,6 +241,19 @@ class HANAService extends SQLService {
         : entries.length > 1 ? this.ensureDBC() && await ps.runBatch(entries) : this.ensureDBC() && await ps.run(entries[0])
       : this.ensureDBC() && ps.run())
     return new this.class.InsertResults(cqn, results)
+  }
+
+  async onUPSERT({ query, data }) {
+    const { sql, entries, cqn } = this.cqn2sql(query, data)
+    if (!sql) return // Do nothing when there is nothing to be done
+    const ps = await this.prepare(sql)
+    // HANA driver supports batch execution
+    const results = await (entries
+      ? this.server.major <= 2
+        ? entries.reduce((l, c) => l.then(() => this.ensureDBC() && ps.run(c)), Promise.resolve(0))
+        : entries.length > 1 ? this.ensureDBC() && await ps.runBatch(entries) : this.ensureDBC() && await ps.run(entries[0])
+      : this.ensureDBC() && ps.run())
+    return results.changes ?? results
   }
 
   async onNOTFOUND(req, next) {
@@ -309,11 +353,8 @@ class HANAService extends SQLService {
   }
 
   // prepare and exec are both implemented inside the drivers
-  prepare(sql, hasBlobs) {
-    const stmt = this.ensureDBC().prepare(sql, hasBlobs)
-    // we store the statements, to release them on commit/rollback all at once
-    this.dbc.statements.push(stmt)
-    return stmt
+  async prepare(sql, hasBlobs) {
+    return this.ensureDBC().prepare(sql, hasBlobs)
   }
 
   exec(sql) {
@@ -599,7 +640,7 @@ class HANAService extends SQLService {
               // if (col.ref?.length === 1) { col.ref.unshift(parent.as) }
               if (col.ref?.length > 1) {
                 const colName = this.column_name(col)
-                
+
                 const isSource = from => {
                   if (from.as === col.ref[0]) return true
                   return from.args?.some(a => {
@@ -889,12 +930,12 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
       } else {
         const src = this.cqn4sql(UPSERT.from || UPSERT.as)
         if (this.values) this.values = []
-        const aliasedQuery = cds.ql.SELECT
-          .columns(src.SELECT.columns
-            .map((c, i) => ({ ref: [this.column_name(c)], as: this.columns[i] }))
-          )
-          .from(src)
-        sql = `SELECT ${mixing} FROM (${this.SELECT(aliasedQuery)}) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+        const aliasedQuery = `SELECT ${[
+          ...src.SELECT.columns.map((c, i) => this.column_expr({ ref: [this.column_name(c)], as: this.columns[i] })),
+          ...managed.slice(src.SELECT.columns.length).map(c => `${elements[c.name].key ? c.onInsert : 'NULL'} AS ${this.quote(c.name)}`), // fill in missing default values
+        ]} FROM (${this.SELECT(src)})`
+
+        sql = `SELECT ${mixing} FROM (${aliasedQuery}) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
         this.entries = [this.values]
       }
 
@@ -1202,7 +1243,9 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     }
 
     managed_default(name, managed, src) {
-      return `(CASE WHEN ${this.quote('$.' + name)} IS NULL THEN ${managed} ELSE ${src} END)`
+      const { UPSERT, INSERT } = this.cqn
+      const isJson = INSERT?.entries || UPSERT?.entries || INSERT?.rows || UPSERT?.rows
+      return `(CASE WHEN ${isJson ? this.quote('$.' + name) : `NEW.${this.quote(name)}`} IS NULL THEN ${managed} ELSE ${src} END)`
     }
 
     render_with() {
@@ -1302,8 +1345,8 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
   async onSIMPLE({ query, data, event }) {
     const { sql, values } = this.cqn2sql(query, data)
     try {
-      let ps = await this.prepare(sql)
-      return (this.ensureDBC() && await ps.run(values)).changes
+      const ps = await this.prepare(sql)
+      return this._return_affected((this.ensureDBC() && await ps.run(values)).changes)
     } catch (err) {
       // Allow drop to fail when the view or table does not exist
       if (event === 'DROP ENTITY' && (err.code === 259 || err.code === 321)) {
@@ -1360,25 +1403,16 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
 
   onBEGIN() {
     DEBUG?.('BEGIN')
-    if (this.dbc) this.dbc.statements = []
     return this.dbc?.begin()
   }
 
   onCOMMIT() {
     DEBUG?.('COMMIT')
-    this.dbc?.statements?.forEach(stmt => stmt
-      .then(stmt => stmt.drop())
-      .catch(() => { })
-    )
     return this.dbc?.commit()
   }
 
   onROLLBACK() {
     DEBUG?.('ROLLBACK')
-    this.dbc?.statements?.forEach(stmt => stmt
-      .then(stmt => stmt.drop())
-      .catch(() => { })
-    )
     return this.dbc?.rollback()
   }
 
@@ -1440,12 +1474,11 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     creds.password = creds.user + 'Val1d' // Password restrictions require Aa1
 
     try {
-      const con = await this.factory.create(this.options.credentials)
-      this.dbc = con
+      this.dbc = await this.factory.create(this.options.credentials)
 
       let i = 0
       let err
-      for (; i < 100; i++) {
+      for (; i < 1000; i++) {
         try {
           const stmt = await this.dbc.prepare(createContainerTenant.replaceAll('{{{GROUP}}}', creds.containerGroup))
           const res = this.ensureDBC() && await stmt.run([creds.user, creds.password, creds.schema, !clean])
@@ -1453,9 +1486,11 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
           break
         } catch (e) {
           err = e
+          await this.dbc.disconnect()
+          this.dbc = await this.factory.create(this.options.credentials)
         }
       }
-      if (i === 100) {
+      if (i === 1000) {
         throw new Error(`Failed to create tenant: ${err.message || err.stack || err}`)
       }
     } finally {

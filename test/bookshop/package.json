@@ -20,7 +20,8 @@
   },
   "cds": {
     "features": {
-      "ieee754compatible": true
+      "ieee754compatible": true,
+      "count_as_string": true
     }
   }
 }

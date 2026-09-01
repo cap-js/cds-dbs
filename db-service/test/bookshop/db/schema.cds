@@ -57,6 +57,18 @@ entity Books.twin {
   }
 }
 
+entity WithVector {
+  key ID   : Integer;
+  name     : String;
+  embedding: Vector;
+  image    : LargeBinary;
+  self     : Association to WithVector;
+  struct: {
+    embedding : Vector;
+    deepImage : LargeBinary;
+  }
+}
+
 entity DeepRecursiveAssoc {
   key ID: Integer;
   one: {
