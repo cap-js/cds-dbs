@@ -58,4 +58,23 @@ describe('search ranking (e2e, HANA only)', () => {
     const res = await SELECT.from(SearchAuthors).columns('ID').search('Cat').orderBy('name desc')
     expect(res.map(r => r.ID)).to.eql([20, 10])
   })
+
+  test('opting out via hana.fuzzy.ranked_search = false skips the ranking', async () => {
+    const _fuzzy = cds.env.hana.fuzzy
+    cds.env.hana.fuzzy = { ranked_search: false }
+    try {
+      const { SearchAuthors } = cds.entities('search.ranking')
+      const q = SELECT.from(SearchAuthors).columns('ID').search('Cat')
+
+      // no ranking sub-select is injected ...
+      const { sql } = cds.db.cqn2sql(q)
+      expect(sql).to.not.match(/ORDER BY/i)
+
+      // ... but the search itself still works (both matching authors returned)
+      const ids = (await q).map(r => r.ID)
+      expect(ids).to.have.members([10, 20])
+    } finally {
+      cds.env.hana.fuzzy = _fuzzy
+    }
+  })
 })
