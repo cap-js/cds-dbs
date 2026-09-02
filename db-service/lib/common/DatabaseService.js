@@ -99,9 +99,9 @@ class DatabaseService extends cds.Service {
     try {
       await this.send('ROLLBACK')
       this.release()
-    } catch (e) {
+    } catch {
+      // don't re-throw: rollback() is the error handler in .then(commit, rollback)
       await this.destroy()
-      throw e
     }
   }
 
