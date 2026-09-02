@@ -50,4 +50,12 @@ describe('search ranking (e2e, HANA only)', () => {
     expect(ids[0]).to.eq(10)
     expect(ids[1]).to.eq(20)
   })
+
+  test('user-provided order by takes precedence over the search rank', async () => {
+    const { SearchAuthors } = cds.entities('search.ranking')
+    // by name desc: 'Weak' (20) before 'Strong' (10) — the OPPOSITE of the relevance order,
+    // so this only holds if user ordering wins and the rank is applied after it.
+    const res = await SELECT.from(SearchAuthors).columns('ID').search('Cat').orderBy('name desc')
+    expect(res.map(r => r.ID)).to.eql([20, 10])
+  })
 })

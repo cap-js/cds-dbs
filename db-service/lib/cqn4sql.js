@@ -335,18 +335,30 @@ function _cqn4sql(originalQuery, model, useTechnicalAlias = true) {
     // one can reference aliases of the queries columns in the orderBy clause.
     let effectiveOrderBy = orderBy
     // Rank by $search relevance. Only HANA fuzzy search yields a score; on other DBs (or with
-    // hana.fuzzy === false) search() is a boolean, so ranking would sort by a constant — skip it.
-    // Prepended here (post-infer) so the deep-search scalar sub-select can be correlated to the
-    // OUTER row, whose alias is only known now.
-    const ranksSearch = cds.db?.kind === 'hana' && cds.env.hana?.fuzzy !== false
+    // hana.fuzzy === false, or opted out via hana.fuzzy.ranked_search === false) search() is a
+    // boolean, so ranking would sort by a constant — skip it. Built here (post-infer) so the
+    // deep-search scalar sub-select can be correlated to the OUTER row, whose alias is only known now.
+    const ranksSearch =
+      cds.db?.kind === 'hana' && cds.env.hana?.fuzzy !== false && cds.env.hana?.fuzzy?.ranked_search !== false
     const searchRank = ranksSearch && inferred.$searchRank && buildSearchRankOrderBy(inferred.$searchRank)
-    if (searchRank) effectiveOrderBy = [searchRank, ...(orderBy || [])]
+    if (searchRank) {
+      // Precedence: user-provided ordering wins, then $search rank, then the runtime's implicit
+      // key ordering (`implicit: true`, added for stable pagination). So insert the rank right
+      // before the first implicit entry (or at the end if there is none).
+      const implicitAt = (orderBy || []).findIndex(o => o.implicit)
+      const at = implicitAt === -1 ? (orderBy?.length ?? 0) : implicitAt
+      effectiveOrderBy = [...(orderBy || [])]
+      effectiveOrderBy.splice(at, 0, searchRank)
+    }
     if (effectiveOrderBy) {
       const transformedOrderBy = getTransformedOrderByGroupBy(effectiveOrderBy, true)
       if (transformedOrderBy.length) {
-        // correlate the (now transformed) deep-search ranking sub-select to the outer row
-        if (searchRank?.$searchRank && transformedOrderBy[0].SELECT)
-          correlateSearchRank(transformedOrderBy[0], transformedFrom.as)
+        // correlate the (now transformed) deep-search ranking sub-select to the outer row; it is
+        // the only order-by entry that is a correlated sub-select
+        if (searchRank?.$searchRank) {
+          const rank = transformedOrderBy.find(o => o.SELECT)
+          if (rank) correlateSearchRank(rank, transformedFrom.as)
+        }
         transformedQuery.SELECT.orderBy = transformedOrderBy
       }
     }

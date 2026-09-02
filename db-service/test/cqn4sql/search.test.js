@@ -834,4 +834,76 @@ describe('no search ranking without HANA fuzzy scoring', () => {
     const res = cqn4sql(query, model)
     expect(res.SELECT.orderBy).to.be.undefined
   })
+
+  it('opting out via hana.fuzzy.ranked_search = false does not get a ranking order-by', () => {
+    cds.db = { kind: 'hana' }
+    cds.env.hana.fuzzy = { ranked_search: false }
+    const query = cds.ql`SELECT from bookshop.Genres as Genres { ID }`
+    query.SELECT.search = [{ val: 'x' }]
+
+    const res = cqn4sql(query, model)
+    expect(res.SELECT.orderBy).to.be.undefined
+  })
+})
+
+describe('search ranking order-by precedence', () => {
+  // Precedence in the order-by: user-provided ordering first, then the $search relevance rank,
+  // then the runtime's implicit key ordering (entries flagged `implicit: true`, added for stable
+  // pagination — see @sap/cds .../common/generic/sorting.js).
+  let model, _db, _fuzzy
+  beforeAll(async () => {
+    model = cds.model = cds.compile.for.nodejs(await cds.load(`${__dirname}/../bookshop/db/schema`).then(cds.linked))
+    _db = cds.db
+    _fuzzy = cds.env.hana?.fuzzy
+    cds.db = { kind: 'hana' }
+    ;(cds.env.hana ??= {}).fuzzy = true
+  })
+  afterAll(() => {
+    cds.db = _db
+    if (_fuzzy === undefined) delete cds.env.hana.fuzzy
+    else cds.env.hana.fuzzy = _fuzzy
+  })
+
+  const rankEntry = {
+    func: 'search',
+    args: [{ list: [{ ref: ['Genres', 'name'] }, { ref: ['Genres', 'descr'] }, { ref: ['Genres', 'code'] }] }, { val: 'x' }, { val: true }],
+    sort: 'desc',
+  }
+
+  it('rank comes first when there is no user or implicit ordering', () => {
+    const query = cds.ql`SELECT from bookshop.Genres as Genres { ID }`
+    query.SELECT.search = [{ val: 'x' }]
+    const res = cqn4sql(query, model)
+    expect(res.SELECT.orderBy).to.deep.equal([rankEntry])
+  })
+
+  it('rank comes after user-provided ordering', () => {
+    const query = cds.ql`SELECT from bookshop.Genres as Genres { ID } order by ID asc`
+    query.SELECT.search = [{ val: 'x' }]
+    const res = cqn4sql(query, model)
+    expect(res.SELECT.orderBy).to.deep.equal([{ ref: ['ID'], sort: 'asc' }, rankEntry])
+  })
+
+  it('rank comes before the runtime implicit key ordering', () => {
+    const query = cds.ql`SELECT from bookshop.Genres as Genres { ID }`
+    query.SELECT.search = [{ val: 'x' }]
+    query.SELECT.orderBy = [{ ref: ['ID'], sort: 'asc', implicit: true }]
+    const res = cqn4sql(query, model)
+    expect(res.SELECT.orderBy).to.deep.equal([rankEntry, { ref: ['ID'], sort: 'asc' }])
+  })
+
+  it('rank goes between user ordering and the implicit key ordering', () => {
+    const query = cds.ql`SELECT from bookshop.Genres as Genres { ID, name }`
+    query.SELECT.search = [{ val: 'x' }]
+    query.SELECT.orderBy = [
+      { ref: ['name'], sort: 'desc' }, // user
+      { ref: ['ID'], sort: 'asc', implicit: true }, // runtime key ordering
+    ]
+    const res = cqn4sql(query, model)
+    expect(res.SELECT.orderBy).to.deep.equal([
+      { ref: ['name'], sort: 'desc' },
+      rankEntry,
+      { ref: ['ID'], sort: 'asc' },
+    ])
+  })
 })
