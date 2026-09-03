@@ -156,9 +156,10 @@ const StandardFunctions = {
       return `(CASE WHEN (${toString({ xpr })}) THEN TRUE ELSE FALSE END)`
     }
 
-    // fuzziness config; `fuzzy` may be a number (threshold) or an object (e.g. { ranked_search }),
-    // so only take it as the minimal score when it is actually a number
-    const fuzzyIndex = typeof cds.env.hana?.fuzzy === 'number' ? cds.env.hana.fuzzy : 0.7
+    // fuzziness config; `fuzzy` is either the minimal score directly or an object
+    // `{ score, ranked_search }` carrying it as `.score`
+    const fuzzyConfig = cds.env.hana?.fuzzy
+    const fuzzyIndex = (typeof fuzzyConfig === 'object' ? fuzzyConfig.score : fuzzyConfig) || 0.7
 
     const csnElements = ref.list || [ref]
     // if column specific value is provided, the configuration has to be defined on column level
