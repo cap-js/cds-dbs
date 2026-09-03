@@ -803,18 +803,26 @@ class HANAService extends SQLService {
 
       const entity = q._target ? this.table_name(q) : INSERT.into.ref[0]
       const transitions = this.srv.resolve.transitions(q)
+      const transitionsTargetElements = transitions.target.elements
 
-      const columns = elements
-        ? ObjectKeys(elements).filter(c => this.physical_column(elements, c)
+      const filteredElements = !elements ? {} :
+        ObjectKeys(elements).filter(c => this.physical_column(elements, c)
           && (c = transitions.mapping.get(c)?.ref?.[0] || c)
-          && c in transitions.target.elements
-          && this.physical_column(transitions.target.elements, c)
+          && c in transitionsTargetElements
+          && this.physical_column(transitionsTargetElements, c)
           && !elements[c]?.[SYSTEM_VERSIONED]
-        )
-        : ObjectKeys(INSERT.entries[0])
-      this.columns = columns
+        ).reduce( (res, key) => (res[key] = elements[key], res), {} )
 
-      const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), elements).slice(0, columns.length)
+      const columns = this.columns = elements ? ObjectKeys(filteredElements) : ObjectKeys(INSERT.entries[0])
+
+      const mappedTransitionsTargets = new Set(columns.map(c => transitions.mapping.get(c)?.ref?.[0]).filter(Boolean))
+      const targetElementsFiltered = Object.fromEntries(
+        ObjectKeys(transitionsTargetElements)
+          .filter(key => !mappedTransitionsTargets.has(key))
+          .map(key => [key, transitionsTargetElements[key]]),
+      )
+
+      const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), { ...targetElementsFiltered, ...filteredElements })
 
       // REVISIT: @cds.extension required
       const extraction = extractions.map(c => c.extract)
@@ -854,7 +862,7 @@ class HANAService extends SQLService {
       // With the buffer table approach the data is processed in chunks of a configurable size
       // Which allows even smaller HANA systems to process large datasets
       // But the chunk size determines the maximum size of a single row
-      return (this.sql = `INSERT INTO ${this.quote(entity)} (${this.columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))
+      return (this.sql = `INSERT INTO ${this.quote(entity)} (${extractions.map(c => this.quote(transitions.mapping.get(c.name)?.ref?.[0] || c.name))
         }) WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
       SELECT ${converter} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON ERROR) AS NEW`)
     }
