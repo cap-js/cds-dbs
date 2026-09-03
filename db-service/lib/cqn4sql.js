@@ -334,17 +334,13 @@ function _cqn4sql(originalQuery, model, useTechnicalAlias = true) {
     // Since all the expressions in the SELECT part of the query have been computed,
     // one can reference aliases of the queries columns in the orderBy clause.
     let effectiveOrderBy = orderBy
-    // Rank by $search relevance. Only HANA fuzzy search yields a score; on other DBs (or with
-    // hana.fuzzy === false, or opted out via hana.fuzzy.ranked_search === false) search() is a
-    // boolean, so ranking would sort by a constant — skip it. Built here (post-infer) so the
-    // deep-search scalar sub-select can be correlated to the OUTER row, whose alias is only known now.
+    // Rank by $search relevance — only when the score exists (HANA fuzzy, not opted out); else
+    // it would sort by a constant boolean.
     const ranksSearch =
       cds.db?.kind === 'hana' && cds.env.hana?.fuzzy !== false && cds.env.hana?.fuzzy?.ranked_search !== false
     const searchRank = ranksSearch && inferred.$searchRank && buildSearchRankOrderBy(inferred.$searchRank)
     if (searchRank) {
-      // Precedence: user-provided ordering wins, then $search rank, then the runtime's implicit
-      // key ordering (`implicit: true`, added for stable pagination). So insert the rank right
-      // before the first implicit entry (or at the end if there is none).
+      // precedence: user ordering, then rank, then the runtime's implicit key ordering
       const implicitAt = (orderBy || []).findIndex(o => o.implicit)
       const at = implicitAt === -1 ? (orderBy?.length ?? 0) : implicitAt
       effectiveOrderBy = [...(orderBy || [])]
@@ -353,8 +349,7 @@ function _cqn4sql(originalQuery, model, useTechnicalAlias = true) {
     if (effectiveOrderBy) {
       const transformedOrderBy = getTransformedOrderByGroupBy(effectiveOrderBy, true)
       if (transformedOrderBy.length) {
-        // correlate the (now transformed) deep-search ranking sub-select to the outer row; it is
-        // the only order-by entry that is a correlated sub-select
+        // the rank is the only order-by entry that is a correlated sub-select
         if (searchRank?.$searchRank) {
           const rank = transformedOrderBy.find(o => o.SELECT)
           if (rank) correlateSearchRank(rank, transformedFrom.as)
@@ -2626,15 +2621,11 @@ function _cqn4sql(originalQuery, model, useTechnicalAlias = true) {
   /**
    * Builds the ORDER BY entry ranking rows by $search relevance, sorted desc.
    *
-   * Flat search: the score is on the outer row, so the entry is the search() func with the
-   * numeric flag appended.
-   *
-   * Deep search: the score lives in a semi-join sub-select, so we emit a correlated scalar
-   * sub-select selecting the score, keyed back to the outer row:
-   *   (SELECT search(<cols>, <val>, true) FROM <same source> WHERE innerKey = <outerAlias>.key) DESC
-   * Both sides of the key comparison are seeded unqualified so infer() binds them to the
-   * sub-select's own source; the rhs is redirected to the outer alias afterwards, see
-   * correlateSearchRank.
+   * Flat search: the score is on the outer row.
+   * Deep search: the score lives in a semi-join, so emit a correlated scalar sub-select
+   *   (SELECT search(…, true) FROM <same source> WHERE innerKey = <outerAlias>.key) DESC.
+   * Key comparisons are seeded unqualified (infer() binds them to the sub-select's own source);
+   * correlateSearchRank redirects the rhs to the outer alias afterwards.
    *
    * @param {object} searchTerm the search term as returned by getSearch (func or xpr shape)
    * @returns {object|null} an orderBy entry, or null if there is nothing to rank by
@@ -2656,8 +2647,7 @@ function _cqn4sql(originalQuery, model, useTechnicalAlias = true) {
 
     const entry = {
       __proto__: SELECT.from(searchSelect.SELECT.from)
-        // one correlated outer may lead to many joined child rows -> MAX collapses them to a
-        // single value so the scalar sub-select is valid in the context of order by: rank by the best-matching score
+        // the correlated outer row fans out to many child rows -> MAX makes it a single score
         .columns({ func: 'max', args: [{ func: searchFunc.func, args: [...searchFunc.args, { val: true }] }] })
         .where(where),
       sort: 'desc',
@@ -2667,13 +2657,11 @@ function _cqn4sql(originalQuery, model, useTechnicalAlias = true) {
   }
 
   /**
-   * Correlates the deep-search ranking sub-select to the outer row, after it has been transformed.
+   * Correlates the (transformed) deep-search ranking sub-select to the outer row.
    *
-   * `buildSearchRankOrderBy` seeds the sub-select's WHERE as a chain of `innerKey = innerKey`
-   * comparisons (`ref '=' ref ['and' ref '=' ref ...]`), both sides resolved to the sub-select's
-   * own leading source alias. For each such `=` comparison this rewrites the right-hand ref to
-   * `<outerAlias>.<key>`, turning the tautology into a correlation to the outer row. Driven off the
-   * `=` operator (not a fixed stride) so it stays correct regardless of key count.
+   * buildSearchRankOrderBy seeds its WHERE as `ref = ref` comparisons on the sub-select's own
+   * alias; this rewrites each rhs to `<outerAlias>.<key>`. Driven off the `=` operator (not a
+   * fixed stride) so it holds for any key count.
    *
    * @param {object} entry the transformed orderBy entry produced from a `$searchRank` sub-select
    * @param {string} outerAlias the final table alias of the outer query source
