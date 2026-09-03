@@ -4,6 +4,27 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.1.0](https://github.com/cap-js/cds-dbs/compare/hana-v3.0.2...hana-v3.1.0) (2026-09-03)
+
+
+### Added
+
+* cache prepare statement for reuse ([#1496](https://github.com/cap-js/cds-dbs/issues/1496)) ([01cb981](https://github.com/cap-js/cds-dbs/commit/01cb9815bf56836d9ea9ea1f81859d2c63a56b62))
+
+
+### Fixed
+
+* **hana:** propagate error codes ([#1695](https://github.com/cap-js/cds-dbs/issues/1695)) ([f0d2fa1](https://github.com/cap-js/cds-dbs/commit/f0d2fa10b6530b36811028399a3f4a96faf2adc9))
+* INSERT.from(SELECT) used non-existent `value`  ([#1565](https://github.com/cap-js/cds-dbs/issues/1565)) ([fd98844](https://github.com/cap-js/cds-dbs/commit/fd98844c83a78d6cf2b0b71344d3ee1d88528106))
+* usage of expands in object mode streaming ([#1705](https://github.com/cap-js/cds-dbs/issues/1705)) ([7a7688f](https://github.com/cap-js/cds-dbs/commit/7a7688f580701872ba8510f5709915e0805cbea0))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^3.0.1 to ^3.0.2
+
 ## [3.0.2](https://github.com/cap-js/cds-dbs/compare/hana-v3.0.1...hana-v3.0.2) (2026-07-27)
 
 
