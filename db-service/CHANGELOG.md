@@ -4,6 +4,17 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.0.2](https://github.com/cap-js/cds-dbs/compare/db-service-v3.0.1...db-service-v3.0.2) (2026-09-03)
+
+
+### Fixed
+
+* **cqn4sql:** reject overly nested query expressions instead of crashing ([#1712](https://github.com/cap-js/cds-dbs/issues/1712)) ([29a45b7](https://github.com/cap-js/cds-dbs/commit/29a45b7daadbc77433b882148700d73c00efae62))
+* don't throw when releasing/destroying a resource that's no longer in the pool ([#1696](https://github.com/cap-js/cds-dbs/issues/1696)) ([5d3b277](https://github.com/cap-js/cds-dbs/commit/5d3b277a1cf7cac02e41f2f24975a8e9473e5b5e))
+* exclude cds.Vector from wildcard select expansion ([#1716](https://github.com/cap-js/cds-dbs/issues/1716)) ([398bacc](https://github.com/cap-js/cds-dbs/commit/398bacc2a74883dcd93acba288deae362570a4c1))
+* INSERT.from(SELECT) used non-existent `value`  ([#1565](https://github.com/cap-js/cds-dbs/issues/1565)) ([fd98844](https://github.com/cap-js/cds-dbs/commit/fd98844c83a78d6cf2b0b71344d3ee1d88528106))
+* pql groupby path expression ([#1700](https://github.com/cap-js/cds-dbs/issues/1700)) ([82b5e03](https://github.com/cap-js/cds-dbs/commit/82b5e0385e680321f30c352f0f78ade6d25259a6))
+
 ## [3.0.1](https://github.com/cap-js/cds-dbs/compare/db-service-v3.0.0...db-service-v3.0.1) (2026-06-29)
 
 
