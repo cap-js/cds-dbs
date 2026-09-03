@@ -669,6 +669,37 @@ describe('test deep query generation', () => {
       })
     })
 
+    test('UPDATE expand merges columns from all array items, not just the first', () => {
+      const query = getExpandForDeep(
+        UPDATE.entity(model.definitions.Root).with({
+          ID: 1,
+          toManyChild: [
+            { ID: 11, toManySubChild: [] },
+            { ID: 12, toManySubChild: [{ ID: 20, subText: 'foo' }] },
+        }),
+        model.definitions.Root,
+      )
+
+      expect(query).to.containSubset({
+        SELECT: {
+          from: { ref: ['Root'] },
+          columns: [
+            { ref: ['ID'] },
+            {
+              ref: ['toManyChild'],
+              expand: [
+                { ref: ['ID'] },
+                {
+                  ref: ['toManySubChild'],
+                  expand: [{ ref: ['ID'] }, { ref: ['subText'] }],
+                },
+              ],
+            },
+          ],
+        },
+      })
+    })
+
     test.skip('works with recursive and stops after getting to the same level 2 times', () => {
       const query = getExpandForDeep(
         DELETE.from(model.definitions.Recursive).where({ ID: 5 }),
