@@ -71,7 +71,7 @@ class DatabaseService extends cds.Service {
       await this.set(new SessionContext(ctx))
       await this.send('BEGIN')
     } catch (e) {
-      this.release()
+      await this.destroy()
       throw e
     }
     return this
@@ -82,8 +82,13 @@ class DatabaseService extends cds.Service {
    */
   async commit() {
     if (!this.dbc) return
-    await this.send('COMMIT')
-    this.release() // only release on successful commit as otherwise released on rollback
+    try {
+      await this.send('COMMIT')
+      this.release()
+    } catch (e) {
+      await this.destroy()
+      throw e
+    }
   }
 
   /**
@@ -93,8 +98,10 @@ class DatabaseService extends cds.Service {
     if (!this.dbc) return
     try {
       await this.send('ROLLBACK')
-    } finally {
       this.release()
+    } catch {
+      // don't re-throw: rollback() is the error handler in .then(commit, rollback)
+      await this.destroy()
     }
   }
 
