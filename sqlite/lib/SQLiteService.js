@@ -14,39 +14,38 @@ const sqliteKeywords = keywords.reduce((prev, curr) => {
   return prev
 }, {})
 
-// define date and time functions in js to allow for throwing errors
-const isTime = /^\d{1,2}:\d{1,2}:\d{1,2}$/
-const hasTimezone = /([+-]\d{1,2}:?\d{0,2}|Z)$/
-const toDate = (d, allowTime = false) => {
-  const date = new Date(allowTime && isTime.test(d) ? `1970-01-01T${d}Z` : hasTimezone.test(d) ? d : d + 'Z')
-  if (Number.isNaN(date.getTime())) throw new Error(`Value does not contain a valid ${allowTime ? 'time' : 'date'} "${d}"`)
-  return date
-}
-
-
 class SQLiteService extends SQLService {
 
   get factory() {
     return {
       options: this.options.pool || {},
       create: async tenant => {
-        if (!sqlite) loadSQLite(this.options.driver || this.options.credentials?.driver)
-        const database = this.url4(tenant)
-        const dbc = new sqlite(database, this.options.client || {})
-        await dbc.ready
+        try {
+          if (!sqlite) loadSQLite(this.options.driver || this.options.credentials?.driver)
+          const database = this.url4(tenant)
+          const dbc = new sqlite(database, this.options.client || {})
+          await dbc.ready
 
-        const deterministic = { deterministic: true }
-        dbc.function('session_context', key => dbc[$session][key])
-        dbc.function('regexp', deterministic, (re, x) => (RegExp(re).test(x) ? 1 : 0))
-        dbc.function('ISO', deterministic, d => d && new Date(d).toISOString())
-        dbc.function('year', deterministic, d => d === null ? null : toDate(d).getUTCFullYear())
-        dbc.function('month', deterministic, d => d === null ? null : toDate(d).getUTCMonth() + 1)
-        dbc.function('day', deterministic, d => d === null ? null : toDate(d).getUTCDate())
-        dbc.function('hour', deterministic, d => d === null ? null : toDate(d, true).getUTCHours())
-        dbc.function('minute', deterministic, d => d === null ? null : toDate(d, true).getUTCMinutes())
-        dbc.function('second', deterministic, d => d === null ? null : toDate(d, true).getUTCSeconds())
-        if (database !== ':memory:') dbc.pragma?.('journal_mode = WAL') || dbc.exec('PRAGMA journal_mode = WAL')
-        return dbc
+          const deterministic = { deterministic: true }
+          dbc.function('session_context', key => dbc[$session][key])
+          dbc.function('regexp', deterministic, (re, x) => (RegExp(re).test(x) ? 1 : 0))
+          dbc.function('ISO', deterministic, d => d && new Date(d).toISOString())
+          dbc.function('year', deterministic, d => d === null ? null : toDate(d).getUTCFullYear())
+          dbc.function('month', deterministic, d => d === null ? null : toDate(d).getUTCMonth() + 1)
+          dbc.function('day', deterministic, d => d === null ? null : toDate(d).getUTCDate())
+          dbc.function('hour', deterministic, d => d === null ? null : toDate(d, true).getUTCHours())
+          dbc.function('minute', deterministic, d => d === null ? null : toDate(d, true).getUTCMinutes())
+          dbc.function('second', deterministic, d => d === null ? null : toDate(d, true).getUTCSeconds())
+          dbc.function('COSINE_SIMILARITY', deterministic, (a, b) => cosineSimilarity(toFloatArray(a), toFloatArray(b)))
+          dbc.function('L2DISTANCE', deterministic, (a, b) => l2Distance(toFloatArray(a), toFloatArray(b)))
+          dbc.function('L2NORMALIZE', deterministic, v => v == null ? null : fromFloatArray(l2Normalize(toFloatArray(v)), v))
+          dbc.function('VECTOR_EMBEDDING', deterministic, (input, text_type, model_and_version) => input == null ? null : JSON.stringify(hashEmbedding(String(input))))
+          if (database !== ':memory:') dbc.pragma?.('journal_mode = WAL') || dbc.exec('PRAGMA journal_mode = WAL')
+          return dbc
+        } catch (err) {
+          Promise.reject(err)
+          await new Promise(() => { })
+        }
       },
       destroy: dbc => dbc.close(),
       validate: dbc => dbc.open,
@@ -110,7 +109,10 @@ class SQLiteService extends SQLService {
     const pageSize = (1 << 16)
     // Allow for both array and iterator result sets
     const first = Array.isArray(rs) ? { done: !rs[0], value: rs[0] } : rs.next()
-    if (first.done) return
+    if (first.done) {
+      yield one ? 'null' : '[]'
+      return
+    }
     if (one) {
       yield first.value[0]
       // Close result set to release database connection
@@ -175,7 +177,8 @@ class SQLiteService extends SQLService {
     const { sql, values } = this.cqn2sql(query, data)
     let ps = await this.prepare(sql)
     const vals = await this._prepareStreams(values)
-    return (await ps.run(vals)).changes
+    const { changes } = await ps.run(vals)
+    return this._return_affected(changes)
   }
 
   onPlainSQL({ query, data }, next) {
@@ -262,9 +265,11 @@ class SQLiteService extends SQLService {
       Int64: cds.env.features.ieee754compatible ? expr => `CAST(${expr} as TEXT)` : undefined,
       // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
-      Decimal: cds.env.features.ieee754compatible ? (expr, elem) => elem?.scale
-        ? `CASE WHEN ${expr} IS NULL THEN NULL ELSE format('%.${elem.scale}f', ${expr}) END`
-        : `CAST(${expr} as TEXT)`
+      Decimal: cds.env.features.ieee754compatible
+        ? (expr, elem) =>
+          elem?.scale
+            ? `CASE WHEN ${expr} IS NULL THEN NULL ELSE format('%.${elem.scale}f', ${expr}) END`
+            : `CASE WHEN ${expr} IS NULL THEN NULL ELSE rtrim(rtrim(format('%.999f', ${expr}), '0'), '.') END`
         : undefined,
       // Binary is not allowed in json objects
       Binary: expr => `${expr} || ''`,
@@ -281,7 +286,8 @@ class SQLiteService extends SQLService {
       Time: () => 'TIME_TEXT',
       DateTime: () => 'DATETIME_TEXT',
       Timestamp: () => 'TIMESTAMP_TEXT',
-      Map: () => 'JSON_TEXT'
+      Map: () => 'JSON_TEXT',
+      Decimal: cds.env.requires.db?.decimal_affinity?.match(/^real$/i) ? () => 'REAL_DECIMAL' : undefined,
     }
 
     get is_distinct_from_() {
@@ -304,19 +310,111 @@ function loadSQLite(driver) {
 
   if (driver) {
     sqlite = require(drivers[driver])
-    return
+  } else {
+    sqlite = require(drivers.node)
   }
+}
 
-  try {
-    sqlite = require(drivers['better-sqlite3'])
-  } catch {
-    try {
-      sqlite = require(drivers.node)
-    } catch {
-      // When failing to load better-sqlite3 it fallsback to sql.js (wasm version of sqlite)
-      sqlite = require(drivers['sql.js'])
-    }
+// define date and time functions in js to allow for throwing errors
+const isTime = d => /^\d{1,2}:\d{1,2}:\d{1,2}$/.test(d)
+const hasTimezone = d => /([+-]\d{1,2}:?\d{0,2}|Z)$/.test(d)
+const toDate = (d, allowTime = false) => {
+  const date = new Date(allowTime && isTime(d) ? `1970-01-01T${d}Z` : hasTimezone(d) ? d : d + 'Z')
+  if (Number.isNaN(date.getTime())) throw new Error(`Value does not contain a valid ${allowTime ? 'time' : 'date'} "${d}"`)
+  return date
+}
+
+// Vector functions implemented in JavaScript for SQLite (registered as custom SQL functions)
+function cosineSimilarity(a, b) {
+  if (a == null || b == null) return null
+  let dot = 0, normA = 0, normB = 0
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i]
+    normA += a[i] * a[i]
+    normB += b[i] * b[i]
   }
+  const denom = Math.sqrt(normA) * Math.sqrt(normB)
+  return denom === 0 ? 0 : dot / denom
+}
+
+function l2Distance(a, b) {
+  if (a == null || b == null) return null
+  let sum = 0
+  for (let i = 0; i < a.length; i++) {
+    const diff = a[i] - b[i]
+    sum += diff * diff
+  }
+  return Math.sqrt(sum)
+}
+
+function l2Normalize(v) {
+  if (v == null) return null
+  let norm = 0
+  for (let i = 0; i < v.length; i++) norm += v[i] * v[i]
+  if (norm === 0) return v
+  norm = Math.sqrt(norm)
+  for (let i = 0; i < v.length; i++) v[i] /= norm
+  return v
+}
+
+/**
+ * Deterministic synchronous hash-based embedding function for SQLite.
+ * NOTE: If a synchronous embedding library becomes available for Node.js,
+ * it can be integrated here to replace the hash-based implementation.
+ */
+function hashEmbedding(text, dimensions = 384) {
+  if (text == null) return null
+  const vector = new Float32Array(dimensions)
+  const normalized = text.toLowerCase()
+  const ngramSize = 3
+
+  if (normalized.length >= ngramSize) {
+    for (let i = 0; i <= normalized.length - ngramSize; i++)
+      project(ngramHash(normalized, i, ngramSize), vector, dimensions)
+  } else {
+    for (let i = 0; i < normalized.length; i++)
+      project(normalized.charCodeAt(i), vector, dimensions)
+  }
+  return Array.from(l2Normalize(vector))
+}
+
+function ngramHash(text, start, len) {
+  let hash = 0x811c9dc5
+  for (let i = start; i < start + len; i++) {
+    hash ^= text.charCodeAt(i)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  return hash
+}
+
+function project(hash, vector, dimensions) {
+  for (let band = 0; band < 4; band++) {
+    const h = rehash(hash, band)
+    vector[Math.abs(h % dimensions)] += ((h >>> 16) & 1) === 0 ? 1.0 : -1.0
+  }
+}
+
+function rehash(hash, band) {
+  let h = hash ^ Math.imul(band, 0x9e3779b9)
+  h ^= h >>> 16
+  h = Math.imul(h, 0x45d9f3b)
+  h ^= h >>> 16
+  return h
+}
+
+// Vector type conversion helpers for SQLite - handle various input formats (Buffer, string, array, typed arrays)
+function toFloatArray(vector) {
+  if (vector == null) return null
+  if (vector instanceof Float32Array) return Array.from(vector)
+  if (Buffer.isBuffer(vector)) return JSON.parse(vector.toString('utf8'))
+  if (vector instanceof Uint8Array) return JSON.parse(Buffer.from(vector).toString('utf8'))
+  if (typeof vector === 'string') return JSON.parse(vector)
+  if (Array.isArray(vector)) return vector
+  throw new Error(`Unsupported vector type: ${typeof vector}`)
+}
+
+function fromFloatArray(arr, original) {
+  return original instanceof Float32Array ? new Float32Array(arr) : JSON.stringify(arr)
 }
 
 module.exports = SQLiteService

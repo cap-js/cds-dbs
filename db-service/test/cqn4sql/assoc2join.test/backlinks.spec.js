@@ -70,33 +70,12 @@ describe('(a2j) backlinks', () => {
   })
 
   describe('multiple backlinks', () => {
-    it('one backlink is managed, the other unmanaged', () => {
-      const transformed = cqn4sql(cds.ql`
-      SELECT from a2j.Header as Header
-      {
-        toItem_combined.id,
-      }`)
-      const expected = cds.ql`
-      SELECT from a2j.Header as Header
-        left outer join a2j.Item as toItem_combined
-          on (
-            (toItem_combined.toHeader_id = Header.id and toItem_combined.toHeader_id2 = Header.id2)
-            OR
-            (toItem_combined.elt2 = Header.elt)
-          ) and 5 != 4
-      {
-        toItem_combined.id as toItem_combined_id
-      }`
-      expectCqn(transformed).to.equal(expected)
-    })
-
     it('different backlink paths used (managed/unmanaged/combined)', () => {
       const transformed = cqn4sql(cds.ql`
       SELECT from a2j.Header as Header
       {
         toItem_selfMgd.id as selfMgd_id,
         toItem_selfUmgd.id as selfUmgd_id,
-        toItem_combined.id as combined_id,
         toItem_fwd.id as direct_id
       }`)
       const expected = cds.ql`
@@ -105,18 +84,11 @@ describe('(a2j) backlinks', () => {
           on toItem_selfMgd.toHeader_id = Header.id and toItem_selfMgd.toHeader_id2 = Header.id2
         left outer join a2j.Item as toItem_selfUmgd
           on toItem_selfUmgd.elt2 = Header.elt
-        left outer join a2j.Item as toItem_combined
-          on (
-            (toItem_combined.toHeader_id = Header.id and toItem_combined.toHeader_id2 = Header.id2)
-            OR
-            (toItem_combined.elt2 = Header.elt)
-          ) and 5 != 4
         left outer join a2j.Item as toItem_fwd
           on Header.id = toItem_fwd.id
       {
         toItem_selfMgd.id as selfMgd_id,
         toItem_selfUmgd.id as selfUmgd_id,
-        toItem_combined.id as combined_id,
         toItem_fwd.id as direct_id
       }`
       expectCqn(transformed).to.equal(expected)

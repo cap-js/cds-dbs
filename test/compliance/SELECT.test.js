@@ -302,6 +302,27 @@ describe('SELECT', () => {
         .rejected
     })
 
+    test('select cast literal integer to decimal', async () => {
+      const { globals } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT CAST(1 AS Decimal) / CAST(2 AS Decimal) AS res FROM ${globals}`
+      const res = await cds.run(cqn)
+      assert.ok(res[0].res.match(/^0\.5/i))
+    })
+
+    test('select cast literal integer to decimal with scale', async () => {
+      const { globals } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT CAST(0.5 AS Decimal(4, 2)) AS res FROM ${globals}`
+      const res = await cds.run(cqn)
+      assert.strictEqual(res[0].res, '0.50')
+    })
+
+    test('select cast decimal without scale strips trailing zeros, keeps significant digits', async () => {
+      const { globals } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT CAST(0.50 AS Decimal) AS res FROM ${globals}`
+      const res = await cds.run(cqn)
+      assert.strictEqual(res[0].res, '0.5')
+    })
+
     test('$now in view refers to tx timestamp', async () => {
       let ts, res1, res2
       await cds.tx(async tx => {
@@ -704,13 +725,13 @@ describe('SELECT', () => {
     test('navigation with duplicate identifier in path', async () => {
       const { Books } = cds.entities('complex.associations')
       const res = await cds.ql`SELECT name { name } FROM ${Books} GROUP BY name.name`
-      assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
+      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
     })
 
     test('navigation with duplicate identifier in path and aggregation', async () => {
       const { Books } = cds.entities('complex.associations')
       const res = await cds.ql`SELECT name { name }, count(1) as total FROM ${Books} GROUP BY name.name`
-      assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
+      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
     })
   })
 
@@ -1111,9 +1132,9 @@ describe('SELECT', () => {
       const query = SELECT.from('complex.associations.Authors')
       query.SELECT.count = true
       const result = await query
-      assert.strictEqual(result.$count, 1)
+      assert.equal(result.$count, 3)
       const renamed = result.map(row => ({ key: row.ID, fullName: row.name }))
-      assert.strictEqual(renamed.$count, 1)
+      assert.equal(renamed.$count, 3)
     })
   })
 

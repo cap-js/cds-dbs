@@ -221,6 +221,132 @@ describe('(nested projections) inline', () => {
 
       expectCqn(inlineTransformed).to.equal(expected)
     })
+
+    it('assoc inline into assoc inline - two consecutive association hops', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from issue.Authors as Authors
+        {
+          address.{
+            city.{ name }
+          }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from issue.Authors as Authors
+          left join issue.Addresses as address on address.ID = Authors.address_ID
+          left join issue.Cities as city on city.ID = address.city_ID
+        {
+          city.name as address_city_name
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('assoc inline into assoc inline - infix filter on outer assoc', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from issue.Authors as Authors
+        {
+          address[ID=1].{
+            city.{ name }
+          }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from issue.Authors as Authors
+          left join issue.Addresses as address on address.ID = Authors.address_ID
+            and address.ID = 1
+          left join issue.Cities as city on city.ID = address.city_ID
+        {
+          city.name as address_city_name
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('assoc inline into assoc inline - infix filter on inner assoc', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from issue.Authors as Authors
+        {
+          address.{
+            city[ID=5].{ name }
+          }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from issue.Authors as Authors
+          left join issue.Addresses as address on address.ID = Authors.address_ID
+          left join issue.Cities as city on city.ID = address.city_ID
+            and city.ID = 5
+        {
+          city.name as address_city_name
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('assoc inline into assoc inline - infix filter on both assocs', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from issue.Authors as Authors
+        {
+          address[ID=1].{
+            city[ID=5].{ name }
+          }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from issue.Authors as Authors
+          left join issue.Addresses as address on address.ID = Authors.address_ID
+            and address.ID = 1
+          left join issue.Cities as city on city.ID = address.city_ID
+            and city.ID = 5
+        {
+          city.name as address_city_name
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('assoc inline into assoc inline - FK access only does not join target', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from issue.Authors as Authors
+        {
+          address.{
+            city.{ ID }
+          }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from issue.Authors as Authors
+          left join issue.Addresses as address on address.ID = Authors.address_ID
+        {
+          address.city_ID as address_city_ID
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('assoc inline into assoc inline - mixed scalar and nested assoc inline', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from issue.Authors as Authors
+        {
+          address.{
+            street,
+            city.{ name, country }
+          }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from issue.Authors as Authors
+          left join issue.Addresses as address on address.ID = Authors.address_ID
+          left join issue.Cities as city on city.ID = address.city_ID
+        {
+          address.street as address_street,
+          city.name as address_city_name,
+          city.country as address_city_country
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
   })
 
   describe('mixed structures and associations', () => {

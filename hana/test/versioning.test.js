@@ -32,7 +32,7 @@ describe('Versioned table', () => {
 
     expect(org).property('data').eq('original')
     expect(upd).property('data').eq('updated')
-    expect(del).falsy
+    expect(del).to.not.exist
 
     expect(org).property('history').length(0)
     expect(upd).property('history').length(2)
@@ -44,6 +44,6 @@ describe('Versioned table', () => {
 
   test('hana server version', () => {
     // 2 hana express, 4 hana cloud
-    expect(cds.db.server.major).to.be.at.least(2)
+    expect(Number(cds.db.server.major)).to.be.at.least(2)
   })
 })

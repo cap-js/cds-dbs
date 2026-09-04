@@ -29,7 +29,9 @@ describe('Versioned table', () => {
     const { versioned } = cds.entities('edge.hana.versioning')
     const { history } = cds.entities('edge.hana.versioning.versioned')
 
-    const sel = SELECT.one`*, history[order by validFrom asc] {*}`.from(versioned)
+    const sel = SELECT.one.from(versioned).columns(c => {
+      c`.*`, c.history`[order by validFrom asc] {*}`
+    })
 
     const ID = cds.utils.uuid()
     await cds.tx(() => INSERT([{ ID, data: 'original' }]).into(versioned))

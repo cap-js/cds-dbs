@@ -175,8 +175,8 @@ describe('INSERT', () => {
         .from(cds.ql`SELECT id || '-' || default as ID FROM ${keys} WHERE id = ${1}`)
       const select = await SELECT.from(cuid).orderBy('ID')
       expect(select).deep.eq([
-        {ID:'1-defaulted'},
-        {ID:'1-overwritten'},
+        { ID: '1-defaulted' },
+        { ID: '1-overwritten' },
       ])
     })
 
@@ -194,15 +194,93 @@ describe('INSERT', () => {
       const select = await SELECT.from(Alter).where('number = 42')
       expect(select[0]).to.eql({ ID: 1, number: 42, order_ID: null })
     })
+
+    test('defaults', async () => {
+      const { cuid, keys, default: _default } = cds.entities('basic.common')
+
+      // fill other table first
+      const ID = '1234'
+      await cds.run(INSERT([{ ID }]).into(cuid))
+      await INSERT.into(keys).from(cds.ql`SELECT cast(ID as Integer) as id FROM ${cuid} WHERE ID = ${ID}`)
+      await INSERT.into(keys).from(cds.ql`SELECT cast(ID as Integer) as id, 'overwritten' as default FROM ${cuid} WHERE ID = ${ID}`)
+
+      // default key column
+      const select = await SELECT.from(keys).where`id = ${ID}`.orderBy('default')
+      expect(select).deep.eq([
+        { id: 1234, default: 'defaulted', data: null },
+        { id: 1234, default: 'overwritten', data: null },
+      ])
+
+      // default column
+      await INSERT.into(_default).from(cds.ql`SELECT ID FROM ${cuid} WHERE ID = ${ID}`)
+      const defaultInsert = await SELECT.from(_default).where`ID = ${ID}`
+      expect(defaultInsert).deep.eq([{
+        ID,
+        uuidDflt: '00000000-0000-0000-4000-000000000000',
+        bool: false,
+        integer8: 8,
+        integer16: 9,
+        integer32: 10,
+        integer64: '11',
+        double: 1.1,
+        float: '1.1',
+        decimal: '1.1111',
+        string: 'default',
+        char: 'd',
+        short: 'default',
+        medium: 'default',
+        large: 'default',
+        date: '1970-01-01',
+        date_lit: '2021-05-05',
+        time: '01:02:03',
+        dateTime: '1970-01-01T01:02:03Z',
+        timestamp: '1970-01-01T01:02:03.123Z',
+      }])
+    })
   })
 
-  test('InsertResult', async () => {
-    const insert = INSERT.into('complex.associations.Books').entries({ ID: 5 })
-    const affectedRows = await cds.db.run(insert)
-    // affectedRows is an InsertResult, so we need to do lose comparison here, as strict will not work due to InsertResult
-    expect(affectedRows == 1).to.be.eq(true)
-    // InsertResult
-    expect(affectedRows).not.to.include({ _affectedRows: 1 }) // lastInsertRowid not available on postgres
+  test('InsertResult for INSERT.entries', async () => {
+    const insertResult = await cds.db.run(INSERT.into('complex.associations.Books').entries({ ID: 5 }))
+    expect(insertResult == 1).to.be.eq(true) // lose comparison as otherwise .valueOf is not invoked
+    expect(insertResult.affected).to.be.eq(1)
+    expect([...insertResult]).to.be.deep.eq([{ID: 5}]) // spread operator can determine the keys from payload
+  })
+
+  test('InsertResult for INSERT.values', async () => {
+    const insertResult = await cds.db.run(INSERT.into('complex.associations.Books').columns('ID').values([6]))
+    expect(insertResult == 1).to.be.eq(true) // lose comparison as otherwise .valueOf is not invoked
+    expect(insertResult.affected).to.be.eq(1)
+    expect([...insertResult]).to.be.deep.eq([{ID: 6}]) // spread operator can determine the keys from payload
+  })
+
+
+  test('InsertResult for INSERT.rows', async () => {
+    const insertResult = await cds.db.run(INSERT.into('complex.associations.Books').columns('ID').rows([[7],[8]]))
+    expect(insertResult == 2).to.be.eq(true) // lose comparison as otherwise .valueOf is not invoked
+    expect(insertResult.affected).to.be.eq(2)
+    expect([...insertResult]).to.be.deep.eq([{ID: 7},{ID: 8}]) // spread operator can determine the keys from payload
+  })
+
+  test('InsertResult for INSERT.from', async () => {
+    const insertResult = await cds.db.run(
+      INSERT.into('complex.associations.Books').columns('ID').from(
+        SELECT.from('complex.associations.Authors').columns`ID + 4711 as ID`))
+    expect(insertResult == 3).to.be.eq(true) // lose comparison as otherwise .valueOf is not invoked
+    expect(insertResult.affected).to.be.eq(3)
+    expect(() => [...insertResult]).to.not.throw // spreadable, but content not yet defined
+  })
+
+  test.each(['Keyless', 'VirtualKey'])('InsertResult edge case: %s entity', async (entity) => {
+    let insertResult = await cds.run(INSERT({ name: 'Foo' }).into(`edge.${entity}`))
+    expect(insertResult == 1).to.be.eq(true) // lose comparison as otherwise .valueOf is not invoked
+    expect(insertResult.affected).to.be.eq(1)
+    expect(() => [...insertResult]).to.not.throw // spreadable, but content not yet defined
+
+    const entries = Array(10).fill().map((_, idx) => ({ name: `Foo${idx+1}` }))
+    insertResult = await cds.run(INSERT(entries).into(`edge.${entity}`))
+    expect(insertResult == 10).to.be.eq(true) // lose comparison as otherwise .valueOf is not invoked
+    expect(insertResult.affected).to.be.eq(10)
+    expect(() => [...insertResult]).to.not.throw // spreadable, but content not yet defined
   })
 
   test('default $now adds current tx timestamp in correct format', async () => {

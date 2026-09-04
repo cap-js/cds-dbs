@@ -5,15 +5,19 @@ const cds = require('@sap/cds')
 const JoinTree = require('./join-tree')
 const { pseudos } = require('./pseudos')
 const { isCalculatedOnRead, getImplicitAlias, getModelUtils, defineProperty, hasOwnSkip, isRuntimeView } = require('../utils')
+const { depthGuarded, guardEntry } = require('../recursion-guard')
 const cdsTypes = cds.builtin.types
 /**
  * @param {import('@sap/cds/apis/cqn').Query|string} originalQuery
  * @param {import('@sap/cds/apis/csn').CSN} [model]
  * @returns {import('./cqn').Query} = q with .target and .elements
  */
-function infer(originalQuery, model) {
+function _infer(originalQuery, model, useTechnicalAlias = true) {
   if (!model) throw new Error('Please specify a model')
   const inferred = originalQuery
+  // guard func args / lists / xpr / exists nesting
+  // eslint-disable-next-line no-func-assign
+  inferArg = depthGuarded(inferArg)
 
   const { getDefinition } = getModelUtils(model, originalQuery)
 
@@ -34,7 +38,7 @@ function infer(originalQuery, model) {
 
   let $combinedElements
 
-  const sources = inferTarget(_.into || _.from || _.entity, {}) // IMPORTANT: _.into has to go before _.from for INSERT.into().from(SELECT)
+  const sources = inferTarget(_.into || _.from || _.entity, {}, useTechnicalAlias) // IMPORTANT: _.into has to go before _.from for INSERT.into().from(SELECT)
   const aliases = Object.keys(sources)
   const target = aliases.length === 1 ? getDefinitionFromSources(sources, aliases[0]) : originalQuery
   Object.defineProperties(inferred, {
@@ -80,7 +84,7 @@ function infer(originalQuery, model) {
    *                              Each key is a query source alias, and its value is the corresponding CSN Definition.
    * @returns {object} The updated `querySources` object with inferred sources from the `from` clause.
    */
-  function inferTarget(from, querySources, useTechnicalAlias = true) {
+  function inferTarget(from, querySources, useTechnicalAlias) {
     const { ref } = from
     // Given a from clause `Root:parent[$main.name = name].parent as Foo`
     // we need to first resolve until to the last step of the from.ref
@@ -291,19 +295,23 @@ function infer(originalQuery, model) {
      */
     function walkTokenStream(tokenStream, inXpr = false) {
       let skipJoins
-      const processToken = t => {
-        if (t === 'exists') {
-          // no joins for infix filters along `exists <path>`
-          skipJoins = true
-        } else if (t.xpr) {
-          // don't miss an exists within an expression
-          t.xpr.forEach(processToken)
-        } else {
-          inferArg(t, queryElements, null, { inExists: skipJoins, inXpr, inQueryModifier: true })
-          skipJoins = false
+      const processToken = depthGuarded(walker())
+      tokenStream.forEach(processToken)
+
+      function walker() {
+        return t => {
+          if (t === 'exists') {
+            // no joins for infix filters along `exists <path>`
+            skipJoins = true
+          } else if (t.xpr) {
+            // don't miss an exists within an expression
+            t.xpr.forEach(processToken)
+          } else {
+            inferArg(t, queryElements, null, { inExists: skipJoins, inXpr, inQueryModifier: true })
+            skipJoins = false
+          }
         }
       }
-      tokenStream.forEach(processToken)
     }
     /**
      * Processes references starting with `$self`, which are intended to target other query elements.
@@ -453,7 +461,7 @@ function infer(originalQuery, model) {
           arg.$refLinks.push({ definition: pseudos.elements[id], target: pseudos })
           pseudoPath = true // only first path step must be well defined
           nameSegments.push(id)
-        } else if ($baseLink) {
+        } else if ($baseLink && !firstStepIsSelf) {
           const { definition, target } = $baseLink
           const elements = getDefinition(definition.target)?.elements || definition.elements
           if (elements && id in elements) {
@@ -484,7 +492,15 @@ function infer(originalQuery, model) {
             target: getDefinitionFromSources(sources, id),
           })
         } else if (firstStepIsSelf) {
-          arg.$refLinks.push({ definition: { elements: queryElements }, target: { elements: queryElements } })
+          const nextStep = arg.ref[1]?.id || arg.ref[1]
+          let elements = queryElements
+          if (nextStep && (!queryElements || !(nextStep in queryElements)) && inferred.outerQueries) {
+            const outerQuery = inferred.outerQueries[0]
+            if (outerQuery?.elements && nextStep in outerQuery.elements) {
+              elements = outerQuery.elements
+            }
+          }
+          arg.$refLinks.push({ definition: { elements }, target: { elements } })
         } else if (arg.ref.length > 1 && inferred.outerQueries?.find(outer => id in outer.sources)) {
           // outer query accessed via alias
           const outerAlias = inferred.outerQueries.find(outer => id in outer.sources)
@@ -623,7 +639,7 @@ function infer(originalQuery, model) {
         } else if (arg.inline && queryElements) {
           const elements = resolveInline(arg)
           for (const elName in elements) {
-            if (queryElements[elName] !== undefined) rejectDuplicatedElement(elName)  
+            if (queryElements[elName] !== undefined) rejectDuplicatedElement(elName)
           }
           Object.assign(queryElements, elements)
         } else {
@@ -659,7 +675,7 @@ function infer(originalQuery, model) {
     // ignore whole expand if target of assoc along path has ”@cds.persistence.skip”
     if (arg.expand) {
       const { $refLinks } = arg
-      
+
       const skip = $refLinks.some(link => {
         const def = getDefinition(link.definition.target)
         return hasOwnSkip(def) && !isRuntimeView(def)
@@ -707,7 +723,7 @@ function infer(originalQuery, model) {
      *    d. Otherwise, the corresponding `$refLinks` definition is added to the `elements` object.
      * 2. Returns the `elements` object.
      */
-    function resolveInline(col, namePrefix = col.as || col.flatName) {
+    function resolveInline(col, namePrefix = col.as || col.flatName, outerBase = null) {
       const { inline, $refLinks } = col
       const $leafLink = $refLinks[$refLinks.length - 1]
       if (!$leafLink.definition.target && !$leafLink.definition.elements) {
@@ -715,10 +731,13 @@ function infer(originalQuery, model) {
           `Unexpected “inline” on “${col.ref.map(idOnly)}”; can only be used after a reference to a structure, association or table alias`,
         )
       }
+      const effectiveBase = outerBase
+        ? { ref: [...outerBase.ref, ...col.ref], $refLinks: [...outerBase.$refLinks, ...col.$refLinks] }
+        : col
       let elements = {}
       let seenWildcard = false
       inline.forEach(inlineCol => {
-        inferArg(inlineCol, null, $leafLink, { inXpr: true, baseColumn: col })
+        inferArg(inlineCol, null, $leafLink, { inXpr: true, baseColumn: effectiveBase })
         if (inlineCol === '*') {
           if (seenWildcard) throw new Error(`Duplicate wildcard "*" in inline of "${col.as || col.ref.map(idOnly).join('_')}"`)
           seenWildcard = true
@@ -777,7 +796,7 @@ function infer(originalQuery, model) {
           else if (inlineCol.ref) nameParts.push(...inlineCol.ref.map(idOnly))
           const name = nameParts.join('_')
           if (inlineCol.inline) {
-            const inlineElements = resolveInline(inlineCol, name)
+            const inlineElements = resolveInline(inlineCol, name, effectiveBase)
             elements = { ...elements, ...inlineElements }
           } else if (inlineCol.expand) {
             const expandElements = resolveExpand(inlineCol)
@@ -953,19 +972,39 @@ function infer(originalQuery, model) {
         mergePathIfNecessary(basePath, arg)
       } else if (arg.xpr || arg.args) {
         const prop = arg.xpr ? 'xpr' : 'args'
+        let inExists = false
         arg[prop].forEach(step => {
+          if (step === 'exists') {
+            inExists = true
+            return
+          }
           let subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
           if (step.ref) {
-            step.$refLinks.forEach((link, i) => {
-              const { definition } = link
-              if (definition.value) {
-                mergePathsIntoJoinTree(definition.value, subPath)
-              } else {
-                subPath.$refLinks.push(link)
-                subPath.ref.push(step.ref[i])
+            if (inExists) {
+              // refs following `exists` become subqueries in cqn4sql — only the basePath prefix
+              // needs a JOIN (for correlation), the exists-target association itself does not.
+              if (subPath.$refLinks.length > 0) {
+                inferred.joinTree.mergeColumn(subPath, originalQuery.outerQueries)
+                // The exists subquery correlates against the last assoc in basePath,
+                // so it's not just a FK access — force a real JOIN.
+                const lastLink = subPath.$refLinks[subPath.$refLinks.length - 1]
+                if (lastLink.onlyForeignKeyAccess) lastLink.onlyForeignKeyAccess = false
+                if (!calcElement.value.isJoinRelevant)
+                  defineProperty(step, 'isJoinRelevant', true)
               }
-            })
-            mergePathIfNecessary(subPath, step)
+            } else {
+              step.$refLinks.forEach((link, i) => {
+                const { definition } = link
+                if (definition.value) {
+                  mergePathsIntoJoinTree(definition.value, subPath)
+                } else {
+                  subPath.$refLinks.push(link)
+                  subPath.ref.push(step.ref[i])
+                }
+              })
+              mergePathIfNecessary(subPath, step)
+            }
+            inExists = false
           } else if (step.args || step.xpr) {
             const nestedProp = step.xpr ? 'xpr' : 'args'
             step[nestedProp].forEach(a => {
@@ -974,6 +1013,9 @@ function infer(originalQuery, model) {
               if (!a.ref) subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
               mergePathsIntoJoinTree(a, subPath)
             })
+            inExists = false
+          } else {
+            if (step !== 'not') inExists = false
           }
         })
       }
@@ -1061,7 +1103,7 @@ function infer(originalQuery, model) {
       for (const k in elements) {
         if (!exclude(k)) {
           const element = elements[k]
-          if (element.type !== 'cds.LargeBinary') {
+          if (element.type !== 'cds.LargeBinary' && element.type !== 'cds.Vector') {
             queryElements[k] = element
           }
           // only relevant if we actually select the calculated element
@@ -1081,7 +1123,7 @@ function infer(originalQuery, model) {
       }
       if (exclude(name) || name in queryElements) return true
       const element = tableAliases[0].tableAlias.elements[name]
-      if (element.type !== 'cds.LargeBinary') queryElements[name] = element
+      if (element.type !== 'cds.LargeBinary' && element.type !== 'cds.Vector') queryElements[name] = element
       if (isCalculatedOnRead(element)) {
         linkCalculatedElement(element)
       }
@@ -1252,5 +1294,8 @@ function getMainAlias (query) {
   if(!mainAlias) throw new Error('Cannot determine main query source for $main, please report this')
   return mainAlias
 }
+
+// guardEntry bounds nested-subquery re-entry (expand, from, set)
+const infer = guardEntry(_infer)
 
 module.exports = infer
