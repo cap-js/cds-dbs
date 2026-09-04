@@ -1,4 +1,6 @@
 const ConnectionPool = require('../../lib/common/generic-pool')
+const cds = require('@sap/cds')
+const { expect } = cds.test
 
 let seq = 0
 const makePool = (opts = {}) => {
