@@ -10,7 +10,7 @@
     "hana"
   ],
   "devDependencies": {
-    "@cap-js/cds-test": "github:cap-js/cds-test#fix/reporter-surface-stderr",
+    "@cap-js/cds-test": "github:cap-js/cds-test#11ae27e",
     "better-sqlite3": "^13.0.3",
     "sql.js": "^1.14.2"
   },
