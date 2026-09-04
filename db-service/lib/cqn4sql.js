@@ -82,6 +82,9 @@ function _cqn4sql(originalQuery, model, useTechnicalAlias = true) {
       const { where, having } = transformSearch(searchTerm)
       if (where) inferred.SELECT.where = where
       else if (having) inferred.SELECT.having = having
+      // Defer the ranking ORDER BY to after infer(), where the outer table alias is known and the
+      // deep-search sub-select can be correlated to the outer row (see buildSearchRankOrderBy).
+      defineProperty(inferred, '$searchRank', searchTerm)
     }
   }
   // query modifiers can also be defined in from ref leaf infix filter
@@ -330,9 +333,27 @@ function _cqn4sql(originalQuery, model, useTechnicalAlias = true) {
 
     // Since all the expressions in the SELECT part of the query have been computed,
     // one can reference aliases of the queries columns in the orderBy clause.
-    if (orderBy) {
-      const transformedOrderBy = getTransformedOrderByGroupBy(orderBy, true)
+    let effectiveOrderBy = orderBy
+    // Rank by $search relevance — only when the score exists (HANA fuzzy, not opted out); else
+    // it would sort by a constant boolean.
+    const ranksSearch =
+      cds.db?.kind === 'hana' && cds.env.hana?.fuzzy !== false && cds.env.hana?.fuzzy?.ranked_search !== false
+    const searchRank = ranksSearch && inferred.$searchRank && buildSearchRankOrderBy(inferred.$searchRank)
+    if (searchRank) {
+      // precedence: user ordering, then rank, then the runtime's implicit key ordering
+      const implicitAt = (orderBy || []).findIndex(o => o.implicit)
+      const at = implicitAt === -1 ? (orderBy?.length ?? 0) : implicitAt
+      effectiveOrderBy = [...(orderBy || [])]
+      effectiveOrderBy.splice(at, 0, searchRank)
+    }
+    if (effectiveOrderBy) {
+      const transformedOrderBy = getTransformedOrderByGroupBy(effectiveOrderBy, true)
       if (transformedOrderBy.length) {
+        // the rank is the only order-by entry that is a correlated sub-select
+        if (searchRank?.$searchRank) {
+          const rank = transformedOrderBy.find(o => o.SELECT)
+          if (rank) correlateSearchRank(rank, transformedFrom.as)
+        }
         transformedQuery.SELECT.orderBy = transformedOrderBy
       }
     }
@@ -2595,6 +2616,65 @@ function _cqn4sql(originalQuery, model, useTechnicalAlias = true) {
 
     const subquery = SELECT.from(entity).columns(...matchColumns).where(searchFunc)
     return { xpr: [matchColumns.length === 1 ? matchColumns[0] : { list: matchColumns }, 'in', subquery] }
+  }
+
+  /**
+   * Builds the ORDER BY entry ranking rows by $search relevance, sorted desc.
+   *
+   * Flat search: the score is on the outer row.
+   * Deep search: the score lives in a semi-join, so emit a correlated scalar sub-select
+   *   (SELECT search(…, true) FROM <same source> WHERE innerKey = <outerAlias>.key) DESC.
+   * Key comparisons are seeded unqualified (infer() binds them to the sub-select's own source);
+   * correlateSearchRank redirects the rhs to the outer alias afterwards.
+   *
+   * @param {object} searchTerm the search term as returned by getSearch (func or xpr shape)
+   * @returns {object|null} an orderBy entry, or null if there is nothing to rank by
+   */
+  function buildSearchRankOrderBy(searchTerm) {
+    if (searchTerm.func) return { func: searchTerm.func, args: [...searchTerm.args, { val: true }], sort: 'desc' }
+    if (!searchTerm.xpr) return null
+
+    const searchSelect = searchTerm.xpr[2]
+    const searchFunc = searchSelect.SELECT.where[0]
+    const innerKeys = searchSelect.SELECT.columns // unqualified pk refs, e.g. [{ ref: ['ID'] }]
+
+    const where = []
+    for (let i = 0; i < innerKeys.length; i++) {
+      if (i) where.push('and')
+      // seeded unqualified on both sides; correlateSearchRank redirects the rhs to the outer row
+      where.push({ ref: [...innerKeys[i].ref] }, '=', { ref: [...innerKeys[i].ref] })
+    }
+
+    const entry = {
+      __proto__: SELECT.from(searchSelect.SELECT.from)
+        // the correlated outer row fans out to many child rows -> MAX makes it a single score
+        .columns({ func: 'max', args: [{ func: searchFunc.func, args: [...searchFunc.args, { val: true }] }] })
+        .where(where),
+      sort: 'desc',
+    }
+    defineProperty(entry, '$searchRank', true)
+    return entry
+  }
+
+  /**
+   * Correlates the (transformed) deep-search ranking sub-select to the outer row.
+   *
+   * buildSearchRankOrderBy seeds its WHERE as `ref = ref` comparisons on the sub-select's own
+   * alias; this rewrites each rhs to `<outerAlias>.<key>`. Driven off the `=` operator (not a
+   * fixed stride) so it holds for any key count.
+   *
+   * @param {object} entry the transformed orderBy entry produced from a `$searchRank` sub-select
+   * @param {string} outerAlias the final table alias of the outer query source
+   */
+  function correlateSearchRank(entry, outerAlias) {
+    const where = entry.SELECT.where
+    for (let i = 1; i < where.length; i++) {
+      // seeded comparisons are exactly `<ref> = <ref>`; rewrite the rhs ref to the outer row
+      if (where[i] === '=' && where[i - 1]?.ref && where[i + 1]?.ref) {
+        const rhs = where[i + 1]
+        rhs.ref = [outerAlias, ...rhs.ref.slice(1)]
+      }
+    }
   }
 
   /**
