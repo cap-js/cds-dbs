@@ -1,4 +1,5 @@
 const ConnectionPool = require('../../lib/common/generic-pool')
+const { mock } = require('node:test')
 const cds = require('@sap/cds')
 const { expect } = cds.test
 
@@ -12,14 +13,25 @@ const makePool = (opts = {}) => {
   }
   return new ConnectionPool(factory, null)
 }
+
+// Acquire `count` resources and assert they all time out. The pool rejects via an .unref()'d
+// setTimeout, so we drive it with fake timers instead of waiting on the wall clock: this is
+// deterministic, instant even for 10k requests, and avoids relying on real timers keeping the
+// event loop alive (which node:test on Node 22 refuses to do -> "Promise resolution is still
+// pending but the event loop has already resolved").
 const expectTimeouts = async (pool, count) => {
-  const results = await Promise.allSettled(Array.from({ length: count }, () => pool.acquire()))
+  const acquires = Array.from({ length: count }, () => pool.acquire())
+  mock.timers.tick((pool.options.acquireTimeoutMillis ?? 0) + 1)
+  const results = await Promise.allSettled(acquires)
   for (const result of results) {
     expect(result.status).to.equal('rejected')
   }
 }
 
 describe('pool', () => {
+  beforeEach(() => mock.timers.enable({ apis: ['setTimeout'] }))
+  afterEach(() => mock.timers.reset())
+
   it('recovers availability after timed-out acquires', async () => {
     const pool = makePool({ max: 2, acquireTimeoutMillis: 50 })
 
