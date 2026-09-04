@@ -212,14 +212,11 @@ constructor (factory, options = {}) {
       for (let i = 0; i < needed; i++) this.#createResource()
     }
     const dispense = async resource => {
-      const request = this._queue.shift()
+      let request = this._queue.shift()
+      while (request && request.state !== RequestState.PENDING) request = this._queue.shift()
       if (!request) {
         resource.idle()
         this._available.add(resource)
-        return false
-      }
-      if (request.state !== RequestState.PENDING) {
-        this.#dispense()
         return false
       }
       this._loans.set(resource.obj, { pooledResource: resource })

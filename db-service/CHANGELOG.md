@@ -4,6 +4,12 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## Version X.X.X - tbd
+
+### Fixed
+
+- `pool`: connection slot no longer permanently lost when a `release()` races a timed-out `acquire()` request.
+
 ## [3.0.1](https://github.com/cap-js/cds-dbs/compare/db-service-v3.0.0...db-service-v3.0.1) (2026-06-29)
 
 
