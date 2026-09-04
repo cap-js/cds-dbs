@@ -21,7 +21,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "test": "cds-test --unmute"
+    "test": "cds-test"
   },
   "peerDependencies": {
     "@sap/cds": "^10",
