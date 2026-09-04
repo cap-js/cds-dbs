@@ -3,7 +3,7 @@ const cds = require('../../test/cds')
 // A to-many search path (SearchAuthors -> books.title / books.genre.name) makes one author
 // fan out to many joined child rows; the ranking ORDER BY is a correlated MAX(SCORE(...))
 // sub-select.
-describe('search ranking (e2e, HANA only)', () => {
+describe('search ranking', () => {
   const { expect } = cds.test(__dirname, 'search-ranking.cds')
 
   beforeAll(async () => {

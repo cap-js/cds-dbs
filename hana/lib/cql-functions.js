@@ -159,7 +159,7 @@ const StandardFunctions = {
     // fuzziness config; `fuzzy` is either the minimal score directly or an object
     // `{ score, ranked_search }` carrying it as `.score`
     const fuzzyConfig = cds.env.hana?.fuzzy
-    const fuzzyIndex = (typeof fuzzyConfig === 'object' ? fuzzyConfig.score : fuzzyConfig) || 0.7
+    const fuzzyIndex = (typeof fuzzyConfig === 'object' ? fuzzyConfig?.score : fuzzyConfig) || 0.7
 
     const csnElements = ref.list || [ref]
     // if column specific value is provided, the configuration has to be defined on column level

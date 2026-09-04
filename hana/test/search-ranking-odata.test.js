@@ -5,7 +5,7 @@ const admin = { auth: { username: 'alice' } }
 
 // $top makes the runtime add its implicit key ordering for stable pagination; the $search
 // relevance rank must take precedence, with the key ordering only as a secondary criterion.
-describe('search ranking via OData service (e2e, HANA only)', () => {
+describe('search ranking via OData service', () => {
   const { expect, GET } = cds.test(bookshop)
 
   // 'Jane' hits the TITLE of "Jane Eyre" (ID 207) and only the DESCR of "Wuthering Heights"
