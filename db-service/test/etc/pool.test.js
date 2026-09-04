@@ -15,7 +15,7 @@ const makePool = (opts = {}) => {
 const expectTimeouts = async (pool, count) => {
   const results = await Promise.allSettled(Array.from({ length: count }, () => pool.acquire()))
   for (const result of results) {
-    expect(result.status).toBe('rejected')
+    expect(result.status).to.equal('rejected')
   }
 }
 
@@ -31,9 +31,9 @@ describe('pool', () => {
     await pool.release(a)
     await pool.release(b)
 
-    expect(pool.available).toBe(2)
-    expect(pool.borrowed).toBe(0)
-    expect(pool.pending).toBe(0)
+    expect(pool.available).to.equal(2)
+    expect(pool.borrowed).to.equal(0)
+    expect(pool.pending).to.equal(0)
   })
 
   it('acquires succeed after a timeout-then-release cycle', async () => {
@@ -49,8 +49,8 @@ describe('pool', () => {
 
     const c = await pool.acquire()
     const d = await pool.acquire()
-    expect(c.id).toBeGreaterThan(0)
-    expect(d.id).toBeGreaterThan(0)
+    expect(c.id).to.be.above(0)
+    expect(d.id).to.be.above(0)
     await pool.release(c)
     await pool.release(d)
   })
@@ -65,9 +65,9 @@ describe('pool', () => {
       conn = await pool.acquire()
     }
 
-    expect(pool.size).toBe(1)
+    expect(pool.size).to.equal(1)
     await pool.release(conn)
-    expect(pool.available).toBe(1)
+    expect(pool.available).to.equal(1)
   })
 
   it('discards a large number of timed-out acquires without exhausting the stack', async () => {
@@ -77,7 +77,7 @@ describe('pool', () => {
     await expectTimeouts(pool, 10_000)
     await pool.release(conn)
 
-    expect(pool.pending).toBe(0)
-    expect(pool.available).toBe(1)
+    expect(pool.pending).to.equal(0)
+    expect(pool.available).to.equal(1)
   })
 })
