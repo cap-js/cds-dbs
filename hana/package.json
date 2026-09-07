@@ -42,7 +42,7 @@
     }
   },
   "devDependencies": {
-    "@sap/hana-client": "^2.29.25"
+    "@sap/hana-client": "^2.29.27"
   },
   "cds": {
     "requires": {
