@@ -4,6 +4,23 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.1.0](https://github.com/cap-js/cds-dbs/compare/db-service-v3.0.1...db-service-v3.1.0) (2026-09-07)
+
+
+### Added
+
+* rank $search results by relevance ([#1725](https://github.com/cap-js/cds-dbs/issues/1725)) ([bc93160](https://github.com/cap-js/cds-dbs/commit/bc931601a721f7c9e00b89e6844ba064352b541d))
+
+
+### Fixed
+
+* **cqn4sql:** reject overly nested query expressions instead of crashing ([#1712](https://github.com/cap-js/cds-dbs/issues/1712)) ([29a45b7](https://github.com/cap-js/cds-dbs/commit/29a45b7daadbc77433b882148700d73c00efae62))
+* don't throw when releasing/destroying a resource that's no longer in the pool ([#1696](https://github.com/cap-js/cds-dbs/issues/1696)) ([5d3b277](https://github.com/cap-js/cds-dbs/commit/5d3b277a1cf7cac02e41f2f24975a8e9473e5b5e))
+* exclude cds.Vector from wildcard select expansion ([#1716](https://github.com/cap-js/cds-dbs/issues/1716)) ([398bacc](https://github.com/cap-js/cds-dbs/commit/398bacc2a74883dcd93acba288deae362570a4c1))
+* INSERT.from(SELECT) used non-existent `value`  ([#1565](https://github.com/cap-js/cds-dbs/issues/1565)) ([fd98844](https://github.com/cap-js/cds-dbs/commit/fd98844c83a78d6cf2b0b71344d3ee1d88528106))
+* **pool:** recover lost connection after stale acquire timeout ([#1724](https://github.com/cap-js/cds-dbs/issues/1724)) ([cf6af99](https://github.com/cap-js/cds-dbs/commit/cf6af991d02be7cf5f861e2a424d4d733b8f9238))
+* pql groupby path expression ([#1700](https://github.com/cap-js/cds-dbs/issues/1700)) ([82b5e03](https://github.com/cap-js/cds-dbs/commit/82b5e0385e680321f30c352f0f78ade6d25259a6))
+
 ## [3.0.1](https://github.com/cap-js/cds-dbs/compare/db-service-v3.0.0...db-service-v3.0.1) (2026-06-29)
 
 
