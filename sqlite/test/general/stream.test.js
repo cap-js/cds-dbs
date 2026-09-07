@@ -69,9 +69,9 @@ describe('streaming', () => {
 
       test('READ multiple stream properties with .from, .column and .where', async () => cds.tx(async () => {
         const { Images } = cds.entities('test')
-        const [{
+        const {
           ID, data: stream1, data2: stream2
-        }] = await SELECT.from(Images)
+        } = await SELECT.one.from(Images)
           .columns(['ID', 'data', 'data2'])
           .where({ ID: 1 })
         await checkSize(stream1)
