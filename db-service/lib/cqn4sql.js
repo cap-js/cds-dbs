@@ -338,7 +338,9 @@ function _cqn4sql(originalQuery, model, useTechnicalAlias = true) {
     // it would sort by a constant boolean.
     const ranksSearch =
       cds.db?.kind === 'hana' && cds.env.hana?.fuzzy !== false && cds.env.hana?.fuzzy?.ranked_search !== false
-    const searchRank = ranksSearch && inferred.$searchRank && buildSearchRankOrderBy(inferred.$searchRank)
+    // count queries do not need ranked search
+    const isCountQuery = columns?.length === 1 && columns[0].func === 'count'
+    const searchRank = ranksSearch && !isCountQuery && inferred.$searchRank && buildSearchRankOrderBy(inferred.$searchRank)
     if (searchRank) {
       // precedence: user ordering, then rank, then the runtime's implicit key ordering
       const implicitAt = (orderBy || []).findIndex(o => o.implicit)

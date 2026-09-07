@@ -59,6 +59,26 @@ describe('search ranking', () => {
     expect(res.map(r => r.ID)).to.eql([20, 10])
   })
 
+  test('the framework generated count query does not need the ranking', () => {
+    const { SearchAuthors } = cds.entities('search.ranking')
+    const q = SELECT.from(SearchAuthors).columns('ID').search('Cat')
+
+    // there's no hook that actually prints the count query, directly use SELECT_count
+    const countQuery = new cds.db.class.CQN2SQL(cds.db).SELECT_count(q)
+
+    const { sql } = cds.db.cqn2sql(countQuery)
+    expect(sql).to.not.match(/ORDER BY/i)
+  })
+
+  test('a search query that only counts is not ranked', () => {
+    const { SearchAuthors } = cds.entities('search.ranking')
+    // a single count element collapses all matches into one row -> nothing to rank
+    const q = SELECT.from(SearchAuthors).columns({ func: 'count' }).search('Cat')
+
+    const { sql } = cds.db.cqn2sql(q)
+    expect(sql).to.not.match(/ORDER BY/i)
+  })
+
   test('opting out via hana.fuzzy.ranked_search = false skips the ranking', async () => {
     const _fuzzy = cds.env.hana.fuzzy
     cds.env.hana.fuzzy = { ranked_search: false }
