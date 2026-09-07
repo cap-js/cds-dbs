@@ -4,6 +4,15 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.1.1](https://github.com/cap-js/cds-dbs/compare/postgres-v3.1.0...postgres-v3.1.1) (2026-09-07)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^3.1.0 to ^3.1.1
+
 ## [3.1.0](https://github.com/cap-js/cds-dbs/compare/postgres-v3.0.1...postgres-v3.1.0) (2026-09-07)
 
 
