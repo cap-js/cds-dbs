@@ -150,7 +150,7 @@ constructor (factory, options = {}) {
       return
     }
     const loan = this._loans.get(resource)
-    if (!loan) throw new Error('Resource not currently part of this pool')
+    if (!loan) return
     this._loans.delete(resource)
     const pooledResource = loan.pooledResource
     pooledResource.idle()
@@ -164,7 +164,7 @@ constructor (factory, options = {}) {
       return
     }
     const loan = this._loans.get(resource)
-    if (!loan) throw new Error('Resource not currently part of this pool')
+    if (!loan) return
     this._loans.delete(resource)
     const pooledResource = loan.pooledResource
     await this.#destroy(pooledResource)

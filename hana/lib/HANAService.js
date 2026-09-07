@@ -59,7 +59,11 @@ class HANAService extends SQLService {
         service.server.major = dbc.server.major || service.server.major
         return dbc
       } catch (err) {
-        if (err.code === 10) return // authentication error, see error handler below
+        if (err.code === 10) {
+          // delay the shutdown by a tick to have the db error show up
+          setImmediate(() => cds.shutdown(err))
+          throw err
+        }
         if (attempt < maxRetries) {
           LOG.debug('connection failed:', err, '- retrying attempt', attempt, 'of', maxRetries)
           return createSingleTenant(tenant, attempt + 1)
@@ -80,7 +84,8 @@ class HANAService extends SQLService {
       } catch (err) {
         if (!cds.env.features.use_generic_pool) {
           if (err.status === 404 || err.status === 429) {
-            throw new Error(`Pool failed connecting to '${tenant}'`, { cause: err })
+            err.message = `Pool failed connecting to '${tenant}'. ${err.message}`
+            throw err
           }
           const deadline = start + acquireTimeoutMillis
           if (attempt <= maxRetries && Date.now() < deadline) {
@@ -112,6 +117,7 @@ class HANAService extends SQLService {
     return {
       options: this.options.pool || {},
       create: isMultitenant ? createMultiTenant : createSingleTenant,
+      // only used by generic-pool, we can remove once we rm generic-pool compat
       error: (err /*, tenant*/) => {
         // Check whether the connection error was an authentication error
         if (err.code === 10) {
@@ -237,6 +243,19 @@ class HANAService extends SQLService {
     return new this.class.InsertResults(cqn, results)
   }
 
+  async onUPSERT({ query, data }) {
+    const { sql, entries, cqn } = this.cqn2sql(query, data)
+    if (!sql) return // Do nothing when there is nothing to be done
+    const ps = await this.prepare(sql)
+    // HANA driver supports batch execution
+    const results = await (entries
+      ? this.server.major <= 2
+        ? entries.reduce((l, c) => l.then(() => this.ensureDBC() && ps.run(c)), Promise.resolve(0))
+        : entries.length > 1 ? this.ensureDBC() && await ps.runBatch(entries) : this.ensureDBC() && await ps.run(entries[0])
+      : this.ensureDBC() && ps.run())
+    return results.changes ?? results
+  }
+
   async onNOTFOUND(req, next) {
     try {
       return await next()
@@ -334,11 +353,8 @@ class HANAService extends SQLService {
   }
 
   // prepare and exec are both implemented inside the drivers
-  prepare(sql, hasBlobs) {
-    const stmt = this.ensureDBC().prepare(sql, hasBlobs)
-    // we store the statements, to release them on commit/rollback all at once
-    this.dbc.statements.push(stmt)
-    return stmt
+  async prepare(sql, hasBlobs) {
+    return this.ensureDBC().prepare(sql, hasBlobs)
   }
 
   exec(sql) {
@@ -914,12 +930,12 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
       } else {
         const src = this.cqn4sql(UPSERT.from || UPSERT.as)
         if (this.values) this.values = []
-        const aliasedQuery = cds.ql.SELECT
-          .columns(src.SELECT.columns
-            .map((c, i) => ({ ref: [this.column_name(c)], as: this.columns[i] }))
-          )
-          .from(src)
-        sql = `SELECT ${mixing} FROM (${this.SELECT(aliasedQuery)}) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+        const aliasedQuery = `SELECT ${[
+          ...src.SELECT.columns.map((c, i) => this.column_expr({ ref: [this.column_name(c)], as: this.columns[i] })),
+          ...managed.slice(src.SELECT.columns.length).map(c => `${elements[c.name].key ? c.onInsert : 'NULL'} AS ${this.quote(c.name)}`), // fill in missing default values
+        ]} FROM (${this.SELECT(src)})`
+
+        sql = `SELECT ${mixing} FROM (${aliasedQuery}) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
         this.entries = [this.values]
       }
 
@@ -1227,7 +1243,9 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     }
 
     managed_default(name, managed, src) {
-      return `(CASE WHEN ${this.quote('$.' + name)} IS NULL THEN ${managed} ELSE ${src} END)`
+      const { UPSERT, INSERT } = this.cqn
+      const isJson = INSERT?.entries || UPSERT?.entries || INSERT?.rows || UPSERT?.rows
+      return `(CASE WHEN ${isJson ? this.quote('$.' + name) : `NEW.${this.quote(name)}`} IS NULL THEN ${managed} ELSE ${src} END)`
     }
 
     render_with() {
@@ -1327,7 +1345,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
   async onSIMPLE({ query, data, event }) {
     const { sql, values } = this.cqn2sql(query, data)
     try {
-      let ps = await this.prepare(sql)
+      const ps = await this.prepare(sql)
       return this._return_affected((this.ensureDBC() && await ps.run(values)).changes)
     } catch (err) {
       // Allow drop to fail when the view or table does not exist
@@ -1385,25 +1403,16 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
 
   onBEGIN() {
     DEBUG?.('BEGIN')
-    if (this.dbc) this.dbc.statements = []
     return this.dbc?.begin()
   }
 
   onCOMMIT() {
     DEBUG?.('COMMIT')
-    this.dbc?.statements?.forEach(stmt => stmt
-      .then(stmt => stmt.drop())
-      .catch(() => { })
-    )
     return this.dbc?.commit()
   }
 
   onROLLBACK() {
     DEBUG?.('ROLLBACK')
-    this.dbc?.statements?.forEach(stmt => stmt
-      .then(stmt => stmt.drop())
-      .catch(() => { })
-    )
     return this.dbc?.rollback()
   }
 
@@ -1465,12 +1474,11 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     creds.password = creds.user + 'Val1d' // Password restrictions require Aa1
 
     try {
-      const con = await this.factory.create(this.options.credentials)
-      this.dbc = con
+      this.dbc = await this.factory.create(this.options.credentials)
 
       let i = 0
       let err
-      for (; i < 100; i++) {
+      for (; i < 1000; i++) {
         try {
           const stmt = await this.dbc.prepare(createContainerTenant.replaceAll('{{{GROUP}}}', creds.containerGroup))
           const res = this.ensureDBC() && await stmt.run([creds.user, creds.password, creds.schema, !clean])
@@ -1478,9 +1486,11 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
           break
         } catch (e) {
           err = e
+          await this.dbc.disconnect()
+          this.dbc = await this.factory.create(this.options.credentials)
         }
       }
-      if (i === 100) {
+      if (i === 1000) {
         throw new Error(`Failed to create tenant: ${err.message || err.stack || err}`)
       }
     } finally {

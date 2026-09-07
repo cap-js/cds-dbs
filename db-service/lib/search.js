@@ -166,7 +166,7 @@ const computeColumnsToBeSearched = (cqn, entity = { __searchableColumns: [] }) =
         if (
           cqn.SELECT.columns.length === 1 &&
           column.func === 'count' &&
-          (column.as === '_counted_' || column.as === '$count')
+          column.as === '$count'
         ) {
           return
         }

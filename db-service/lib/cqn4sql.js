@@ -33,6 +33,9 @@ const notSupportedOps = [['>'], ['<'], ['>='], ['<='], ['*'], ['+'], ['-'], ['/'
 
 const allOps = eqOps.concat(eqOps).concat(notEqOps).concat(notSupportedOps)
 
+
+const { depthGuarded, guardEntry } = require('./recursion-guard')
+
 const { pseudos } = require('./infer/pseudos')
 /**
  * Transforms a CDL style query into SQL-Like CQN:
@@ -55,7 +58,17 @@ const { pseudos } = require('./infer/pseudos')
  * @returns {object} transformedQuery the transformed query
  */
 function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
+  // guardEntry bounds subquery nesting and resets the depth budget per top-level call
+  return guardEntry(_cqn4sql)(originalQuery, model, useTechnicalAlias)
+}
+
+function _cqn4sql(originalQuery, model, useTechnicalAlias = true) {
   const getImplicitAlias = str => _getImplicitAlias(str, useTechnicalAlias)
+  // guard xpr and inline/expand-on-struct nesting
+  // eslint-disable-next-line no-func-assign
+  getTransformedTokenStream = depthGuarded(getTransformedTokenStream)
+  // eslint-disable-next-line no-func-assign
+  nestedProjectionOnStructure = depthGuarded(nestedProjectionOnStructure)
   let inferred = typeof originalQuery === 'string' ? cds.parse.cql(originalQuery) : cds.ql.clone(originalQuery)
   const hasCustomJoins =
     originalQuery.SELECT?.from.args && (!originalQuery.joinTree || originalQuery.joinTree.isInitial)
@@ -182,7 +195,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
   /**
    * If the target entity is annotated with persistence skip and has an underlying db entity,
    * we treat it as a runtime view and transform it into a CTE.
-   * 
+   *
    * @param {object} transformedQuery - The query object to be transformed.
    * @param {string} model - The data model used for inference and transformation.
    */
@@ -198,10 +211,10 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
   }
 
   /**
-   * Recursively call cqn4sql for all nested runtime views to calculate cte and 
+   * Recursively call cqn4sql for all nested runtime views to calculate cte and
    * add it as a with clause to the transformed query.
    * Alias the runtime view with a unique alias and update all references to the runtime view to point to the alias.
-   * 
+   *
    * @param {object} rootDefinition - The root definition of the query. This is used to recursively process nested runtime views.
    * @param {object} transformedQuery - The query object to be transformed.
    * @param {string} model - The data model used for infer and cqn4sql.
@@ -383,6 +396,8 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
    */
   function translateAssocsToJoins() {
     let from
+    // guard association-path length
+    const joinForBranch = depthGuarded(_joinForBranch)
     /**
      * remember already seen aliases, do not create a join for them again
      */
@@ -406,7 +421,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
     })
     return from.args.length > 1 ? from : from.args[0]
 
-    function joinForBranch(lhs, node) {
+    function _joinForBranch(lhs, node) {
       const nextAssoc = inferred.joinTree.findNextAssoc(node)
       if (!nextAssoc || alreadySeen.has(nextAssoc.$refLink.alias)) return lhs.args.length > 1 ? lhs : lhs.args[0]
 
@@ -643,7 +658,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
         if (col.cast) ret.cast = resolveEnumCastType(col.cast)
         return ret
       }
-      return copy(col)
+      return { ...col }
     }
 
     function handleEmptyColumns(columns) {
@@ -995,11 +1010,11 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
             const keyName = k.as || k.ref.join('_')
             const fkName = `${elemName}_${keyName}`  // e.g., 'head_id'
             const fkFullName = `${columnAlias}_${fkName}`  // e.g., 'department_head_id'
-            
+
             // Check if this FK is excluded
             if (exclude.some(e => (e.ref?.at(-1) || e.as || e) === fkName)) continue
             if (exclude.some(e => (e.ref?.at(-1) || e.as || e) === fkFullName)) continue
-            
+
             const flatColumn = {
               ref: [joinAlias, fkName],
               as: fkFullName,
@@ -1017,7 +1032,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
             calcElement.as = fullName
           }
           res.push(calcElement)
-        }        
+        }
         else {
           // Scalar element
           const flatColumn = {
@@ -1322,7 +1337,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
         else if (col.xpr) transformedColumn = { xpr: getTransformedTokenStream(col.xpr) }
         else if (col.func) transformedColumn = { args: getTransformedFunctionArgs(col.args), func: col.func }
         // val
-        else transformedColumn = copy(col)
+        else transformedColumn = { ...col }
         if (col.sort) transformedColumn.sort = col.sort
         if (col.nulls) transformedColumn.nulls = col.nulls
         res.push(transformedColumn)
@@ -1397,8 +1412,13 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
       if (!exclude.includes(k)) {
         const { index, tableAlias } = inferred.$combinedElements[k][0]
         const element = tableAlias.elements[k]
-        // ignore FK for odata csn (but not for subquery sources where FK is not a separate element) / ignore blobs from wildcard expansion
-        if ((!tableAlias.SELECT && isManagedAssocInFlatMode(element)) || element.type === 'cds.LargeBinary') continue
+        // ignore FK for odata csn (but not for subquery sources where FK is not a separate element) / ignore blobs and vectors from wildcard expansion
+        if (
+          (!tableAlias.SELECT && isManagedAssocInFlatMode(element)) ||
+          element.type === 'cds.LargeBinary' ||
+          element.type === 'cds.Vector'
+        )
+          continue
         // for wildcard on subquery in from, just reference the elements
         if (tableAlias.SELECT && !element.elements && !element.target) {
           wildcardColumns.push(index ? { ref: [index, k] } : { ref: [k] })
@@ -1461,7 +1481,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
    *   - `tableAlias` — table alias prepended to the column ref.
    * @param {string[]} [csnPath=[]] - Accumulated CSN element path (used for `_csnPath` metadata on leaf columns).
    * @param {{ exclude?: Array, replace?: Array }} [excludeAndReplace] - Columns to exclude or replace during wildcard expansion.
-   * @param {boolean} [isWildcard=false] - Whether this expansion originates from a wildcard; filters out LargeBinary.
+   * @param {boolean} [isWildcard=false] - Whether this expansion originates from a wildcard; filters out LargeBinary and Vector.
    * @returns {object[]} Flat column(s) for the given element.
    */
   function getFlatColumnsFor(column, names, csnPath = [], excludeAndReplace, isWildcard = false) {
@@ -1474,7 +1494,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
     const { $refLinks, flatName, isJoinRelevant } = column
     let firstNonJoinRelevantAssoc, stepAfterAssoc
     let element = $refLinks ? $refLinks[$refLinks.length - 1].definition : column
-    if (isWildcard && element.type === 'cds.LargeBinary') return []
+    if (isWildcard && (element.type === 'cds.LargeBinary' || element.type === 'cds.Vector')) return []
     if (element.on && !element.keys) return [] // unmanaged doesn't make it into columns
     if (element.virtual === true) return []
 
@@ -1812,8 +1832,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
           // reject virtual elements in expressions as they will lead to a sql error down the line
           if (lhsDef?.virtual) throw new Error(`Virtual elements are not allowed in expressions`)
 
-          let result = is_regexp(token?.val) ? token : copy(token) // REVISIT: too expensive!
-          // REVISIT: required because we copy the token above and lose the not enumerable "param: false"
+          let result = typeof token !== 'object' || is_regexp(token?.val) ? token : { ...token }
           if (typeof token === 'object' && 'val' in token && 'param' in token) Object.defineProperty(result, 'param', { value: token.param })
           if (token.ref) {
             const { definition } = token.$refLinks.at(-1)
@@ -1830,7 +1849,6 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
                 const stepToFind = token.ref[1]?.id || token.ref[1]
                 const outerAlias = outerQuery.$combinedElements?.[stepToFind]?.[0].index
                 if (outerAlias) {
-                  let result = copy(token)
                   result.ref = [outerAlias, token.flatName]
                   transformedTokenStream.push(result)
                   continue
@@ -2016,7 +2034,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
    */
   function getTransformedFrom(from, existingWhere = []) {
     const transformedWhere = []
-    let transformedFrom = copy(from) // REVISIT: too expensive!
+    let transformedFrom = { ...from }
     if (from.$refLinks) defineProperty(transformedFrom, '$refLinks', [...from.$refLinks])
     if (from.args) {
       transformedFrom.args = []
