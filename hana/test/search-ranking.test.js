@@ -51,11 +51,13 @@ describe('search ranking', () => {
     expect(ids[1]).to.eq(20)
   })
 
-  test('user-provided order by takes precedence over the search rank', async () => {
+  test('user-provided order by takes precedence', async () => {
     const { SearchAuthors } = cds.entities('search.ranking')
-    // by name desc: 'Weak' (20) before 'Strong' (10) — the OPPOSITE of the relevance order,
-    // so this only holds if user ordering wins and the rank is applied after it.
-    const res = await SELECT.from(SearchAuthors).columns('ID').search('Cat').orderBy('name desc')
+    const q = SELECT.from(SearchAuthors).columns('ID').search('Cat').orderBy('name desc')
+    const { sql } = cds.db.cqn2sql(q)
+    expect(sql).not.to.match(/ORDER BY .*\(SELECT max\(SCORE\(/i)
+
+    const res = await q
     expect(res.map(r => r.ID)).to.eql([20, 10])
   })
 
@@ -77,6 +79,24 @@ describe('search ranking', () => {
 
     const { sql } = cds.db.cqn2sql(q)
     expect(sql).to.not.match(/ORDER BY/i)
+  })
+
+  test('a search query that only selects static values is not ranked', () => {
+    const { SearchAuthors } = cds.entities('search.ranking')
+    // a single count element collapses all matches into one row -> nothing to rank
+    const q = SELECT.from(SearchAuthors).columns({ val: 1, param: false, as: '1' }).search('Cat')
+
+    const { sql } = cds.db.cqn2sql(q)
+    expect(sql).to.not.match(/ORDER BY/i)
+  })
+
+  test('a search query that selects * is ranked', () => {
+    const { SearchAuthors } = cds.entities('search.ranking')
+    // a single count element collapses all matches into one row -> nothing to rank
+    const q = SELECT.from(SearchAuthors).columns('*').search('Cat')
+
+    const { sql } = cds.db.cqn2sql(q)
+    expect(sql).to.match(/ORDER BY/i)
   })
 
   test('opting out via hana.fuzzy.ranked_search = false skips the ranking', async () => {

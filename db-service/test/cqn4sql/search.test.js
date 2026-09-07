@@ -877,11 +877,11 @@ describe('search ranking order-by precedence', () => {
     expect(res.SELECT.orderBy).to.deep.equal([rankEntry])
   })
 
-  it('rank comes after user-provided ordering', () => {
+  it('user-provided ordering does not add rank', () => {
     const query = cds.ql`SELECT from bookshop.Genres as Genres { ID } order by ID asc`
     query.SELECT.search = [{ val: 'x' }]
     const res = cqn4sql(query, model)
-    expect(res.SELECT.orderBy).to.deep.equal([{ ref: ['ID'], sort: 'asc' }, rankEntry])
+    expect(res.SELECT.orderBy).to.deep.equal([{ ref: ['ID'], sort: 'asc' }])
   })
 
   it('rank comes before the runtime implicit key ordering', () => {
@@ -890,20 +890,5 @@ describe('search ranking order-by precedence', () => {
     query.SELECT.orderBy = [{ ref: ['ID'], sort: 'asc', implicit: true }]
     const res = cqn4sql(query, model)
     expect(res.SELECT.orderBy).to.deep.equal([rankEntry, { ref: ['ID'], sort: 'asc' }])
-  })
-
-  it('rank goes between user ordering and the implicit key ordering', () => {
-    const query = cds.ql`SELECT from bookshop.Genres as Genres { ID, name }`
-    query.SELECT.search = [{ val: 'x' }]
-    query.SELECT.orderBy = [
-      { ref: ['name'], sort: 'desc' }, // user
-      { ref: ['ID'], sort: 'asc', implicit: true }, // runtime key ordering
-    ]
-    const res = cqn4sql(query, model)
-    expect(res.SELECT.orderBy).to.deep.equal([
-      { ref: ['name'], sort: 'desc' },
-      rankEntry,
-      { ref: ['ID'], sort: 'asc' },
-    ])
   })
 })
