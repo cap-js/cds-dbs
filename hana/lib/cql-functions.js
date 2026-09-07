@@ -114,7 +114,7 @@ const StandardFunctions = {
    * @param {string} arg - Argument object containing search values
    * @returns {string} - SQL statement
    */
-  search: function (ref, arg) {
+  search: function (ref, arg, numeric) {
     if (cds.env.hana.fuzzy === false) {
       // Handle non-fuzzy search
       arg = arg.xpr ? arg.xpr : arg
@@ -156,8 +156,10 @@ const StandardFunctions = {
       return `(CASE WHEN (${toString({ xpr })}) THEN TRUE ELSE FALSE END)`
     }
 
-    // fuzziness config
-    const fuzzyIndex = cds.env.hana?.fuzzy || 0.7
+    // fuzziness config; `fuzzy` is either the minimal score directly or an object
+    // `{ score, ranked_search }` carrying it as `.score`
+    const fuzzyConfig = cds.env.hana?.fuzzy
+    const fuzzyIndex = (typeof fuzzyConfig === 'object' ? fuzzyConfig?.score : fuzzyConfig) || 0.7
 
     const csnElements = ref.list || [ref]
     // if column specific value is provided, the configuration has to be defined on column level
@@ -184,8 +186,12 @@ const StandardFunctions = {
         }
         fuzzy += ` MINIMAL SCORE ${e.element?.['@Search.fuzzinessThreshold'] || fuzzyIndex} SIMILARITY CALCULATION MODE 'search'`
         // rewrite ref to xpr to mix in search config
-        // ensure in place modification to reuse .toString method that ensures quoting
-        e.xpr = [{ ref: e.ref }, fuzzy]
+        // ensure in place modification to reuse .toString method that ensures quoting.
+        // idempotent: the same search() args may be rendered twice (e.g. WHERE predicate and the
+        // injected ranking ORDER BY), so recover the original ref from a prior rewrite instead of
+        // reading a now-deleted e.ref.
+        const originalRef = e.ref || e.xpr?.[0]?.ref
+        e.xpr = [{ ref: originalRef }, fuzzy]
         delete e.ref
       })
     } else {
@@ -207,7 +213,7 @@ const StandardFunctions = {
       }
     }
 
-    return `(CASE WHEN SCORE(${arg} IN ${ref}) > 0 THEN TRUE ELSE FALSE END)`
+    return numeric ? `SCORE(${arg} IN ${ref})` : `(CASE WHEN SCORE(${arg} IN ${ref}) > 0 THEN TRUE ELSE FALSE END)`
   },
 
   // ==============================
