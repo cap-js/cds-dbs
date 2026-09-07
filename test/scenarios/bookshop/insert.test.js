@@ -49,4 +49,13 @@ describe('Bookshop - Insert', () => {
     const res = await SELECT.from(Books, {ID: 344})
     expect(res.genre_ID).to.be.eq(10)
   })
+
+  test('insert with default fields excluded from projection', async () => {
+    const { RenameKeys, Books } = cds.entities('AdminService')
+    await cds.run(INSERT({ foo: 345 }).into(RenameKeys))
+    const res = await SELECT.from(Books, { ID: 345 })
+    expect(res).to.containSubset({ genre_ID: 10, createdBy: 'anonymous', modifiedBy: 'anonymous' })
+    expect(res.createdAt).to.not.be.null
+    expect(res.modifiedAt).to.not.be.null
+  })
 })
