@@ -4,6 +4,14 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.1.1](https://github.com/cap-js/cds-dbs/compare/db-service-v3.1.0...db-service-v3.1.1) (2026-09-07)
+
+
+### Performance Improvements
+
+* do not use ranked search for static values ([#1727](https://github.com/cap-js/cds-dbs/issues/1727)) ([33fb36b](https://github.com/cap-js/cds-dbs/commit/33fb36bbf0f86291e5fc0b9e2ff5b7244b49d19e))
+* if explicit order by is specified, do not add ranked search as a ([33fb36b](https://github.com/cap-js/cds-dbs/commit/33fb36bbf0f86291e5fc0b9e2ff5b7244b49d19e))
+
 ## [3.1.0](https://github.com/cap-js/cds-dbs/compare/db-service-v3.0.1...db-service-v3.1.0) (2026-09-07)
 
 
