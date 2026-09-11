@@ -898,7 +898,6 @@ class HANAService extends SQLService {
 
     UPSERT(q) {
       const { UPSERT } = q
-      // REVISIT: should @cds.persistence.name be considered ?
       const entity =  q._target ? this.table_name(q) : INSERT.into.ref[0]
       const elements = q._target?.elements || {}
       const insert = this.INSERT({ __proto__: q, INSERT: UPSERT })
