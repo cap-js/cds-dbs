@@ -204,12 +204,11 @@ describe('Bookshop - Read', () => {
   })
 
   test('select with query-time column alias from service projection', async () => {
-    await cds.run(INSERT.into('CatalogService.Books').entries([{ ID: 9991, title: 'Alias Test Book' }]))
     const result = await cds.run(
-      SELECT.from('CatalogService.Books').columns`title as bookTitle`.where({ ID: 9991 })
+      SELECT.from('CatalogService.Books').columns`title as bookTitle`.where({ ID: 201 })
     )
     expect(result).to.have.length(1)
-    expect(result[0].bookTitle).to.equal('Alias Test Book')
+    expect(result[0].bookTitle).to.equal('Wuthering Heights')
   })
 
   test('reuse already executed select as subselect', async () => {
