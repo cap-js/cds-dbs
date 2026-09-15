@@ -1778,8 +1778,10 @@ function _cqn4sql(originalQuery, model, useTechnicalAlias = true) {
         }
 
         const whereExists = { SELECT: whereExistsSubqueries(whereExistsSubSelects) }
-        transformedTokenStream[i + 1] = whereExists
-        // skip newly created subquery from being iterated
+        // append, don't index by `i`: a preceding branch (e.g. flattening `<assoc> is null`)
+        // may have changed the transformed stream's length, so `[i + 1]` would leave holes
+        transformedTokenStream.push(whereExists)
+        // skip the association ref which we just turned into the subquery
         i += 1
       } else if (token !== null && typeof token === 'object' && '#' in token) {
         // Enum token: resolve to its value
