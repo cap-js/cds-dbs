@@ -15,7 +15,7 @@
 ### Performance Improvements
 
 * do not use ranked search for static values ([#1727](https://github.com/cap-js/cds-dbs/issues/1727)) ([33fb36b](https://github.com/cap-js/cds-dbs/commit/33fb36bbf0f86291e5fc0b9e2ff5b7244b49d19e))
-* if explicit order by is specified, do not add ranked search as a ([33fb36b](https://github.com/cap-js/cds-dbs/commit/33fb36bbf0f86291e5fc0b9e2ff5b7244b49d19e))
+* if explicit order by is specified, do not add ranked search as a secondary clause([33fb36b](https://github.com/cap-js/cds-dbs/commit/33fb36bbf0f86291e5fc0b9e2ff5b7244b49d19e))
 
 
 ### Dependencies
