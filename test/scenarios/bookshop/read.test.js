@@ -203,6 +203,14 @@ describe('Bookshop - Read', () => {
     expect(res[0].ID).to.be.eq(101)
   })
 
+  test('select with query-time column alias from service projection', async () => {
+    const result = await cds.run(
+      SELECT.from('CatalogService.Books').columns`title as bookTitle`.where({ ID: 201 })
+    )
+    expect(result).to.have.length(1)
+    expect(result[0].bookTitle).to.equal('Wuthering Heights')
+  })
+
   test('reuse already executed select as subselect', async () => {
     let s = SELECT.columns('ID').from('sap.capire.bookshop.Books')
     await s
