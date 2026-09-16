@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.11.3](https://github.com/cap-js/cds-dbs/compare/db-service-v2.11.2...db-service-v2.11.3) (2026-09-16)
+
+
+### Fixed
+
+* downport builtin pool improvements of v3 code line ([#1741](https://github.com/cap-js/cds-dbs/issues/1741)) ([09279b8](https://github.com/cap-js/cds-dbs/commit/09279b8b570c2f47c9010dfcac64195ed9498580))
+
 ## [2.11.2](https://github.com/cap-js/cds-dbs/compare/db-service-v2.11.1...db-service-v2.11.2) (2026-09-15)
 
 
