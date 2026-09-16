@@ -112,8 +112,10 @@ describe('Bookshop - Read', () => {
     )
     expect(res.status).to.be.eq(200)
     expect(res.data.genre.name).to.be.eq('Non-Fiction')
-    expect(res.data.genre.children[0].name).to.be.eq('Biography')
-    expect(res.data.genre.children[0].children[0].name).to.be.eq('Autobiography')
+    // children order is not guaranteed without an ORDER BY, so locate by name
+    const biography = res.data.genre.children.find(c => c.name === 'Biography')
+    expect(biography, 'Biography child').to.exist
+    expect(biography.children[0].name).to.be.eq('Autobiography')
   })
 
   test('groupby with multiple path expressions', async () => {
