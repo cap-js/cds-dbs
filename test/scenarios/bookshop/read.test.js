@@ -107,15 +107,13 @@ describe('Bookshop - Read', () => {
 
   test('groupby with nested path expression', async () => {
     const res = await GET(
-      '/admin/Books(ID=280)?$apply=groupby((genre/name,genre/children/name,genre/children/children/name))',
+      '/admin/Books(ID=280)?$apply=groupby((genre/name,genre/children/name,genre/children/children/name))&$orderby=genre/children/name,genre/children/children/name',
       admin,
     )
     expect(res.status).to.be.eq(200)
     expect(res.data.genre.name).to.be.eq('Non-Fiction')
-    // children order is not guaranteed without an ORDER BY, so locate by name
-    const biography = res.data.genre.children.find(c => c.name === 'Biography')
-    expect(biography, 'Biography child').to.exist
-    expect(biography.children[0].name).to.be.eq('Autobiography')
+    expect(res.data.genre.children[0].name).to.be.eq('Biography')
+    expect(res.data.genre.children[0].children[0].name).to.be.eq('Autobiography')
   })
 
   test('groupby with multiple path expressions', async () => {
