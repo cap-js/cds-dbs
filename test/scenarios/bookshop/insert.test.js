@@ -49,4 +49,11 @@ describe('Bookshop - Insert', () => {
     const res = await SELECT.from(Books, {ID: 344})
     expect(res.genre_ID).to.be.eq(10)
   })
+
+  test('insert into @readonly service projection via cds.run', async () => {
+    await cds.run(INSERT.into('CatalogService.Books').entries([{ ID: 9991, title: 'Readonly Insert Test' }]))
+    const result = await cds.run(SELECT.from('CatalogService.Books').where({ ID: 9991 }))
+    expect(result).to.have.length(1)
+    expect(result[0].title).to.equal('Readonly Insert Test')
+  })
 })

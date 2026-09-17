@@ -22,6 +22,10 @@ class CQN2PQLRenderer extends CQN2SQL {
     return super.column_expr(x, q)
   }
 
+  from_args(args) {
+    return `(${Object.keys(args).map(k => `${k}: ${this.expr(args[k])}`).join(', ')})`
+  }
+
   SELECT_expand(q, sql) { return sql }
 
   INSERT_entries(q) {
