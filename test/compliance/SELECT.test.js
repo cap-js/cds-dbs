@@ -797,6 +797,16 @@ describe('SELECT', () => {
       assert.deepEqual(res, sorted, 'Ensure that all rows are in the correct order')
     })
 
+    
+    test('duplicated single ref desc', async () => {
+      const { string } = cds.entities('basic.literals')
+      const cqn = cds.ql`SELECT * FROM ${string} ORDER BY string desc, string desc`
+      const res = await cds.run(cqn)
+      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+      const sorted = [...res].sort((a, b) => _localeSort(b.string, a.string))
+      assert.deepEqual(res, sorted, 'Ensure that all rows are in the correct order')
+    })
+
     test('sort is case insensitive', async () => {
       const { string } = cds.entities('basic.literals')
       const mixedDesc = SELECT.from(string).columns('string').orderBy('string DeSc')
