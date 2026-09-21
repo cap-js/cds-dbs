@@ -3,6 +3,7 @@ const { StringDecoder } = require('string_decoder')
 const { text } = require('stream/consumers')
 
 const cds = require('@sap/cds')
+const LOG = cds.log('sql|db')
 const hdb = require('hdb')
 const iconv = hdb.iconv
 
@@ -49,6 +50,10 @@ class HDBDriver extends driver {
     this._native = wrap_client(this._native, creds, creds.tenant)
     this._native.setAutoCommit(false)
     this._native.on('close', () => this.destroy?.())
+    this._native.on('error', (err) => {
+      err.message = `HDB Client error: ${err.message}`
+      LOG?.warn(err)
+    })
     this._native.set = function (variables) {
       const clientInfo = this._connection.getClientInfo()
       for (const key in variables) {
