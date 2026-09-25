@@ -58,7 +58,7 @@ cds.test = Object.setPrototypeOf(function () {
       process.env.CDS_REQUIRES_DB = JSON.stringify(require('@cap-js/sqlite/test/service'))
     }
     // REVISIT: Why did we ever do that?
-    // cds.env = cds.env.for(cds)
+    cds.env = cds.env.for(cds)
   })
 
   let ret = cdsTest(...arguments)
