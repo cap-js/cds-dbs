@@ -1,8 +1,8 @@
 // Inject the provided plugins for cds.env resolving
 const plugins = {}
-try { plugins['@cap-js/sqlite'] = { impl: require.resolve('@cap-js/sqlite') } } catch {/* ignore */ }
-try { plugins['@cap-js/hana'] = { impl: require.resolve('@cap-js/hana') } } catch {/* ignore */ }
-try { plugins['@cap-js/postgres'] = { impl: require.resolve('@cap-js/postgres') } } catch {/* ignore */ }
+try { plugins['@cap-js/sqlite'] = { impl: require.resolve('@cap-js/sqlite').replace('/index.js', '/cds-plugin.js') } } catch {/* ignore */ }
+try { plugins['@cap-js/hana'] = { impl: require.resolve('@cap-js/hana').replace('/index.js', '/cds-plugin.js') } } catch {/* ignore */ }
+try { plugins['@cap-js/postgres'] = { impl: require.resolve('@cap-js/postgres').replace('/index.js', '/cds-plugin.js') } } catch {/* ignore */ }
 process.env.CDS_PLUGINS = JSON.stringify(plugins)
 
 try {
