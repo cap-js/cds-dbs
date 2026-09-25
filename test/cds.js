@@ -57,7 +57,8 @@ cds.test = Object.setPrototypeOf(function () {
       // Default to sqlite for packages without their own service
       process.env.CDS_REQUIRES_DB = JSON.stringify(require('@cap-js/sqlite/test/service'))
     }
-    cds.env = cds.env.for(cds)
+    // REVISIT: Why did we ever do that?
+    // cds.env = cds.env.for(cds)
   })
 
   let ret = cdsTest(...arguments)
