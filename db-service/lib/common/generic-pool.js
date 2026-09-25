@@ -106,6 +106,7 @@ constructor (factory, options = {}) {
     softIdleTimeoutMillis: -1,
     idleTimeoutMillis: 30000,
     acquireTimeoutMillis: null,
+    initialAcquireTimeoutMillis: null,
     destroyTimeoutMillis: null,
     fifo: false,
     min: 0,
@@ -138,7 +139,8 @@ constructor (factory, options = {}) {
 
   async acquire() {
     if (this._draining) throw new Error('Pool is draining and cannot accept new requests')
-    const request = new Request(this.options.acquireTimeoutMillis)
+    const timeout = this._all.size === 0 ? this.options.initialAcquireTimeoutMillis ?? this.options.acquireTimeoutMillis : this.options.acquireTimeoutMillis
+    const request = new Request(timeout)
     this._queue.push(request)
     this.#dispense()
     return request.promise

@@ -61,6 +61,7 @@
             "min": 0,
             "max": 10,
             "acquireTimeoutMillis": 10000,
+            "initialAcquireTimeoutMillis": 10000,
             "idleTimeoutMillis": 60000,
             "evictionRunIntervalMillis": 100000,
             "numTestsPerEvictionRun": 10,
