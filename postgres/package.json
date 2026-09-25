@@ -23,7 +23,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "test": "npm start && cds-test",
+    "test": "npm start && $(node ../test/env.js) && cds-test",
     "start": "docker compose -f pg-stack.yml up -d --wait"
   },
   "dependencies": {
