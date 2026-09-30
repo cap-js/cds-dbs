@@ -146,6 +146,28 @@ describe('Bookshop - Genres', () => {
     ])
   })
 
+  test('TopLevels with ExpandLevels mixing Levels=0 and Levels=1', async () => {
+    // Regression: DistanceTo calls inside an { xpr } wrapper were not processed by
+    // collectDistanceTo, causing SQLite to fail with "no such function: DistanceTo".
+    // Triggered when Levels + ExpandLevels has both a Levels=1 entry (goes into _rest)
+    // and a Levels=0 entry (goes into _level0), which wraps _rest in { xpr } for
+    // correct or/and precedence.
+    const res = await GET(
+      `/tree/Genres?$select=DrillState,ID,name&$apply=${topLevels}(HierarchyNodes=$root/GenreHierarchy,HierarchyQualifier='GenreHierarchy',NodeProperty='ID',Levels=2,ExpandLevels=[{"NodeID":"21","Levels":1},{"NodeID":"10","Levels":0}])`
+    )
+    expect(res).property('data').property('value').deep.eq([
+      { DrillState: 'collapsed', ID: 10, name: 'Fiction' },
+      { DrillState: 'expanded', ID: 20, name: 'Non-Fiction' },
+      { DrillState: 'expanded', ID: 21, name: 'Biography' },
+      { DrillState: 'leaf',     ID: 22, name: 'Autobiography' },
+      { DrillState: 'leaf',     ID: 23, name: 'Essay' },
+      { DrillState: 'leaf',     ID: 24, name: 'Speech' },
+      { DrillState: 'expanded', ID: 52, name: 'Historical' },
+      { DrillState: 'expanded', ID: 51, name: 'Medieval' },
+      { DrillState: 'leaf',     ID: 53, name: 'Contemporary' },
+    ])
+  })
+
   test.skip('perf', async () => {
     report(await perf.GET(`/tree/Genres`, { title: 'baseline' }))
     report(await perf.GET(`/tree/Genres?$select=DrillState,ID,name&$apply=${topLevels}(HierarchyNodes=$root/GenreHierarchy,HierarchyQualifier='GenreHierarchy',NodeProperty='ID',Levels=1)`, { title: 'TopLevels(1)' }))
