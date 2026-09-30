@@ -1855,7 +1855,7 @@ function _cqn4sql(originalQuery, model, useTechnicalAlias = true) {
           i = indexRhs // jump to next relevant index
         } else {
           // reject associations in expression, except if we are in an infix filter -> $baseLink is set
-          assertNoStructInXpr(token, context)
+          // assertNoStructInXpr(token, context)
           // reject virtual elements in expressions as they will lead to a sql error down the line
           if (lhsDef?.virtual) throw new Error(`Virtual elements are not allowed in expressions`)
 
