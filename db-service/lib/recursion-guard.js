@@ -24,7 +24,7 @@ function depthGuarded(fn) {
 
 // entry points (infer / cqn4sql): outermost call resets the counter, so a thrown
 // depth error can't leave it polluted for the next request
-function guardEntry(fn) {
+function guardEntry(fn) { // REVISIT: What are we doing here?
   return function (...args) {
     const outermost = recursionDepth === 0
     enterRecursion()

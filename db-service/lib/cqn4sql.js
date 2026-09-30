@@ -2970,7 +2970,7 @@ function setElementOnColumns(col, element) {
 
 function getPrimaryKey(entity, tableAlias = null) {
   const primaryKey = []
-  for (const k of Object.keys(entity.elements)) {
+  for (const k in entity.elements) {
     const e = entity.elements[k]
     if (e.key === true && !e.virtual && e.isAssociation !== true) {
       primaryKey.push({ ref: tableAlias ? [tableAlias, e.name] : [e.name] })
