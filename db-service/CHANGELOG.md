@@ -4,6 +4,14 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.1.2](https://github.com/cap-js/cds-dbs/compare/db-service-v3.1.1...db-service-v3.1.2) (2026-10-02)
+
+
+### Fixed
+
+* **cqn2pql:** handle parameterized views in from_args ([#1738](https://github.com/cap-js/cds-dbs/issues/1738)) ([8f4dc35](https://github.com/cap-js/cds-dbs/commit/8f4dc354022b861569eab014cb469d4259c91278))
+* Primary keys were not resolved for localized. entities ([#1749](https://github.com/cap-js/cds-dbs/issues/1749)) ([410eef8](https://github.com/cap-js/cds-dbs/commit/410eef8f4487bd8e0c8b5a34a3637959095e255b))
+
 ## [3.1.1](https://github.com/cap-js/cds-dbs/compare/db-service-v3.1.0...db-service-v3.1.1) (2026-09-15)
 
 
