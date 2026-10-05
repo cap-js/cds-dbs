@@ -14,9 +14,7 @@ class HANADriver {
     this.statements = {}
 
     // statement cache kill switch
-    if (cds.env.requires.db.hana_statements_cache === false) {
-      this._prepare = this._prepare_stmt
-    }
+    this._cache_statements = cds.env.requires.db.hana_statements_cache !== false
   }
 
   _prepare_stmt(sql) {
@@ -28,6 +26,22 @@ class HANADriver {
   }
 
   _prepare(sql, detached) {
+    // Statement cache disabled: restore pre-cache behavior — prepare a fresh statement for
+    // every execution and drop it on release (no pooling, no reuse). Detached statements
+    // (streaming) are dropped by their own stream-end cleanup, so leave them untouched.
+    if (!this._cache_statements) {
+      const prep = this._prepare_stmt(sql)
+      if (detached) return prep
+      return prep.then(stmt => {
+        stmt.release = () => {
+          if (stmt._dropped) return
+          stmt._dropped = true
+          try { stmt.drop() } catch { /* best-effort cleanup */ }
+        }
+        return stmt
+      })
+    }
+
     let prep = (!detached && this.statements[sql]) || this._prepare_stmt(sql)
 
     if (!detached) {
