@@ -260,6 +260,27 @@ describe('localized', () => {
       )
     `))
   })
+  it('resolves shorthand infix filter key for localized source', () => {
+    // localized entities carry their keys via `{__proto__: Books.elements, …}`,
+    // so the primary key must be resolved walking the prototype chain
+    const q = SELECT.localized`from bookshop.Books[201] { ID }`
+    let query = cqn4sql(q, model)
+    expect(cds.clone(query)).to.deep.equal(cds.ql`
+        SELECT from localized.bookshop.Books as $B { $B.ID }
+        where $B.ID = 201`)
+  })
+  it('resolves shorthand infix filter key for localized association target', () => {
+    const q = SELECT.localized`from bookshop.Authors { ID, books[201].title }`
+    let query = cqn4sql(q, model)
+    expect(cds.clone(query)).to.deep.equal(CQL(`
+        SELECT from bookshop.Authors as $A
+          left outer join localized.bookshop.Books as books
+            on books.author_ID = $A.ID and books.ID = 201
+        {
+          $A.ID,
+          books.title as books_title
+        }`))
+  })
   it('can handle redirections', () => {
     const q = SELECT.localized `from bookshop.Third[ID = 4711]:first { BUBU }`
     let query = cqn4sql(q, model)

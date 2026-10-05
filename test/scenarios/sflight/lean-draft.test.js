@@ -7,26 +7,21 @@ const sflight = path.resolve(__dirname, '../../../test/sflight')
 describe('draft tests', () => {
   const { GET, POST, PATCH, DELETE, expect } = cds.test(sflight)
 
-  cds.requires.auth.users = {
-    user1: { password: 'user1', roles: ['processor'] },
-    user2: { password: 'user2', roles: ['processor'] },
-  }
-
   beforeEach(async () => {
     await Promise.allSettled([
       DELETE(`/processor/Travel(TravelUUID='${NEW_DRAFT_TRAVELUUID}',IsActiveEntity=false)`, {
-        auth: { username: 'user1', password: 'user1' },
+        auth: { username: 'alice', password: '' },
       }),
       DELETE(`/processor/Travel(TravelUUID='${NEW_DRAFT_TRAVELUUID}',IsActiveEntity=false)`, {
-        auth: { username: 'user2', password: 'user2' },
+        auth: { username: 'carol', password: '' },
       }),
     ])
     await Promise.allSettled([
       DELETE(`/processor/Travel(TravelUUID='${EDIT_DRAFT_TRAVELUUID}',IsActiveEntity=false)`, {
-        auth: { username: 'user1', password: 'user1' },
+        auth: { username: 'alice', password: '' },
       }),
       DELETE(`/processor/Travel(TravelUUID='${EDIT_DRAFT_TRAVELUUID}',IsActiveEntity=false)`, {
-        auth: { username: 'user2', password: 'user2' },
+        auth: { username: 'carol', password: '' },
       }),
     ])
   })
@@ -34,7 +29,7 @@ describe('draft tests', () => {
   test('all', async () => {
     const res = await GET(
       '/processor/Travel?$count=true&$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$orderby=TravelID%20desc&$filter=(IsActiveEntity%20eq%20false%20or%20SiblingEntity/IsActiveEntity%20eq%20null)&$expand=DraftAdministrativeData($select=DraftUUID,InProcessByUser,LastChangedByUser),TravelStatus($select=code,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=30',
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.status).to.be.eq(200)
     expect(res.data['@odata.count']).to.be.greaterThan(30)
@@ -49,7 +44,7 @@ describe('draft tests', () => {
   test('forbidden orderby and filter in all', async () => {
     const res = await GET(
       '/processor/Travel?$count=true&$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$orderby=HasDraftEntity,HasActiveEntity,IsActiveEntity,TravelID%20desc&$filter=(IsActiveEntity%20eq%20false%20or%20SiblingEntity/IsActiveEntity%20eq%20null) and HasActiveEntity eq true and IsActiveEntity eq false and HasDraftEntity eq true&$expand=DraftAdministrativeData($select=DraftUUID,InProcessByUser,LastChangedByUser),TravelStatus($select=code,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=30',
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.status).to.be.eq(200)
     expect(res.data['@odata.count']).to.be.greaterThan(30)
@@ -65,11 +60,11 @@ describe('draft tests', () => {
     await POST(
       '/processor/Travel',
       { TravelUUID: NEW_DRAFT_TRAVELUUID },
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     const res = await GET(
       '/processor/Travel?$count=true&$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$orderby=TravelID%20desc&$filter=(IsActiveEntity%20eq%20false%20or%20SiblingEntity/IsActiveEntity%20eq%20null)&$expand=DraftAdministrativeData($select=DraftUUID,InProcessByUser,LastChangedByUser),TravelStatus($select=code,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=30',
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.status).to.be.eq(200)
     expect(res.data['@odata.count']).to.be.greaterThan(30)
@@ -79,25 +74,25 @@ describe('draft tests', () => {
     await POST(
       `/processor/Travel(TravelUUID='${EDIT_DRAFT_TRAVELUUID}',IsActiveEntity=true)/TravelService.draftEdit?$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$expand=DraftAdministrativeData($select=DraftIsCreatedByMe,DraftUUID,InProcessByUser),TravelStatus($select=code,createDeleteHidden,fieldControl,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)`,
       { PreserveChanges: true },
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     const res = await GET(
       '/processor/Travel?$count=true&$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$orderby=TravelID%20desc&$filter=(IsActiveEntity%20eq%20false%20or%20SiblingEntity/IsActiveEntity%20eq%20null)&$expand=DraftAdministrativeData($select=DraftUUID,InProcessByUser,LastChangedByUser),TravelStatus($select=code,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=30',
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.status).to.be.eq(200)
     expect(res.data['@odata.count']).to.be.greaterThan(30)
   })
 
-  test('edit user2 then all', async () => {
+  test('edit carol then all', async () => {
     await POST(
       `/processor/Travel(TravelUUID='${EDIT_DRAFT_TRAVELUUID}',IsActiveEntity=true)/TravelService.draftEdit?$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$expand=DraftAdministrativeData($select=DraftIsCreatedByMe,DraftUUID,InProcessByUser),TravelStatus($select=code,createDeleteHidden,fieldControl,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)`,
       { PreserveChanges: true },
-      { auth: { username: 'user2', password: 'user2' } },
+      { auth: { username: 'carol', password: '' } },
     )
     let res = await GET(
       '/processor/Travel?$count=true&$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$orderby=TravelID%20desc&$filter=(IsActiveEntity%20eq%20false%20or%20SiblingEntity/IsActiveEntity%20eq%20null)&$expand=DraftAdministrativeData($select=DraftUUID,InProcessByUser,LastChangedByUser),TravelStatus($select=code,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=30',
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.status).to.be.eq(200)
     expect(res.data['@odata.count']).to.be.greaterThan(30)
@@ -108,7 +103,7 @@ describe('draft tests', () => {
 
     res = await GET(
       `/processor/Travel?$count=true&$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$orderby=TravelID%20desc&$filter=(IsActiveEntity%20eq%20false%20or%20SiblingEntity/IsActiveEntity%20eq%20null)%20and%20TravelUUID%20eq%20'${EDIT_DRAFT_TRAVELUUID}'&$expand=DraftAdministrativeData($select=DraftUUID,InProcessByUser,LastChangedByUser),TravelStatus($select=code,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=30`,
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.status).to.be.eq(200)
     expect(res.data['@odata.count']).eqls(1)
@@ -122,7 +117,7 @@ describe('draft tests', () => {
   test('all hiding drafts', async () => {
     const res = await GET(
       '/processor/Travel?$count=true&$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$orderby=TravelID%20desc&$filter=IsActiveEntity%20eq%20true&$expand=DraftAdministrativeData($select=DraftUUID,InProcessByUser,LastChangedByUser),TravelStatus($select=code,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=30',
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     res.data.value.forEach(row => {
       expect(row.IsActiveEntity).to.be.eq(true)
@@ -137,11 +132,11 @@ describe('draft tests', () => {
     await POST(
       '/processor/Travel',
       { TravelUUID: NEW_DRAFT_TRAVELUUID },
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     const res = await GET(
       '/processor/Travel?$count=true&$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$orderby=TravelID%20desc&$filter=IsActiveEntity%20eq%20true&$expand=DraftAdministrativeData($select=DraftUUID,InProcessByUser,LastChangedByUser),TravelStatus($select=code,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=30',
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     res.data.value.forEach(row => {
       expect(row.IsActiveEntity).to.be.eq(true)
@@ -156,11 +151,11 @@ describe('draft tests', () => {
     await POST(
       `/processor/Travel(TravelUUID='${EDIT_DRAFT_TRAVELUUID}',IsActiveEntity=true)/TravelService.draftEdit?$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$expand=DraftAdministrativeData($select=DraftIsCreatedByMe,DraftUUID,InProcessByUser),TravelStatus($select=code,createDeleteHidden,fieldControl,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)`,
       { PreserveChanges: true },
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     const res = await GET(
       '/processor/Travel?$count=true&$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$orderby=TravelID%20desc&$filter=IsActiveEntity%20eq%20true&$expand=DraftAdministrativeData($select=DraftUUID,InProcessByUser,LastChangedByUser),TravelStatus($select=code,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=30',
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     res.data.value.forEach(row => {
       expect(row.IsActiveEntity).to.be.eq(true)
@@ -174,7 +169,7 @@ describe('draft tests', () => {
   test('own draft', async () => {
     const res = await GET(
       '/processor/Travel?$count=true&$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$orderby=TravelID%20desc&$filter=IsActiveEntity%20eq%20false&$expand=DraftAdministrativeData($select=DraftUUID,InProcessByUser,LastChangedByUser),TravelStatus($select=code,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=30',
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.data.value.length).to.be.eq(0)
   })
@@ -183,12 +178,12 @@ describe('draft tests', () => {
     await POST(
       '/processor/Travel',
       { TravelUUID: NEW_DRAFT_TRAVELUUID },
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
 
     const res = await GET(
       '/processor/Travel?$count=true&$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$orderby=TravelID%20desc&$filter=IsActiveEntity%20eq%20false&$expand=DraftAdministrativeData($select=DraftUUID,InProcessByUser,LastChangedByUser),TravelStatus($select=code,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=30',
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.data.value.length).to.be.eq(1)
     expect(res.data.value[0]).to.containSubset({
@@ -205,8 +200,8 @@ describe('draft tests', () => {
       to_Agency_AgencyID: null,
       to_Customer_CustomerID: null,
       DraftAdministrativeData: {
-        InProcessByUser: 'user1',
-        LastChangedByUser: 'user1',
+        InProcessByUser: 'alice',
+        LastChangedByUser: 'alice',
       },
       TravelStatus: { code: 'O', name: 'Open' },
       to_Agency: null,
@@ -221,12 +216,12 @@ describe('draft tests', () => {
     await POST(
       `/processor/Travel(TravelUUID='${EDIT_DRAFT_TRAVELUUID}',IsActiveEntity=true)/TravelService.draftEdit?$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$expand=DraftAdministrativeData($select=DraftIsCreatedByMe,DraftUUID,InProcessByUser),TravelStatus($select=code,createDeleteHidden,fieldControl,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)`,
       { PreserveChanges: true },
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
 
     const res = await GET(
       '/processor/Travel?$count=true&$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$orderby=TravelID%20desc&$filter=IsActiveEntity%20eq%20false&$expand=DraftAdministrativeData($select=DraftUUID,InProcessByUser,LastChangedByUser),TravelStatus($select=code,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=30',
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.data.value.length).to.be.eq(1)
     expect(res.data.value[0]).to.containSubset({
@@ -243,8 +238,8 @@ describe('draft tests', () => {
       to_Agency_AgencyID: '070022',
       to_Customer_CustomerID: '000506',
       DraftAdministrativeData: {
-        InProcessByUser: 'user1',
-        LastChangedByUser: 'user1',
+        InProcessByUser: 'alice',
+        LastChangedByUser: 'alice',
       },
       TravelStatus: { code: 'O', name: 'Open' },
       to_Agency: { AgencyID: '070022', Name: 'Caribian Dreams' },
@@ -255,30 +250,30 @@ describe('draft tests', () => {
     expect(res.data.value[0].DraftAdministrativeData.DraftUUID).to.be.a('string')
   })
 
-  test('new user2 then own draft', async () => {
+  test('new carol then own draft', async () => {
     await POST(
       '/processor/Travel',
       { TravelUUID: NEW_DRAFT_TRAVELUUID },
-      { auth: { username: 'user2', password: 'user2' } },
+      { auth: { username: 'carol', password: '' } },
     )
 
     const res = await GET(
       '/processor/Travel?$count=true&$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$orderby=TravelID%20desc&$filter=IsActiveEntity%20eq%20false&$expand=DraftAdministrativeData($select=DraftUUID,InProcessByUser,LastChangedByUser),TravelStatus($select=code,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=30',
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.data.value.length).to.be.eq(0)
   })
 
-  test('edit user2 then own draft', async () => {
+  test('edit carol then own draft', async () => {
     await POST(
       `/processor/Travel(TravelUUID='${EDIT_DRAFT_TRAVELUUID}',IsActiveEntity=true)/TravelService.draftEdit?$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$expand=DraftAdministrativeData($select=DraftIsCreatedByMe,DraftUUID,InProcessByUser),TravelStatus($select=code,createDeleteHidden,fieldControl,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)`,
       { PreserveChanges: true },
-      { auth: { username: 'user2', password: 'user2' } },
+      { auth: { username: 'carol', password: '' } },
     )
 
     const res = await GET(
       '/processor/Travel?$count=true&$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$orderby=TravelID%20desc&$filter=IsActiveEntity%20eq%20false&$expand=DraftAdministrativeData($select=DraftUUID,InProcessByUser,LastChangedByUser),TravelStatus($select=code,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=30',
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.data.value.length).to.be.eq(0)
   })
@@ -286,7 +281,7 @@ describe('draft tests', () => {
   test('locked by another user', async () => {
     const res = await GET(
       "/processor/Travel?$count=true&$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$orderby=TravelID%20desc&$filter=IsActiveEntity%20eq%20true%20and%20SiblingEntity/IsActiveEntity%20eq%20null%20and%20DraftAdministrativeData/InProcessByUser%20ne%20''%20and%20DraftAdministrativeData/InProcessByUser%20ne%20null&$expand=DraftAdministrativeData($select=DraftUUID,InProcessByUser,LastChangedByUser),TravelStatus($select=code,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=30",
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.data.value.length).to.be.eq(0)
   })
@@ -295,24 +290,24 @@ describe('draft tests', () => {
     await POST(
       '/processor/Travel',
       { TravelUUID: NEW_DRAFT_TRAVELUUID },
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     const res = await GET(
       "/processor/Travel?$count=true&$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$orderby=TravelID%20desc&$filter=IsActiveEntity%20eq%20true%20and%20SiblingEntity/IsActiveEntity%20eq%20null%20and%20DraftAdministrativeData/InProcessByUser%20ne%20''%20and%20DraftAdministrativeData/InProcessByUser%20ne%20null&$expand=DraftAdministrativeData($select=DraftUUID,InProcessByUser,LastChangedByUser),TravelStatus($select=code,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=30",
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.data.value.length).to.be.eq(0)
   })
 
-  test('new user2 then locked by another user', async () => {
+  test('new carol then locked by another user', async () => {
     await POST(
       '/processor/Travel',
       { TravelUUID: NEW_DRAFT_TRAVELUUID },
-      { auth: { username: 'user2', password: 'user2' } },
+      { auth: { username: 'carol', password: '' } },
     )
     const res = await GET(
       "/processor/Travel?$count=true&$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$orderby=TravelID%20desc&$filter=IsActiveEntity%20eq%20true%20and%20SiblingEntity/IsActiveEntity%20eq%20null%20and%20DraftAdministrativeData/InProcessByUser%20ne%20''%20and%20DraftAdministrativeData/InProcessByUser%20ne%20null&$expand=DraftAdministrativeData($select=DraftUUID,InProcessByUser,LastChangedByUser),TravelStatus($select=code,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=30",
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.data.value.length).to.be.eq(0)
   })
@@ -321,24 +316,24 @@ describe('draft tests', () => {
     await POST(
       `/processor/Travel(TravelUUID='${EDIT_DRAFT_TRAVELUUID}',IsActiveEntity=true)/TravelService.draftEdit?$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$expand=DraftAdministrativeData($select=DraftIsCreatedByMe,DraftUUID,InProcessByUser),TravelStatus($select=code,createDeleteHidden,fieldControl,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)`,
       { PreserveChanges: true },
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     const res = await GET(
       "/processor/Travel?$count=true&$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$orderby=TravelID%20desc&$filter=IsActiveEntity%20eq%20true%20and%20SiblingEntity/IsActiveEntity%20eq%20null%20and%20DraftAdministrativeData/InProcessByUser%20ne%20''%20and%20DraftAdministrativeData/InProcessByUser%20ne%20null&$expand=DraftAdministrativeData($select=DraftUUID,InProcessByUser,LastChangedByUser),TravelStatus($select=code,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=30",
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.data.value.length).to.be.eq(0)
   })
 
-  test('edit user2 then locked by another user', async () => {
+  test('edit carol then locked by another user', async () => {
     await POST(
       `/processor/Travel(TravelUUID='${EDIT_DRAFT_TRAVELUUID}',IsActiveEntity=true)/TravelService.draftEdit?$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$expand=DraftAdministrativeData($select=DraftIsCreatedByMe,DraftUUID,InProcessByUser),TravelStatus($select=code,createDeleteHidden,fieldControl,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)`,
       { PreserveChanges: true },
-      { auth: { username: 'user2', password: 'user2' } },
+      { auth: { username: 'carol', password: '' } },
     )
     let res = await GET(
       "/processor/Travel?$count=true&$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$orderby=TravelID%20desc&$filter=IsActiveEntity%20eq%20true%20and%20SiblingEntity/IsActiveEntity%20eq%20null%20and%20DraftAdministrativeData/InProcessByUser%20ne%20''%20and%20DraftAdministrativeData/InProcessByUser%20ne%20null&$expand=DraftAdministrativeData($select=DraftUUID,InProcessByUser,LastChangedByUser),TravelStatus($select=code,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=30",
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.data.value.length).to.be.eq(1)
     expect(res.data.value[0]).to.containSubset({
@@ -357,8 +352,8 @@ describe('draft tests', () => {
       to_Agency: { AgencyID: '070022', Name: 'Caribian Dreams' },
       to_Customer: { CustomerID: '000506', LastName: 'Moyano' },
       DraftAdministrativeData: {
-        InProcessByUser: 'user2',
-        LastChangedByUser: 'user2',
+        InProcessByUser: 'carol',
+        LastChangedByUser: 'carol',
       },
       IsActiveEntity: true,
       HasDraftEntity: true,
@@ -370,35 +365,35 @@ describe('draft tests', () => {
   test('unsaved changes by another user', async () => {
     const res = await GET(
       "/processor/Travel?$count=true&$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$orderby=TravelID%20desc&$filter=IsActiveEntity%20eq%20true%20and%20SiblingEntity/IsActiveEntity%20eq%20null%20and%20DraftAdministrativeData/InProcessByUser%20eq%20''&$expand=DraftAdministrativeData($select=DraftUUID,InProcessByUser,LastChangedByUser),TravelStatus($select=code,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=30",
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.data.value.length).to.be.eq(0)
   })
 
-  test('new user2 then unsaved changes by another user', async () => {
+  test('new carol then unsaved changes by another user', async () => {
     await POST(
       '/processor/Travel',
       { TravelUUID: NEW_DRAFT_TRAVELUUID },
-      { auth: { username: 'user2', password: 'user2' } },
+      { auth: { username: 'carol', password: '' } },
     )
     const res = await GET(
       "/processor/Travel?$count=true&$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$orderby=TravelID%20desc&$filter=IsActiveEntity%20eq%20true%20and%20SiblingEntity/IsActiveEntity%20eq%20null%20and%20DraftAdministrativeData/InProcessByUser%20eq%20''&$expand=DraftAdministrativeData($select=DraftUUID,InProcessByUser,LastChangedByUser),TravelStatus($select=code,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=30",
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.data.value.length).to.be.eq(0)
   })
 
-  test('edit user2 then unsaved changes by another user', async () => {
+  test('edit carol then unsaved changes by another user', async () => {
     let res = await POST(
       `/processor/Travel(TravelUUID='${EDIT_DRAFT_TRAVELUUID}',IsActiveEntity=true)/TravelService.draftEdit?$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$expand=DraftAdministrativeData($select=DraftIsCreatedByMe,DraftUUID,InProcessByUser),TravelStatus($select=code,createDeleteHidden,fieldControl,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)`,
       { PreserveChanges: true },
-      { auth: { username: 'user2', password: 'user2' } },
+      { auth: { username: 'carol', password: '' } },
     )
     const DraftUUID = res.data.DraftAdministrativeData.DraftUUID
 
     res = await GET(
       "/processor/Travel?$count=true&$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$orderby=TravelID%20desc&$filter=IsActiveEntity%20eq%20true%20and%20SiblingEntity/IsActiveEntity%20eq%20null%20and%20DraftAdministrativeData/InProcessByUser%20eq%20''&$expand=DraftAdministrativeData($select=DraftUUID,InProcessByUser,LastChangedByUser),TravelStatus($select=code,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=30",
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.data.value.length).to.be.eq(0)
 
@@ -410,12 +405,12 @@ describe('draft tests', () => {
 
     res = await GET(
       `/processor/Travel(TravelUUID='${EDIT_DRAFT_TRAVELUUID}',IsActiveEntity=false)/DraftAdministrativeData`,
-      { auth: { username: 'user2', password: 'user2' } },
+      { auth: { username: 'carol', password: '' } },
     )
     expect(res.data.InProcessByUser).to.be.eq('')
     res = await GET(
       "/processor/Travel?$count=true&$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$orderby=TravelID%20desc&$filter=IsActiveEntity%20eq%20true%20and%20SiblingEntity/IsActiveEntity%20eq%20null%20and%20DraftAdministrativeData/InProcessByUser%20eq%20''&$expand=DraftAdministrativeData($select=DraftUUID,InProcessByUser,LastChangedByUser),TravelStatus($select=code,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=30",
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.data.value.length).to.be.eq(1)
   })
@@ -423,7 +418,7 @@ describe('draft tests', () => {
   test('unchanged', async () => {
     const res = await GET(
       '/processor/Travel?$count=true&$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$orderby=TravelID%20desc&$filter=IsActiveEntity%20eq%20true%20and%20HasDraftEntity%20eq%20false&$expand=DraftAdministrativeData($select=DraftUUID,InProcessByUser,LastChangedByUser),TravelStatus($select=code,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=30',
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.status).to.be.eq(200)
     expect(res.data.value[0]).to.containSubset({
@@ -457,11 +452,11 @@ describe('draft tests', () => {
     await POST(
       '/processor/Travel',
       { TravelUUID: NEW_DRAFT_TRAVELUUID },
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     const res = await GET(
       '/processor/Travel?$count=true&$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$orderby=TravelID%20desc&$filter=IsActiveEntity%20eq%20true%20and%20HasDraftEntity%20eq%20false&$expand=DraftAdministrativeData($select=DraftUUID,InProcessByUser,LastChangedByUser),TravelStatus($select=code,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=30',
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.status).to.be.eq(200)
     for (const row of res.data.value) {
@@ -474,7 +469,7 @@ describe('draft tests', () => {
   test('refresh on object page', async () => {
     const res = await GET(
       '/processor/Travel?$filter=TravelID%20eq%204133%20and%20(IsActiveEntity%20eq%20false%20or%20SiblingEntity/IsActiveEntity%20eq%20null)&$skip=0&$top=2',
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.status).to.be.eq(200)
     expect(res.data.value.length).to.be.eq(1)
@@ -486,7 +481,7 @@ describe('draft tests', () => {
   test('direct access active', async () => {
     const res = await GET(
       "/processor/Travel(TravelUUID='52657221A8E4645C17002DF03754AB66',IsActiveEntity=true)?$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$expand=DraftAdministrativeData($select=DraftIsCreatedByMe,DraftUUID,InProcessByUser),TravelStatus($select=code,createDeleteHidden,fieldControl,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)",
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.status).to.be.eq(200)
     expect(res.data).to.containSubset({
@@ -514,7 +509,7 @@ describe('draft tests', () => {
   test('direct access active with navigation', async () => {
     const res = await GET(
       "/processor/Travel(TravelUUID='76757221A8E4645C17002DF03754AB66',IsActiveEntity=true)/TravelStatus",
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.status).to.be.eq(200)
     expect(res.data).to.containSubset({
@@ -531,7 +526,7 @@ describe('draft tests', () => {
     try {
       await GET(
         "/processor/Travel(TravelUUID='76757221A8E4645C17002DF03754AB66',IsActiveEntity=true)/DraftAdministrativeData",
-        { auth: { username: 'user1', password: 'user1' } },
+        { auth: { username: 'alice', password: '' } },
       )
       expect('should not be found').to.be.eq(true)
     } catch (e) {
@@ -542,7 +537,7 @@ describe('draft tests', () => {
   test('nested direct access', async () => {
     const res = await GET(
       "/processor/Travel(TravelUUID='76757221A8E4645C17002DF03754AB66',IsActiveEntity=true)/to_Booking(BookingUUID='3A997221A8E4645C17002DF03754AB66',IsActiveEntity=true)/to_BookSupplement?$count=true&$select=BookSupplUUID,BookingSupplementID,CurrencyCode_code,IsActiveEntity,Price,to_Supplement_SupplementID&$orderby=BookingSupplementID&$expand=to_Supplement($select=Description,SupplementID),to_Travel($select=IsActiveEntity,TravelUUID;$expand=TravelStatus($select=code,fieldControl))&$skip=0&$top=10",
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.status).to.be.eq(200)
     expect(res.data.value.length).to.be.eq(1)
@@ -561,7 +556,7 @@ describe('draft tests', () => {
   test('nested list of direct access', async () => {
     const res = await GET(
       "/processor/Travel(TravelUUID='76757221A8E4645C17002DF03754AB66',IsActiveEntity=true)/to_Booking?$count=true&$select=BookingDate,BookingID,BookingStatus_code,BookingUUID,ConnectionID,CurrencyCode_code,FlightDate,FlightPrice,HasActiveEntity,HasDraftEntity,IsActiveEntity,to_Carrier_AirlineID,to_Customer_CustomerID&$orderby=BookingID&$expand=BookingStatus($select=code,name),to_Carrier($select=AirlineID,AirlinePicURL,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=10",
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.status).to.be.eq(200)
     expect(res.data.value[0]).to.containSubset({
@@ -592,7 +587,7 @@ describe('draft tests', () => {
   test('direct access active child', async () => {
     const res = await GET(
       "/processor/Travel(TravelUUID='52657221A8E4645C17002DF03754AB66',IsActiveEntity=true)/to_Booking(BookingUUID='7A757221A8E4645C17002DF03754AB66',IsActiveEntity=true)?$select=BookingStatus_code,to_Carrier_AirlineID,to_Customer_CustomerID",
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.status).to.be.eq(200)
     expect(res.data).to.containSubset({
@@ -607,7 +602,7 @@ describe('draft tests', () => {
     let res = await POST(
       '/processor/Travel',
       { TravelUUID: NEW_DRAFT_TRAVELUUID },
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.status).to.be.eq(201)
     expect(res.data).to.containSubset({
@@ -630,7 +625,7 @@ describe('draft tests', () => {
     res = await POST(
       `/processor/Travel(TravelUUID='${TravelUUID}',IsActiveEntity=false)/to_Booking`,
       {},
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.status).to.be.eq(201)
     expect(res.data).to.containSubset({
@@ -653,7 +648,7 @@ describe('draft tests', () => {
 
     res = await GET(
       `/processor/Travel(TravelUUID='${TravelUUID}',IsActiveEntity=false)/to_Booking(BookingUUID='${BookingUUID}',IsActiveEntity=false)?$select=BookingDate,BookingID,BookingStatus_code,BookingUUID,ConnectionID,CurrencyCode_code,FlightDate,FlightPrice,HasActiveEntity,HasDraftEntity,IsActiveEntity,to_Carrier_AirlineID,to_Customer_CustomerID&$expand=BookingStatus($select=code,name),to_Carrier($select=AirlineID,Name),to_Customer($select=CustomerID,LastName),to_Travel($select=IsActiveEntity,TravelUUID;$expand=TravelStatus($select=code,createDeleteHidden,fieldControl,insertDeleteRestriction))`,
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.data).to.containSubset({
       // BookingID: 1,
@@ -679,7 +674,7 @@ describe('draft tests', () => {
     res = await POST(
       `/processor/Travel(TravelUUID='${TravelUUID}',IsActiveEntity=false)/to_Booking(BookingUUID='${BookingUUID}',IsActiveEntity=false)/to_BookSupplement`,
       {},
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
 
     expect(res.data).to.containSubset({
@@ -701,12 +696,12 @@ describe('draft tests', () => {
     let res = await POST(
       `/processor/Travel(TravelUUID='${EDIT_DRAFT_TRAVELUUID}',IsActiveEntity=true)/TravelService.draftEdit?$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$expand=DraftAdministrativeData($select=DraftIsCreatedByMe,DraftUUID,InProcessByUser),TravelStatus($select=code,createDeleteHidden,fieldControl,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)`,
       { PreserveChanges: true },
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.status).to.be.eq(201)
     const TravelUUID = res.data.TravelUUID
     res = await GET(`/processor/Travel(TravelUUID='${TravelUUID}',IsActiveEntity=false)/SiblingEntity`, {
-      auth: { username: 'user1', password: 'user1' },
+      auth: { username: 'alice', password: '' },
     })
     expect(res.status).to.be.eq(200)
     const row = res.data
@@ -719,34 +714,34 @@ describe('draft tests', () => {
     let res = await POST(
       '/processor/Travel',
       { TravelUUID: NEW_DRAFT_TRAVELUUID },
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     const TravelUUID = res.data.TravelUUID
     expect(res.status).to.be.eq(201)
     res = await GET(
       `/processor/Travel(TravelUUID='${TravelUUID}',IsActiveEntity=false)/DraftAdministrativeData?$select=DraftUUID,LastChangeDateTime`,
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.status).to.be.eq(200)
     expect(res.data.DraftUUID).to.be.a('string')
     expect(res.data.LastChangeDateTime).to.be.a('string')
     res = await GET(
       `/processor/Travel(TravelUUID='${TravelUUID}',IsActiveEntity=true)/DraftAdministrativeData?$select=DraftUUID,LastChangeDateTime`,
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.data.DraftUUID).to.be.a('string')
     expect(res.data.LastChangeDateTime).to.be.a('string')
     expect(res.status).to.be.eq(200)
     res = await GET(`/processor/Travel(TravelUUID='${TravelUUID}',IsActiveEntity=false)/SiblingEntity`, {
-      auth: { username: 'user1', password: 'user1' },
+      auth: { username: 'alice', password: '' },
     })
     expect(res.status).to.be.eq(204)
     res = await GET(`/processor/Travel(TravelUUID='${TravelUUID}',IsActiveEntity=true)/DraftAdministrativeData`, {
-      auth: { username: 'user1', password: 'user1' },
+      auth: { username: 'alice', password: '' },
     })
     expect(res.data).to.containSubset({
-      LastChangedByUser: 'user1',
-      CreatedByUser: 'user1',
+      LastChangedByUser: 'alice',
+      CreatedByUser: 'alice',
       DraftIsCreatedByMe: true,
       DraftIsProcessedByMe: true,
     })
@@ -759,7 +754,7 @@ describe('draft tests', () => {
     let res = await POST(
       '/processor/Travel',
       { TravelUUID: NEW_DRAFT_TRAVELUUID },
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     const TravelUUID = res.data.TravelUUID
     expect(res.status).to.be.eq(201)
@@ -768,7 +763,7 @@ describe('draft tests', () => {
       {
         to_Agency_AgencyID: '070003',
       },
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.status).to.be.eq(200)
     expect(res.data).to.containSubset({
@@ -781,7 +776,7 @@ describe('draft tests', () => {
       {
         BookingFee: '12',
       },
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.data).to.containSubset({
       BookingFee: '12.000',
@@ -796,13 +791,13 @@ describe('draft tests', () => {
         EndDate: '2032-12-22',
         to_Customer_CustomerID: '000008',
       },
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.status).to.be.eq(200)
     res = await POST(
       `/processor/Travel(TravelUUID='${TravelUUID}',IsActiveEntity=false)/TravelService.draftPrepare`,
       {},
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.status).to.be.eq(200)
     expect(res.data).to.containSubset({
@@ -824,12 +819,12 @@ describe('draft tests', () => {
     res = await POST(
       `/processor/Travel(TravelUUID='${TravelUUID}',IsActiveEntity=false)/TravelService.draftActivate?$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$expand=DraftAdministrativeData($select=DraftIsCreatedByMe,DraftUUID,InProcessByUser),TravelStatus($select=code,createDeleteHidden,fieldControl,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)`,
       {},
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.status).to.be.eq(201)
     res = await GET(
       `/processor/Travel(TravelUUID='${TravelUUID}',IsActiveEntity=true)?$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$expand=DraftAdministrativeData($select=DraftIsCreatedByMe,DraftUUID,InProcessByUser),TravelStatus($select=code,createDeleteHidden,fieldControl,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)`,
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.data).to.containSubset({
       BeginDate: '2032-10-22',
@@ -852,7 +847,7 @@ describe('draft tests', () => {
     })
     const afterActBooking = await GET(
       `/processor/Travel(TravelUUID='${TravelUUID}',IsActiveEntity=true)/to_Booking?$count=true&$select=BookingDate,BookingID,BookingStatus_code,BookingUUID,ConnectionID,CurrencyCode_code,FlightDate,FlightPrice,HasActiveEntity,HasDraftEntity,IsActiveEntity,to_Carrier_AirlineID,to_Customer_CustomerID&$orderby=BookingID&$expand=BookingStatus($select=code,name),to_Carrier($select=AirlineID,AirlinePicURL,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=10`,
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(afterActBooking.data.value.length).to.be.eq(0)
   })
@@ -861,7 +856,7 @@ describe('draft tests', () => {
     let res = await POST(
       `/processor/Travel(TravelUUID='${EDIT_DRAFT_TRAVELUUID}',IsActiveEntity=true)/TravelService.draftEdit?$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$expand=DraftAdministrativeData($select=DraftIsCreatedByMe,DraftUUID,InProcessByUser),TravelStatus($select=code,createDeleteHidden,fieldControl,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)`,
       { PreserveChanges: true },
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     const TravelUUID = res.data.TravelUUID
     expect(res.status).to.be.eq(201)
@@ -872,18 +867,18 @@ describe('draft tests', () => {
         EndDate: '2032-12-22',
         to_Customer_CustomerID: '000008',
       },
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     res = await POST(
       `/processor/Travel(TravelUUID='${TravelUUID}',IsActiveEntity=false)/TravelService.draftPrepare`,
       {},
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.status).to.be.eq(200)
     res = await POST(
       `/processor/Travel(TravelUUID='${TravelUUID}',IsActiveEntity=false)/TravelService.draftActivate?$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$expand=DraftAdministrativeData($select=DraftIsCreatedByMe,DraftUUID,InProcessByUser),TravelStatus($select=code,createDeleteHidden,fieldControl,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)`,
       {},
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     // 200 in cds 7, 201 in cds 6
     expect(res.status).to.be.oneOf([200, 201])
@@ -893,16 +888,16 @@ describe('draft tests', () => {
     let res = await POST(
       `/processor/Travel(TravelUUID='${EDIT_DRAFT_TRAVELUUID}',IsActiveEntity=true)/TravelService.draftEdit?$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$expand=DraftAdministrativeData($select=DraftIsCreatedByMe,DraftUUID,InProcessByUser),TravelStatus($select=code,createDeleteHidden,fieldControl,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)`,
       { PreserveChanges: true },
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.status).to.be.eq(201)
     const TravelUUID = res.data.TravelUUID
     res = await DELETE(`/processor/Travel(TravelUUID='${TravelUUID}',IsActiveEntity=false)`, {
-      auth: { username: 'user1', password: 'user1' },
+      auth: { username: 'alice', password: '' },
     })
     expect(res.status).to.be.eq(204)
     res = await GET(`/processor/Travel(TravelUUID='${TravelUUID}',IsActiveEntity=true)`, {
-      auth: { username: 'user1', password: 'user1' },
+      auth: { username: 'alice', password: '' },
     })
     expect(res.status).to.be.eq(200)
     expect(res.data).to.containSubset({
@@ -926,19 +921,19 @@ describe('draft tests', () => {
     let res = await POST(
       '/processor/Travel',
       { TravelUUID: NEW_DRAFT_TRAVELUUID },
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.status).to.be.eq(201)
     const TravelUUID = res.data.TravelUUID
     res = await DELETE(`/processor/Travel(TravelUUID='${TravelUUID}',IsActiveEntity=false)`, {
-      auth: { username: 'user1', password: 'user1' },
+      auth: { username: 'alice', password: '' },
     })
     expect(res.status).to.be.eq(204)
   })
 
   test('discard active', async () => {
     const res = await DELETE("/processor/Travel(TravelUUID='3C757221A8E4645C17002DF03754AB66',IsActiveEntity=true)", {
-      auth: { username: 'user1', password: 'user1' },
+      auth: { username: 'alice', password: '' },
     })
     expect(res.status).to.be.eq(204)
   })
@@ -947,14 +942,14 @@ describe('draft tests', () => {
     let res = await POST(
       `/processor/Travel(TravelUUID='${EDIT_DRAFT_TRAVELUUID}',IsActiveEntity=true)/TravelService.draftEdit?$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$expand=DraftAdministrativeData($select=DraftIsCreatedByMe,DraftUUID,InProcessByUser),TravelStatus($select=code,createDeleteHidden,fieldControl,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)`,
       { PreserveChanges: true },
-      { auth: { username: 'user1', password: 'user1' } },
+      { auth: { username: 'alice', password: '' } },
     )
     expect(res.status).to.be.eq(201)
     try {
       res = await POST(
         `/processor/Travel(TravelUUID='${EDIT_DRAFT_TRAVELUUID}',IsActiveEntity=true)/TravelService.draftEdit?$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$expand=DraftAdministrativeData($select=DraftIsCreatedByMe,DraftUUID,InProcessByUser),TravelStatus($select=code,createDeleteHidden,fieldControl,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)`,
         { PreserveChanges: true },
-        { auth: { username: 'user1', password: 'user1' } },
+        { auth: { username: 'alice', password: '' } },
       )
       expect(1).to.be.eq('Editing an active entity with an existing draft must fail')
     } catch (e) {
