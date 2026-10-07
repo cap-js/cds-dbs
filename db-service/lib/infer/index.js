@@ -577,6 +577,10 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
         if ((!definition.target && definition.kind !== 'entity') || (!inFrom && !inCalcElement && danglingFilter))
           throw new Error('A filter can only be provided when navigating along associations')
         if (!inFrom && !arg.expand)defineProperty(arg, 'isJoinRelevant', true)
+        // The filter of an `expand` becomes the `where` of the expand subquery.
+        // Just like `where exists <assoc>[…]` semi-joins, path expressions in it are
+        // resolved via joins inside that subquery, so they must not be rejected here.
+        const filterOfExpand = !!arg.expand
         let skipJoinsForFilter = false
         step.where.forEach(token => {
           if (token === 'exists') {
@@ -587,7 +591,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
             // because they will become part of an EXISTS subquery
             inferArg(token, false, arg.$refLinks[i], {
               ...context,
-              inExists: skipJoinsForFilter || inExists || (inFrom && !danglingFilter),
+              inExists: skipJoinsForFilter || inExists || filterOfExpand || (inFrom && !danglingFilter),
               inXpr: !!token.xpr,
               inInfixFilter: true,
               inFrom,
@@ -597,7 +601,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
               applyToFunctionArgs(token.args, inferArg, [
                 false,
                 arg.$refLinks[i],
-                { inExists: skipJoinsForFilter || inExists || (inFrom && !danglingFilter), inXpr: true, inInfixFilter: true, inFrom },
+                { inExists: skipJoinsForFilter || inExists || filterOfExpand || (inFrom && !danglingFilter), inXpr: true, inInfixFilter: true, inFrom },
               ])
             }
           }
