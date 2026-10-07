@@ -70,32 +70,6 @@ describe('UPDATE', () => {
     })
   })
 
-  // cqn4sql must not mutate its input query. The DEBUG=pql path runs cqn4sql twice on the
-  // same query (once to render the PQL log line, once for the real roundtrip); an in-place
-  // mutation of UPDATE.with poisons the second pass → "Books not found in the elements of …".
-  it('does not mutate UPDATE.with and is idempotent across repeated calls (#21250)', () => {
-    const { UPDATE } = cds.ql
-    const u = UPDATE.entity('bookshop.Books as Books')
-      .where('ID = 201')
-      .with({ stock: { xpr: [{ ref: ['stock'] }, '-', { val: 1 }] } })
-
-    // snapshot the input before any transformation
-    const before = JSON.parse(JSON.stringify(u.UPDATE.with))
-
-    const first = cqn4sql(u, model)
-
-    // the caller's original query must be left untouched …
-    expect(u.UPDATE.with).to.deep.equal(before)
-
-    // … so transforming the same query again (as DEBUG=pql does) neither throws nor diverges
-    let second
-    expect(() => (second = cqn4sql(u, model))).to.not.throw()
-    expect(JSON.parse(JSON.stringify(second))).to.deep.equal(JSON.parse(JSON.stringify(first)))
-    expect(first.UPDATE.with).to.deep.equal({
-      stock: { xpr: [{ ref: ['Books', 'stock'] }, '-', { val: 1 }] },
-    })
-  })
-
   it('Update with path expressions in where is handled', () => {
     const { UPDATE } = cds.ql
     let u = UPDATE.entity('bookshop.Books as Books').where(

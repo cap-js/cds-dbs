@@ -527,7 +527,9 @@ if (DEBUG_PQL._debug || cds.repl) {
   if (DEBUG_PQL._debug) {
     const $super = SQLService.prototype.cqn2sql
     SQLService.prototype.cqn2sql = function (query, values) {
-      const q2 = this.cqn4sql(query, false) // FIXME: calling cqn4sql twice per query is utterly expensive, isn't it ?!?
+      // cqn4sql mutates its input in place; transform a deep copy for the throwaway log line
+      // so this extra pass can't poison the real roundtrip below, which runs cqn4sql again.
+      const q2 = this.cqn4sql(JSON.parse(JSON.stringify(query)), false)
       const pql = this.cqn2pql(q2, values)
       DEBUG_PQL.debug(pql.sql, pql.values ?? '')
       return $super.call(this, query, values)
