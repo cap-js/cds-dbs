@@ -221,6 +221,132 @@ describe('(nested projections) inline', () => {
 
       expectCqn(inlineTransformed).to.equal(expected)
     })
+
+    it('assoc inline into assoc inline - two consecutive association hops', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from issue.Authors as Authors
+        {
+          address.{
+            city.{ name }
+          }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from issue.Authors as Authors
+          left join issue.Addresses as address on address.ID = Authors.address_ID
+          left join issue.Cities as city on city.ID = address.city_ID
+        {
+          city.name as address_city_name
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('assoc inline into assoc inline - infix filter on outer assoc', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from issue.Authors as Authors
+        {
+          address[ID=1].{
+            city.{ name }
+          }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from issue.Authors as Authors
+          left join issue.Addresses as address on address.ID = Authors.address_ID
+            and address.ID = 1
+          left join issue.Cities as city on city.ID = address.city_ID
+        {
+          city.name as address_city_name
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('assoc inline into assoc inline - infix filter on inner assoc', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from issue.Authors as Authors
+        {
+          address.{
+            city[ID=5].{ name }
+          }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from issue.Authors as Authors
+          left join issue.Addresses as address on address.ID = Authors.address_ID
+          left join issue.Cities as city on city.ID = address.city_ID
+            and city.ID = 5
+        {
+          city.name as address_city_name
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('assoc inline into assoc inline - infix filter on both assocs', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from issue.Authors as Authors
+        {
+          address[ID=1].{
+            city[ID=5].{ name }
+          }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from issue.Authors as Authors
+          left join issue.Addresses as address on address.ID = Authors.address_ID
+            and address.ID = 1
+          left join issue.Cities as city on city.ID = address.city_ID
+            and city.ID = 5
+        {
+          city.name as address_city_name
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('assoc inline into assoc inline - FK access only does not join target', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from issue.Authors as Authors
+        {
+          address.{
+            city.{ ID }
+          }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from issue.Authors as Authors
+          left join issue.Addresses as address on address.ID = Authors.address_ID
+        {
+          address.city_ID as address_city_ID
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('assoc inline into assoc inline - mixed scalar and nested assoc inline', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from issue.Authors as Authors
+        {
+          address.{
+            street,
+            city.{ name, country }
+          }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from issue.Authors as Authors
+          left join issue.Addresses as address on address.ID = Authors.address_ID
+          left join issue.Cities as city on city.ID = address.city_ID
+        {
+          address.street as address_street,
+          city.name as address_city_name,
+          city.country as address_city_country
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
   })
 
   describe('mixed structures and associations', () => {
@@ -839,6 +965,229 @@ describe('(nested projections) inline', () => {
 
       expectCqn(inlineTransformed).to.equal(expected)
       expectCqn(inlineTransformed).to.equal(regularTransformed)
+    })
+
+    it('wildcard on assoc', () => {
+      const inlineWithBrackets = cds.ql`
+        SELECT from nestedProjections.EmployeeNoUnmanaged as E
+        {
+          department.{*}
+        }`
+
+      const expected = cds.ql`
+        SELECT from nestedProjections.EmployeeNoUnmanaged as E
+          left join nestedProjections.Department as department on department.id = E.department_id
+        {
+          E.department_id,
+          department.name as department_name,
+          department.costCenter as department_costCenter,
+          department.head_id as department_head_id
+        }`
+
+      const inlineTransformed = cqn4sql(inlineWithBrackets)
+
+      expectCqn(inlineTransformed).to.equal(expected)
+    })
+
+    it('wildcard on assoc with filter', () => {
+      const inlineWithBrackets = cds.ql`
+        SELECT from nestedProjections.EmployeeNoUnmanaged as E
+        {
+          department[name = 'Bar'].{*}
+        }`
+
+      const expected = cds.ql`
+        SELECT from nestedProjections.EmployeeNoUnmanaged as E
+          left join nestedProjections.Department as department on department.id = E.department_id
+            and department.name = 'Bar'
+        {
+          department.id,
+          department.name as department_name,
+          department.costCenter as department_costCenter,
+          department.head_id as department_head_id
+        }`
+
+      const inlineTransformed = cqn4sql(inlineWithBrackets)
+
+      expectCqn(inlineTransformed).to.equal(expected)
+    })
+
+    it('wildcard on assoc with excluding', () => {
+      const inlineWithBrackets = cds.ql`
+        SELECT from nestedProjections.EmployeeNoUnmanaged as E
+        {
+          department.{*} excluding { head }
+        }`
+
+      const expected = cds.ql`
+        SELECT from nestedProjections.EmployeeNoUnmanaged as E
+          left join nestedProjections.Department as department on department.id = E.department_id
+        {
+          E.department_id,
+          department.name as department_name,
+          department.costCenter as department_costCenter
+        }`
+
+      const inlineTransformed = cqn4sql(inlineWithBrackets)
+
+      expectCqn(inlineTransformed).to.equal(expected)
+    })
+
+    it('wildcard on assoc with overwrite before *', () => {
+      const inlineWithBrackets = cds.ql`
+        SELECT from nestedProjections.EmployeeNoUnmanaged as E
+        {
+          department.{ 'custom' as name, * }
+        }`
+
+      const expected = cds.ql`
+        SELECT from nestedProjections.EmployeeNoUnmanaged as E
+          left join nestedProjections.Department as department on department.id = E.department_id
+        {
+          'custom' as department_name,
+          E.department_id,
+          department.costCenter as department_costCenter,
+          department.head_id as department_head_id
+        }`
+
+      const inlineTransformed = cqn4sql(inlineWithBrackets)
+
+      expectCqn(inlineTransformed).to.equal(expected)
+    })
+
+    it('wildcard on assoc with overwrite after *', () => {
+      const inlineWithBrackets = cds.ql`
+        SELECT from nestedProjections.EmployeeNoUnmanaged as E
+        {
+          department.{ *, 'custom' as costCenter }
+        }`
+
+      const expected = cds.ql`
+        SELECT from nestedProjections.EmployeeNoUnmanaged as E
+          left join nestedProjections.Department as department on department.id = E.department_id
+        {
+          E.department_id,
+          department.name as department_name,
+          'custom' as department_costCenter,
+          department.head_id as department_head_id
+        }`
+
+      const inlineTransformed = cqn4sql(inlineWithBrackets)
+
+      expectCqn(inlineTransformed).to.equal(expected)
+    })
+
+    it('wildcard on assoc with additional columns', () => {
+      const inlineWithBrackets = cds.ql`
+        SELECT from nestedProjections.EmployeeNoUnmanaged as E
+        {
+          department.{ *, 'extra' as extra }
+        }`
+
+      const expected = cds.ql`
+        SELECT from nestedProjections.EmployeeNoUnmanaged as E
+          left join nestedProjections.Department as department on department.id = E.department_id
+        {
+          E.department_id,
+          department.name as department_name,
+          department.costCenter as department_costCenter,
+          department.head_id as department_head_id,
+          'extra' as department_extra
+        }`
+
+      const inlineTransformed = cqn4sql(inlineWithBrackets)
+
+      expectCqn(inlineTransformed).to.equal(expected)
+    })
+
+    it('wildcard on assoc exclude foreign key', () => {
+      const inlineWithBrackets = cds.ql`
+        SELECT from nestedProjections.EmployeeNoUnmanaged as E
+        {
+          department.{*} excluding { id }
+        }`
+
+      const expected = cds.ql`
+        SELECT from nestedProjections.EmployeeNoUnmanaged as E
+          left join nestedProjections.Department as department on department.id = E.department_id
+        {
+          department.name as department_name,
+          department.costCenter as department_costCenter,
+          department.head_id as department_head_id
+        }`
+
+      const inlineTransformed = cqn4sql(inlineWithBrackets)
+
+      expectCqn(inlineTransformed).to.equal(expected)
+    })
+
+    it('wildcard on assoc exclude structure', () => {
+      const inlineWithBrackets = cds.ql`
+        SELECT from nestedProjections.Assets
+        {
+          id,
+          owner.{*} excluding { office }
+        }`
+
+      const expected = cds.ql`
+        SELECT from nestedProjections.Assets as $A
+          left join nestedProjections.Employee as owner on owner.id = $A.owner_id
+        {
+          $A.id,
+          $A.owner_id,
+          owner.name as owner_name,
+          owner.job as owner_job,
+          owner.department_id as owner_department_id
+        }`
+
+      const inlineTransformed = cqn4sql(inlineWithBrackets)
+
+      expectCqn(inlineTransformed).to.equal(expected)
+    })
+
+    it('wildcard on assoc which target has a calculation', () => {
+      const inlineWithBrackets = cds.ql`
+        SELECT from nestedProjections.RetiredEmployee as Employee
+        {
+          self.{*} excluding { office, department, name, job }
+        }`
+
+      const expected = cds.ql`
+        SELECT from nestedProjections.RetiredEmployee as Employee
+          left join nestedProjections.RetiredEmployee as self on self.id = Employee.self_id
+          left join nestedProjections.Department as department on department.id = Employee.department_id
+        {
+          Employee.self_id,
+          (department.name = 'Retired') as self_isRetired,
+          self.self_id as self_self_id
+        }`
+
+      const inlineTransformed = cqn4sql(inlineWithBrackets)
+
+      expectCqn(inlineTransformed).to.equal(expected)
+    })
+
+    it('wildcard on assoc which target has a calculation + filter (no fk optimization)', () => {
+      const inlineWithBrackets = cds.ql`
+        SELECT from nestedProjections.RetiredEmployee as Employee
+        {
+          self[job = 'PO'].{*} excluding { office, department, name, job }
+        }`
+
+      const expected = cds.ql`
+        SELECT from nestedProjections.RetiredEmployee as Employee
+          left join nestedProjections.RetiredEmployee as self on self.id = Employee.self_id
+            and self.job = 'PO'
+          left join nestedProjections.Department as department on department.id = Employee.department_id
+        {
+          self.id,
+          (department.name = 'Retired') as self_isRetired,
+          self.self_id as self_self_id
+        }`
+
+      const inlineTransformed = cqn4sql(inlineWithBrackets)
+
+      expectCqn(inlineTransformed).to.equal(expected)
     })
   })
 })

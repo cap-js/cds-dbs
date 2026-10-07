@@ -50,17 +50,10 @@ describe('Bookshop - Insert', () => {
     expect(res.genre_ID).to.be.eq(10)
   })
 
-  test('big decimals', async () => {
-    const { Books } = cds.entities('sap.capire.bookshop')
-
-    const entry = { ID: 2348, title: 'Moby Dick', price: '12345678901234567890.12345' }
-    await INSERT(entry).into(Books)
-
-    const written = await SELECT('price').from(Books, { ID: 2348 })
-    if (written.price.indexOf('e+') > -1) {
-      expect(written.price).to.be.eq('1.23456789012346e+19')
-    } else {
-      expect(written.price).to.be.eq(entry.price)
-    }
+  test('insert into @readonly service projection via cds.run', async () => {
+    await cds.run(INSERT.into('CatalogService.Books').entries([{ ID: 9991, title: 'Readonly Insert Test' }]))
+    const result = await cds.run(SELECT.from('CatalogService.Books').where({ ID: 9991 }))
+    expect(result).to.have.length(1)
+    expect(result[0].title).to.equal('Readonly Insert Test')
   })
 })

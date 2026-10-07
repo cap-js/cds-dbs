@@ -173,7 +173,9 @@ describe('Bookshop - Update', () => {
     // Ensure that the @cds.on.insert and @cds.on.update are correctly applied
     expect(onInsert.createdAt).to.be.eq(onInsert.modifiedAt)
     expect(onInsert.createdAt).to.be.eq(onUpdate.createdAt)
-    expect(onInsert.modifiedAt).to.be.not.eq(onUpdate.modifiedAt)
+    // REVISIT: this is not guaranteed to be different, as the two UPSERTs 
+    // might run within the same millisecond
+    // expect(onInsert.modifiedAt).to.be.not.eq(onUpdate.modifiedAt) 
 
     // Ensure that the actual update happened
     expect(onInsert.descr).to.be.eq('CREATED')

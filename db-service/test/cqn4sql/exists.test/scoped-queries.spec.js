@@ -569,6 +569,31 @@ describe('(exist predicate) scoped queries', () => {
 
       expectCqn(transformed).to.equal(expected)
     })
+
+    it('Dangling filter with join relevant path', () => {
+      const transformed = cqn4sql(cds.ql`
+          SELECT from bookshop.Books[genre.name like '%Fiction']
+          {
+            ID
+          }`)
+      
+      const equivalent = cqn4sql(cds.ql`
+          SELECT from bookshop.Books
+          {
+            ID
+          }
+          WHERE genre.name like '%Fiction'`)
+
+      const expected = cds.ql`
+          SELECT from bookshop.Books as $B
+          left join bookshop.Genres as genre on genre.ID = $B.genre_ID
+          {
+            $B.ID
+          }
+          WHERE genre.name like '%Fiction'`
+
+      expectCqn(transformed).to.equal(equivalent).to.equal(expected)
+    })
   })
 
   describe('multiple association navigation', () => {

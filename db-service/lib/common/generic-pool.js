@@ -1,7 +1,7 @@
 const cds = require('@sap/cds')
 const LOG = cds.log('db')
 
-const use_new_pool = cds.requires.db?.pool?.builtin || cds.env.features.pool === 'builtin'
+const use_new_pool = !cds.env.features.use_generic_pool
 const createPool = use_new_pool ? (...args) => new Pool(...args) : require('generic-pool').createPool
 
 function ConnectionPool (factory, tenant) {
@@ -145,8 +145,12 @@ constructor (factory, options = {}) {
   }
 
   async release(resource) {
+    if (this._draining) {
+      LOG.debug('Pool is already draining. Resource cannot be returned to pool')
+      return
+    }
     const loan = this._loans.get(resource)
-    if (!loan) throw new Error('Resource not currently part of this pool')
+    if (!loan) return
     this._loans.delete(resource)
     const pooledResource = loan.pooledResource
     pooledResource.idle()
@@ -155,8 +159,12 @@ constructor (factory, options = {}) {
   }
 
   async destroy(resource) {
+    if (this._draining) {
+      LOG.debug('Pool is already draining. Resource will be destroyed anyway')
+      return
+    }
     const loan = this._loans.get(resource)
-    if (!loan) throw new Error('Resource not currently part of this pool')
+    if (!loan) return
     this._loans.delete(resource)
     const pooledResource = loan.pooledResource
     await this.#destroy(pooledResource)
@@ -204,14 +212,11 @@ constructor (factory, options = {}) {
       for (let i = 0; i < needed; i++) this.#createResource()
     }
     const dispense = async resource => {
-      const request = this._queue.shift()
+      let request = this._queue.shift()
+      while (request && request.state !== RequestState.PENDING) request = this._queue.shift()
       if (!request) {
         resource.idle()
         this._available.add(resource)
-        return false
-      }
-      if (request.state !== RequestState.PENDING) {
-        this.#dispense()
         return false
       }
       this._loans.set(resource.obj, { pooledResource: resource })

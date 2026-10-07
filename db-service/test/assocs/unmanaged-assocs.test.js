@@ -2,6 +2,22 @@
 const cds = require('../../../test/cds')
 require('../../index') // to extend cds.ql query objects with .forSQL() and alike
 
+cds.extend(cds.ql.Query).with(class {
+  forSQL() {
+    const cqn = db.srv.cqn4sql(this)
+    return this.flat(cqn)
+  }
+})
+
+const SQLService = require('../../lib/SQLService')
+class db extends SQLService {
+  /** @returns {SQLService} */ 
+  static get srv() { return cds.db || (this.singleton ??= new this) }
+  get factory() { return null }
+  get model() { return cds.model }
+}
+
+
 describe('where exists assoc', () => {
   it('should work with managed assocs', async () => {
     cds.model = await cds.load(__dirname + '/schema1').then(cds.linked)

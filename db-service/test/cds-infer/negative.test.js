@@ -450,11 +450,10 @@ describe('negative', () => {
   })
 
   describe('infix filters', () => {
-    // works now
-    it.skip('rejects non fk traversal in infix filter in from', () => {
-      expect(() => _inferred(cds.ql`SELECT from bookshop.Books[author.name = 'Kurt']`, model)).to.throw(
-        /Only foreign keys of “author” can be accessed in infix filter, but found “name”/,
-      )
+    it('allows non fk traversal in infix filter in from (dangling filter)', () => {
+      // Dangling filters with path expressions are now supported
+      // SELECT from Books[author.name = 'Kurt'] is equivalent to SELECT from Books WHERE author.name = 'Kurt'
+      expect(() => _inferred(cds.ql`SELECT from bookshop.Books[author.name = 'Kurt']`, model)).to.not.throw()
     })
     it('does not reject non fk traversal in infix filter in where exists', () => {
       let query = cds.ql`SELECT from bookshop.Books where exists author.books[author.name = 'John Doe']`

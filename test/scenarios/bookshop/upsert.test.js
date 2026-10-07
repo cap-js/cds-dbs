@@ -13,4 +13,11 @@ describe('Bookshop - Upsert', () => {
     expect(res).to.eql(1)
   })
 
+  test('upsert into @readonly service projection via cds.run', async () => {
+    await cds.run(UPSERT.into('CatalogService.Books').entries([{ ID: 9991, title: 'Upserted Book' }]))
+    const result = await cds.run(SELECT.from('CatalogService.Books').where({ ID: 9991 }))
+    expect(result).to.have.length(1)
+    expect(result[0].title).to.equal('Upserted Book')
+  })
+
 })

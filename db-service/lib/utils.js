@@ -157,6 +157,12 @@ function getModelUtils(model, query) {
   }
 }
 
+function resolveTable(target) {
+  if (target.query?._target && !Object.prototype.hasOwnProperty.call(target, '@cds.persistence.table'))
+    return resolveTable(target.query._target)
+  return target
+}
+
 // export the function to be used in other modules
 module.exports = {
   prettyPrintRef,
@@ -167,4 +173,5 @@ module.exports = {
   getModelUtils,
   hasOwnSkip,
   isRuntimeView,
+  resolveTable
 }

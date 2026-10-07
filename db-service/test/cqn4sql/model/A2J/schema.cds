@@ -7,8 +7,6 @@ entity Header {
   toItem_selfMgd : Association to many Item on $self.toItem_selfMgd.toHeader = $self;
   toItem_selfUmgd : Association to many Item on
     ((($self.toItem_selfUmgd.toHeaderUnmanaged = $self)));
-  toItem_combined: association to Item on
-    (toItem_combined.toHeader = $self OR toItem_combined.toHeaderUnmanaged = $self) and 5 != 4;
   toItem_fwd: association to Item on id = toItem_fwd.id;
 }
 

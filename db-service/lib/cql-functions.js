@@ -293,7 +293,7 @@ SELECT
     (SELECT MAX(HIERARCHY_RANK) + 1 FROM ${ranked})
   ) - Source.HIERARCHY_RANK AS HIERARCHY_TREE_SIZE
  FROM ${ranked} AS Source`)
-    Hierarchy.as = 'H' + (uniqueCounter++)
+    Hierarchy.as = `H${uniqueCounter}`
     Hierarchy.SELECT.columns = [...Hierarchy.SELECT.columns, ...passThroughColumns]
     Hierarchy = this.expr(this.with(Hierarchy))
 

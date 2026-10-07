@@ -5,7 +5,6 @@ const BooksUnique = 'complex.uniques.Books'
 describe('UPDATE', () => {
   const { data, expect } = cds.test(__dirname + '/resources')
   data.autoIsolation(true)
-  data.autoReset()
 
   describe('entity', () => {
     test('string', async () => {
@@ -70,6 +69,7 @@ describe('UPDATE', () => {
 
     test('xpr', async () => {
       const { number } = cds.entities('basic.literals')
+      await DELETE(number)
       await INSERT({ integer32: 1 }).into(number)
       await UPDATE(number).with({ integer32: { xpr: [{ ref: ['integer32'] }, '+', { val: 2 }] } })
       const result = await SELECT.one.from(number)
@@ -88,7 +88,7 @@ describe('UPDATE', () => {
       try {
         await UPDATE(string).with({ nonExisting: { val: 'not updated' } })
         // should not get here
-        expect(0).to.be(1)
+        expect(0).to.eq(1)
       } catch (error) {
         // nonExisting is filtered, so the sql is incomplete
         expect(error.query).to.match(/UPDATE basic_literals_string AS ["]?\$s["]? SET [\n]?/i)
@@ -109,6 +109,7 @@ describe('UPDATE', () => {
 
     test('number', async () => {
       const { number } = cds.entities('basic.literals')
+      await DELETE(number)
       await INSERT({ integer32: 0 }).into(number)
       await UPDATE(number)
         .data({ integer32: 1 })

@@ -11,7 +11,7 @@ const cdsTypes = cds.builtin.types
  * @param {import('@sap/cds/apis/csn').CSN} [model]
  * @returns {import('./cqn').Query} = q with .target and .elements
  */
-function infer(originalQuery, model) {
+function infer(originalQuery, model, useTechnicalAlias = true) {
   if (!model) throw new Error('Please specify a model')
   const inferred = originalQuery
 
@@ -34,7 +34,7 @@ function infer(originalQuery, model) {
 
   let $combinedElements
 
-  const sources = inferTarget(_.into || _.from || _.entity, {}) // IMPORTANT: _.into has to go before _.from for INSERT.into().from(SELECT)
+  const sources = inferTarget(_.into || _.from || _.entity, {}, useTechnicalAlias) // IMPORTANT: _.into has to go before _.from for INSERT.into().from(SELECT)
   const aliases = Object.keys(sources)
   const target = aliases.length === 1 ? getDefinitionFromSources(sources, aliases[0]) : originalQuery
   Object.defineProperties(inferred, {
@@ -80,7 +80,7 @@ function infer(originalQuery, model) {
    *                              Each key is a query source alias, and its value is the corresponding CSN Definition.
    * @returns {object} The updated `querySources` object with inferred sources from the `from` clause.
    */
-  function inferTarget(from, querySources, useTechnicalAlias = true) {
+  function inferTarget(from, querySources, useTechnicalAlias) {
     const { ref } = from
     // Given a from clause `Root:parent[$main.name = name].parent as Foo`
     // we need to first resolve until to the last step of the from.ref
@@ -454,7 +454,7 @@ function infer(originalQuery, model) {
           arg.$refLinks.push({ definition: pseudos.elements[id], target: pseudos })
           pseudoPath = true // only first path step must be well defined
           nameSegments.push(id)
-        } else if ($baseLink) {
+        } else if ($baseLink && !firstStepIsSelf) {
           const { definition, target } = $baseLink
           const elements = getDefinition(definition.target)?.elements || definition.elements
           if (elements && id in elements) {
@@ -481,7 +481,15 @@ function infer(originalQuery, model) {
             target: getDefinitionFromSources(sources, id),
           })
         } else if (firstStepIsSelf) {
-          arg.$refLinks.push({ definition: { elements: queryElements }, target: { elements: queryElements } })
+          const nextStep = arg.ref[1]?.id || arg.ref[1]
+          let elements = queryElements
+          if (nextStep && (!queryElements || !(nextStep in queryElements)) && inferred.outerQueries) {
+            const outerQuery = inferred.outerQueries[0]
+            if (outerQuery?.elements && nextStep in outerQuery.elements) {
+              elements = outerQuery.elements
+            }
+          }
+          arg.$refLinks.push({ definition: { elements }, target: { elements } })
         } else if (arg.ref.length > 1 && inferred.outerQueries?.find(outer => id in outer.sources)) {
           // outer query accessed via alias
           const outerAlias = inferred.outerQueries.find(outer => id in outer.sources)
@@ -560,7 +568,7 @@ function infer(originalQuery, model) {
         const nextStep = arg.ref[i + 1]
         const danglingFilter = !(nextStep || arg.expand || arg.inline || inExists)
         const definition = arg.$refLinks[i].definition
-        if ((!definition.target && definition.kind !== 'entity') || (!inFrom && danglingFilter))
+        if ((!definition.target && definition.kind !== 'entity') || (!inFrom && !inCalcElement && danglingFilter))
           throw new Error('A filter can only be provided when navigating along associations')
         if (!inFrom && !arg.expand)defineProperty(arg, 'isJoinRelevant', true)
         let skipJoinsForFilter = false
@@ -569,10 +577,13 @@ function infer(originalQuery, model) {
             // books[exists genre[code='A']].title --> column is join relevant but inner exists filter is not
             skipJoinsForFilter = true
           } else if (token.ref || token.xpr || token.list) {
+            // For scoped queries (non-dangling filters in FROM), treat filter contents as EXISTS context
+            // because they will become part of an EXISTS subquery.
+            // Likewise, path expressions in the leaf filter of an `expand` are resolved as joins
+            // inside the correlated expand subquery, so no joins are created in the enclosing query.
             inferArg(token, false, arg.$refLinks[i], {
-              skipJoins: skipJoinsForFilter || inExists || (inExpand && !nextStep),
               ...context,
-              inExists: skipJoinsForFilter || inExists,
+              skipJoins: skipJoinsForFilter || inExists || (inExpand && !nextStep) || (inFrom && !danglingFilter),
               inXpr: !!token.xpr,
               inInfixFilter: true,
               inFrom,
@@ -582,7 +593,7 @@ function infer(originalQuery, model) {
               applyToFunctionArgs(token.args, inferArg, [
                 false,
                 arg.$refLinks[i],
-                { inExists: skipJoinsForFilter || inExists, inXpr: true, inInfixFilter: true, inFrom },
+                { skipJoins: skipJoinsForFilter || inExists || (inExpand && !nextStep) || (inFrom && !danglingFilter), inXpr: true, inInfixFilter: true, inFrom },
               ])
             }
           }
@@ -700,7 +711,7 @@ function infer(originalQuery, model) {
      *    d. Otherwise, the corresponding `$refLinks` definition is added to the `elements` object.
      * 2. Returns the `elements` object.
      */
-    function resolveInline(col, namePrefix = col.as || col.flatName) {
+    function resolveInline(col, namePrefix = col.as || col.flatName, outerBase = null) {
       const { inline, $refLinks } = col
       const $leafLink = $refLinks[$refLinks.length - 1]
       if (!$leafLink.definition.target && !$leafLink.definition.elements) {
@@ -708,23 +719,64 @@ function infer(originalQuery, model) {
           `Unexpected “inline” on “${col.ref.map(idOnly)}”; can only be used after a reference to a structure, association or table alias`,
         )
       }
+      const effectiveBase = outerBase
+        ? { ref: [...outerBase.ref, ...col.ref], $refLinks: [...outerBase.$refLinks, ...col.$refLinks] }
+        : col
       let elements = {}
       let seenWildcard = false
       inline.forEach(inlineCol => {
-        inferArg(inlineCol, null, $leafLink, { inXpr: true, baseColumn: col })
+        inferArg(inlineCol, null, $leafLink, { inXpr: true, baseColumn: effectiveBase })
         if (inlineCol === '*') {
           if (seenWildcard) throw new Error(`Duplicate wildcard "*" in inline of "${col.as || col.ref.map(idOnly).join('_')}"`)
           seenWildcard = true
           const wildCardElements = {}
           // either the `.elements´ of the struct or the `.elements` of the assoc target
-          const leafLinkElements = getDefinition($leafLink.definition.target)?.elements || $leafLink.definition.elements
+          const targetDef = getDefinition($leafLink.definition.target)
+          const leafLinkElements = targetDef?.elements || $leafLink.definition.elements
+          const isAssociation = !!$leafLink.definition.target
+
+          const deferredCalcElements = []
           Object.entries(leafLinkElements).forEach(([k, v]) => {
             const name = namePrefix ? `${namePrefix}_${k}` : k
             // if overwritten/excluded omit from wildcard elements
             // in elements the names are already flat so consider the prefix
             // in excluding, the elements are addressed without the prefix
-            if (!(name in elements || col.excluding?.includes(k))) wildCardElements[name] = v
+            if (!(name in elements || col.excluding?.includes(k))) {
+              wildCardElements[name] = v
+
+              if(v.value) {
+                // defer linkCalculatedElement calls until after all association joins are registered
+                // so that the join tree order is correct
+                deferredCalcElements.push({ k, v })
+              }
+              else if (isAssociation && !v.virtual && v.type !== 'cds.LargeBinary' && !(v.on && !v.keys)) {
+                // Check if this element is a foreign key (FK elements don't need join)
+                const isFK = $leafLink.definition.keys?.some(key => key.ref[0] === k)
+                if (!isFK) {
+                  // Create a fake column with ref [<inlined assoc>, <element name>] and proper $refLinks
+                  const fakeCol = {
+                    ref: [...col.ref, k],
+                  }
+                  // Copy $refLinks and add new link for the target element with proper alias
+                  const fakeRefLinks = [
+                    ...$refLinks,
+                    { definition: v, target: targetDef, alias: k }
+                  ]
+                  defineProperty(fakeCol, '$refLinks', fakeRefLinks)
+                  defineProperty(fakeCol, 'isJoinRelevant', true)
+                  // Merge into join tree
+                  inferred.joinTree.mergeColumn(fakeCol, originalQuery.outerQueries)
+                }
+              }
+            }
           })
+          // link calculated elements after association joins are registered in the join tree
+          for (const { k, v } of deferredCalcElements) {
+            linkCalculatedElement(
+              { ref: [k], $refLinks: [{ definition: v, target: targetDef }] },
+              $leafLink,
+            )
+          }
           elements = { ...elements, ...wildCardElements }
         } else {
           const nameParts = namePrefix ? [namePrefix] : []
@@ -732,7 +784,7 @@ function infer(originalQuery, model) {
           else if (inlineCol.ref) nameParts.push(...inlineCol.ref.map(idOnly))
           const name = nameParts.join('_')
           if (inlineCol.inline) {
-            const inlineElements = resolveInline(inlineCol, name)
+            const inlineElements = resolveInline(inlineCol, name, effectiveBase)
             elements = { ...elements, ...inlineElements }
           } else if (inlineCol.expand) {
             const expandElements = resolveExpand(inlineCol)
@@ -908,19 +960,39 @@ function infer(originalQuery, model) {
         mergePathIfNecessary(basePath, arg)
       } else if (arg.xpr || arg.args) {
         const prop = arg.xpr ? 'xpr' : 'args'
+        let inExists = false
         arg[prop].forEach(step => {
+          if (step === 'exists') {
+            inExists = true
+            return
+          }
           let subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
           if (step.ref) {
-            step.$refLinks.forEach((link, i) => {
-              const { definition } = link
-              if (definition.value) {
-                mergePathsIntoJoinTree(definition.value, subPath)
-              } else {
-                subPath.$refLinks.push(link)
-                subPath.ref.push(step.ref[i])
+            if (inExists) {
+              // refs following `exists` become subqueries in cqn4sql — only the basePath prefix
+              // needs a JOIN (for correlation), the exists-target association itself does not.
+              if (subPath.$refLinks.length > 0) {
+                inferred.joinTree.mergeColumn(subPath, originalQuery.outerQueries)
+                // The exists subquery correlates against the last assoc in basePath,
+                // so it's not just a FK access — force a real JOIN.
+                const lastLink = subPath.$refLinks[subPath.$refLinks.length - 1]
+                if (lastLink.onlyForeignKeyAccess) lastLink.onlyForeignKeyAccess = false
+                if (!calcElement.value.isJoinRelevant)
+                  defineProperty(step, 'isJoinRelevant', true)
               }
-            })
-            mergePathIfNecessary(subPath, step)
+            } else {
+              step.$refLinks.forEach((link, i) => {
+                const { definition } = link
+                if (definition.value) {
+                  mergePathsIntoJoinTree(definition.value, subPath)
+                } else {
+                  subPath.$refLinks.push(link)
+                  subPath.ref.push(step.ref[i])
+                }
+              })
+              mergePathIfNecessary(subPath, step)
+            }
+            inExists = false
           } else if (step.args || step.xpr) {
             const nestedProp = step.xpr ? 'xpr' : 'args'
             step[nestedProp].forEach(a => {
@@ -929,6 +1001,9 @@ function infer(originalQuery, model) {
               if (!a.ref) subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
               mergePathsIntoJoinTree(a, subPath)
             })
+            inExists = false
+          } else {
+            if (step !== 'not') inExists = false
           }
         })
       }
@@ -1016,7 +1091,7 @@ function infer(originalQuery, model) {
       for (const k in elements) {
         if (!exclude(k)) {
           const element = elements[k]
-          if (element.type !== 'cds.LargeBinary') {
+          if (element.type !== 'cds.LargeBinary' && element.type !== 'cds.Vector') {
             queryElements[k] = element
           }
           // only relevant if we actually select the calculated element
@@ -1036,7 +1111,7 @@ function infer(originalQuery, model) {
       }
       if (exclude(name) || name in queryElements) return true
       const element = tableAliases[0].tableAlias.elements[name]
-      if (element.type !== 'cds.LargeBinary') queryElements[name] = element
+      if (element.type !== 'cds.LargeBinary' && element.type !== 'cds.Vector') queryElements[name] = element
       if (isCalculatedOnRead(element)) {
         linkCalculatedElement(element)
       }

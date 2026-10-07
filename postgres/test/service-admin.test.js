@@ -6,7 +6,7 @@ const project = resolve(__dirname, 'beershop')
 process.env.DEBUG && jest.setTimeout(100000)
 
 describe('OData to Postgres dialect', () => {
-  const { GET, POST, DELETE, expect, data } = cds.test('serve', '--project', project).verbose()
+  const { GET, POST, DELETE, expect, data } = cds.test('serve', '--project', project)
 
   data.autoIsolation(true)
   data.autoReset(true)

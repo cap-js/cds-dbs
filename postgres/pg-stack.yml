@@ -1,15 +1,24 @@
 # Use postgres/example user/password credentials
-version: '3.1'
-
 services:
   db:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     restart: always
     environment:
       POSTGRES_PASSWORD: postgres
+      # Use UTF-8 locale for proper case conversion with special characters (ö → Ö)
+      # while maintaining consistent collation
+      LANG: en_US.utf8
+      LC_COLLATE: C
+      LC_CTYPE: en_US.utf8
     ports:
       - '5432:5432'
     command: ['postgres', '-c', 'log_statement=all']
+    healthcheck:
+    # && docker exec -it postgres-db-1 psql -U postgres -d template1 -c 'CREATE EXTENSION IF NOT EXISTS vector' && docker exec -it postgres-db-1 psql -U postgres -c 'CREATE EXTENSION IF NOT EXISTS vector'
+      test: ["CMD-SHELL", "pg_isready -U postgres && psql -U postgres -d template1 -c 'CREATE EXTENSION IF NOT EXISTS vector' && psql -U postgres -c 'CREATE EXTENSION IF NOT EXISTS vector'"]
+      interval: 1s
+      timeout: 5s
+      retries: 100
   ### use at will at dev time - save mem on ci time
   # adminer:
   #   image: adminer
