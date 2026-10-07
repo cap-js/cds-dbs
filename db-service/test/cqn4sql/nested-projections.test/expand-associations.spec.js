@@ -816,6 +816,32 @@ describe('(nested projections) expand', () => {
       `
       expectCqn(transformed).to.equal(expected)
     })
+
+    it('reuses the same join node for a path used in both the filter where and group by', () => {
+      // `genre.name` appears in the expand filter's `where` and its `group by`.
+      // Both resolve through the single `genre` join of the expand subquery's
+      // join tree, so only one join to Genres is emitted, not two.
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors {
+          ID,
+          books [ where genre.name = 'Poetry' group by genre.name ] { genre.name, count(*) as c }
+        }`)
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as $A {
+          $A.ID,
+          (
+            SELECT from bookshop.Books as $b
+              inner join bookshop.Genres as genre on genre.ID = $b.genre_ID
+            {
+              genre.name as genre_name,
+              count(*) as c
+            }
+            where $A.ID = $b.author_ID and genre.name = 'Poetry'
+            group by genre.name
+          ) as books
+        }`
+      expectCqn(transformed).to.equal(expected)
+    })
   })
 
   describe('with subqueries', () => {
