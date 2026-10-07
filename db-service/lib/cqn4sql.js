@@ -166,10 +166,15 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
       transformedQuery[kind] = transformedProp
 
       if (inferred.UPDATE?.with) {
+        // write the transformed values into a fresh object instead of mutating `inferred.UPDATE.with`:
+        // `cds.ql.clone` is prototype-shallow, so that object is shared with the caller's original
+        // query and mutating it poisons a second cqn4sql pass (e.g. the DEBUG=pql log path)
+        const transformedWith = {}
         Object.entries(inferred.UPDATE.with).forEach(([key, val]) => {
           const transformed = getTransformedTokenStream([val])
-          inferred.UPDATE.with[key] = transformed[0]
+          transformedWith[key] = transformed[0]
         })
+        transformedProp.with = transformedWith
       }
     }
 
