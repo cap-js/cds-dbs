@@ -471,7 +471,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
           const sub = SELECT.columns('1 as dummy').from(nextAssoc.$refLink.definition._target).where([...nextAssoc.where, 'and', ...correlation])
           const transformedSub = transformSubquery(sub)
           transformedSub.SELECT.where.at(-1).ref[0] = arg.as // replace outer alias placeholder
-  
+
           lhs.on.push(...[
             'and',
             'exists',

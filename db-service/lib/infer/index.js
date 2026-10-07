@@ -393,7 +393,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
    */
 
   function inferArg(arg, queryElements = null, $baseLink = null, context = {}) {
-    const { skipJoins: inExists, inXpr, inCalcElement, baseColumn, inInfixFilter, inQueryModifier, inFrom, dollarSelfRefs, inExpand } =
+    const { skipJoins: inExists, inXpr, inCalcElement, baseColumn, inInfixFilter, inQueryModifier, inFrom, dollarSelfRefs, inExpand, inNoCorrelationFilter } =
       context
     if (arg.param || arg.SELECT) return // parameter references are only resolved into values on execution e.g. :val, :1 or ?
     if (arg.args) applyToFunctionArgs(arg.args, inferArg, [null, $baseLink, context])
@@ -462,7 +462,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
             if (inInfixFilter) {
               const nextStep = arg.ref[1]?.id || arg.ref[1]
               if (isNonForeignKeyNavigation(element, nextStep) || arg.ref[0]?.where) {
-                defineProperty($baseLink, 'pathExpressionInsideFilter', true)
+                if (!inNoCorrelationFilter) defineProperty($baseLink, 'pathExpressionInsideFilter', true)
               }
             }
             const resolvableIn = getDefinition(definition.target) || target
@@ -530,7 +530,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
           if ($baseLink && inInfixFilter) {
             const nextStep = arg.ref[i + 1]?.id || arg.ref[i + 1]
             if (isNonForeignKeyNavigation(element, nextStep)) {
-              defineProperty($baseLink, 'pathExpressionInsideFilter', true)
+              if (!inNoCorrelationFilter) defineProperty($baseLink, 'pathExpressionInsideFilter', true)
             }
           }
           const $refLink = { definition: elements[id], target }
@@ -584,6 +584,13 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
             inferArg(token, false, arg.$refLinks[i], {
               ...context,
               skipJoins: skipJoinsForFilter || inExists || (inExpand && !nextStep) || (inFrom && !danglingFilter),
+              // A path expression here must NOT flag the parent as needing a correlated subquery when:
+              //  - it sits behind an `exists` token at this filter level (`books[exists genre[…]]`) -
+              //    it belongs to that nested semi-join, not the enclosing association; or
+              //  - it is a dangling filter in FROM (`Books[genre.name=…]`), which is equivalent to a
+              //    plain WHERE and so is rendered as an ordinary (left) join, not a correlated subquery.
+              // Scoped to the current filter: a deeper association's own filter resets it.
+              inNoCorrelationFilter: skipJoinsForFilter || (inFrom && danglingFilter),
               inXpr: !!token.xpr,
               inInfixFilter: true,
               inFrom,
@@ -593,7 +600,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
               applyToFunctionArgs(token.args, inferArg, [
                 false,
                 arg.$refLinks[i],
-                { skipJoins: skipJoinsForFilter || inExists || (inExpand && !nextStep) || (inFrom && !danglingFilter), inXpr: true, inInfixFilter: true, inFrom },
+                { skipJoins: skipJoinsForFilter || inExists || (inExpand && !nextStep) || (inFrom && !danglingFilter), inNoCorrelationFilter: skipJoinsForFilter || (inFrom && danglingFilter), inXpr: true, inInfixFilter: true, inFrom },
               ])
             }
           }

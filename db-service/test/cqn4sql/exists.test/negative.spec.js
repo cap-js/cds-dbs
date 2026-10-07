@@ -2,6 +2,7 @@
 
 const cds = require('@sap/cds')
 const { loadModel } = require('../helpers/model')
+const { expectCqn } = require('../helpers/expectCqn')
 
 const { expect } = cds.test
 
@@ -85,25 +86,26 @@ describe('(exist predicate) negative tests', () => {
   })
 
   describe('restrictions', () => {
-    // semantically equivalent to adding a where clause..
-    // IMO artificially rejecting this is not necessary, we can solve this uniformly also for regular where clause
-    it.skip('rejects the path expression at the leaf of scoped queries', () => {
-      // original idea was to just add the `genre.name` as WHERE clause to the query
-      // however, with left outer joins we might get too many results
-      //
-      // --> here we would then get all books which fulfill `genre.name = null`
-      //     but also all books which have no genre at all
-      //
-      // if this comes up again, we might render inner joins for this node...
-      const query = cds.ql`
+    // semantically equivalent to adding a where clause: the leaf path expression of a scoped
+    // query is resolved via a (left) join, consistent with `SELECT from Books WHERE genre.name = null`.
+    it('resolves the path expression at the leaf of scoped queries', () => {
+      const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Authors:books[genre.name = null]
         {
           ID
-        }`
+        }`)
 
-      expect(() => cqn4sql(query)).to.throw(
-        'Only foreign keys of “genre” can be accessed in infix filter, but found “name”',
-      )
+      const expected = cds.ql`
+        SELECT from bookshop.Books as $b
+          left join bookshop.Genres as genre on genre.ID = $b.genre_ID
+        {
+          $b.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Authors as $A where $A.ID = $b.author_ID
+        ) and genre.name = null`
+
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('OData shortcut notation does not work on associations with multiple foreign keys', () => {
