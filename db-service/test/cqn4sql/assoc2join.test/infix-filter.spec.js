@@ -486,4 +486,62 @@ describe('(a2j) in infix filter', () => {
       expectCqn(transformed).to.equal(expected)
     })
   })
+
+  // A path expression inside the filter is resolved via a correlated subquery that is joined
+  // back to the outer query on the target's primary key(s). An (unmanaged) association whose
+  // target has no key offers nothing to correlate on, so this particular combination is rejected.
+  // Navigating the association, or filtering on its own fields, keeps working.
+  describe('path expression in filter of association to keyless target', () => {
+    it('rejects a path expression in the filter (no key to correlate on)', () => {
+      expect(() =>
+        cqn4sql(cds.ql`SELECT from keyless.ToKeyless { toKeyless[toSelf.field = 'FOO'].field }`),
+      ).to.throw(
+        /Can't resolve path expression in the filter of “toKeyless” because its target “keyless.Keyless” has no primary key/,
+      )
+    })
+
+    it('rejects a path expression in the filter of a self-association', () => {
+      expect(() =>
+        cqn4sql(cds.ql`SELECT from keyless.Keyless { toSelf[toSelf.field = 'FOO'].field }`),
+      ).to.throw(
+        /Can't resolve path expression in the filter of “toSelf” because its target “keyless.Keyless” has no primary key/,
+      )
+    })
+
+    it('plain navigation along the association still works', () => {
+      const transformed = cqn4sql(cds.ql`SELECT from keyless.ToKeyless { toKeyless.field }`)
+      const expected = cds.ql`
+        SELECT from keyless.ToKeyless as $T
+          left join keyless.Keyless as toKeyless on toKeyless.field = $T.myField
+        {
+          toKeyless.field as toKeyless_field
+        }`
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('filtering on the association`s own fields (no traversal) still works', () => {
+      const transformed = cqn4sql(cds.ql`SELECT from keyless.ToKeyless { toKeyless[field = 'FOO'].field }`)
+      const expected = cds.ql`
+        SELECT from keyless.ToKeyless as $T
+          left join keyless.Keyless as toKeyless
+            on toKeyless.field = $T.myField and toKeyless.field = 'FOO'
+        {
+          toKeyless.field as toKeyless_field
+        }`
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('the same path expression is allowed in an expand filter (correlated via the on-condition)', () => {
+      // the expand subquery correlates on the association's on-condition, not on a primary key
+      expect(() =>
+        cqn4sql(cds.ql`SELECT from keyless.ToKeyless { toKeyless[toSelf.field = 'FOO'] { field } }`),
+      ).to.not.throw()
+    })
+
+    it('the same path expression is allowed in a `where exists` semi-join', () => {
+      expect(() =>
+        cqn4sql(cds.ql`SELECT from keyless.ToKeyless { myField } where exists toKeyless[toSelf.field = 'FOO']`),
+      ).to.not.throw()
+    })
+  })
 })

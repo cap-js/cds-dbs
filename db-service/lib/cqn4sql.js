@@ -465,6 +465,9 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
         if(nextAssoc.$refLink.pathExpressionInsideFilter === true) {
           const subqueryTarget = nextAssoc.$refLink.definition._target
           const primaryKeys = getPrimaryKey(subqueryTarget)
+          // a path expression in the filter needs the target's primary key to correlate on
+          if (primaryKeys.length === 0)
+            cds.error`Can't resolve path expression in the filter of “${nextAssoc.$refLink.definition.name}” because its target “${subqueryTarget.name}” has no primary key`
           const correlation = primaryKeys.flatMap(pk => {
             return [ {ref: pk.ref }, '=', { ref: [ /*outer alias added later*/...pk.ref ]} ]
           })
