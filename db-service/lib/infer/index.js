@@ -212,8 +212,6 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
             queryElements[as] = col.cast ? getElementForCast(col) : getCdsTypeForVal(col.val)
           }
           setElementOnColumns(col, queryElements[as])
-        } else if (col.expand && !col.ref) { // anonymous expand
-          inferArg(col, queryElements, null, { inExpand: true })
         } else if (col.ref) {
           const firstStepIsTableAlias =
             (col.ref.length > 1 && col.ref[0] in sources) ||
@@ -223,7 +221,9 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
             !firstStepIsTableAlias && col.ref.length > 1 && ['$self', '$projection'].includes(col.ref[0])
           // we must handle $self references after the query elements have been calculated
           if (firstStepIsSelf) dollarSelfRefs.push(col)
-          else handleRef(col, { inExpand: col.expand })
+          else handleRef(col)
+        } else if (col.expand) {
+          inferArg(col, queryElements, null)
         } else {
           cds.error`Not supported: ${JSON.stringify(col)}`
         }
@@ -393,7 +393,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
    */
 
   function inferArg(arg, queryElements = null, $baseLink = null, context = {}) {
-    const { skipJoins: inExists, inXpr, inCalcElement, baseColumn, inInfixFilter, inQueryModifier, inFrom, dollarSelfRefs, inExpand, inNoCorrelationFilter } =
+    const { skipJoins: inExists, inXpr, inCalcElement, baseColumn, inInfixFilter, inQueryModifier, inFrom, dollarSelfRefs, inNoCorrelationFilter } =
       context
     if (arg.param || arg.SELECT) return // parameter references are only resolved into values on execution e.g. :val, :1 or ?
     if (arg.args) applyToFunctionArgs(arg.args, inferArg, [null, $baseLink, context])
@@ -583,7 +583,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
             // inside the correlated expand subquery, so no joins are created in the enclosing query.
             inferArg(token, false, arg.$refLinks[i], {
               ...context,
-              skipJoins: skipJoinsForFilter || inExists || (inExpand && !nextStep) || (inFrom && !danglingFilter),
+              skipJoins: skipJoinsForFilter || inExists || (inFrom && !danglingFilter),
               // A path expression here must NOT flag the parent as needing a correlated subquery when:
               //  - it sits behind an `exists` token at this filter level (`books[exists genre[…]]`) -
               //    it belongs to that nested semi-join, not the enclosing association; or
@@ -600,7 +600,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
               applyToFunctionArgs(token.args, inferArg, [
                 false,
                 arg.$refLinks[i],
-                { skipJoins: skipJoinsForFilter || inExists || (inExpand && !nextStep) || (inFrom && !danglingFilter), inNoCorrelationFilter: skipJoinsForFilter || (inFrom && danglingFilter), inXpr: true, inInfixFilter: true, inFrom },
+                { skipJoins: skipJoinsForFilter || inExists || (inFrom && !danglingFilter), inNoCorrelationFilter: skipJoinsForFilter || (inFrom && danglingFilter), inXpr: true, inInfixFilter: true, inFrom },
               ])
             }
           }

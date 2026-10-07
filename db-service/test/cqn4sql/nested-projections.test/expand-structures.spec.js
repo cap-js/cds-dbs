@@ -4,6 +4,7 @@ const cds = require('@sap/cds')
 const { loadModel } = require('../helpers/model')
 
 const { expectCqn } = require('../helpers/expectCqn')
+const { expect } = cds.test
 
 let cqn4sql = require('../../../lib/cqn4sql')
 
@@ -814,6 +815,56 @@ describe('(nested projections) expand structures', () => {
         }`
 
       expectCqn(transformed).to.equal(expected)
+    })
+  })
+
+  describe('path expressions in expand filter', () => {
+    it('resolves unmanaged association traversal in infix filter of expand path via join in the subquery', () => {
+      const q = cds.ql`
+        SELECT from bookshop.Books
+        {
+          author[books.title = 'foo'] { name }
+        }`
+
+      const expected = cds.ql`
+        SELECT from bookshop.Books as $B {
+          (
+            SELECT $a.name from bookshop.Authors as $a
+              inner join bookshop.Books as books on books.author_ID = $a.ID
+            where $B.author_ID = $a.ID and books.title = 'foo'
+          ) as author
+        }`
+
+      expectCqn(cqn4sql(q)).to.equal(expected)
+    })
+
+    it('resolves managed association traversal in infix filter of expand path via join in the subquery', () => {
+      const q = cds.ql`
+        SELECT from bookshop.EStrucSibling
+        {
+          self[sibling.struc1.foo = 'foo'] { ID }
+        }`
+
+      const expected = cds.ql`
+        SELECT from bookshop.EStrucSibling as $E {
+          (
+            SELECT $s.ID from bookshop.EStrucSibling as $s
+              inner join bookshop.EStruc as sibling on sibling.ID = $s.sibling_ID
+            where $E.self_ID = $s.ID and sibling.struc1_foo = 'foo'
+          ) as self
+        }`
+
+      expectCqn(cqn4sql(q)).to.equal(expected)
+    })
+
+    it('still rejects comparing a whole structure in infix filter of expand path', () => {
+      const q = cds.ql`
+        SELECT from bookshop.EStrucSibling
+        {
+          self[sibling.struc1 = 'foo'] { ID }
+        }`
+
+      expect(() => cqn4sql(q)).to.throw(/Can't compare structure "sibling.struc1" to value "foo"/)
     })
   })
 })

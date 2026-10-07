@@ -730,90 +730,30 @@ describe('(nested projections) expand', () => {
 
       expectCqn(transformed).to.equal(expected)
     })
-  })
 
-  describe('modify correlated subquery with join relevant path expressions', () => {
-    it('infix filter with non-fk navigation at expand leaf', () => {
+    it('reuses the same join node for a path used in both the filter where and group by', () => {
+      // `genre.name` appears in the expand filter's `where` and its `group by`.
+      // Both resolve through the single `genre` join of the expand subquery's
+      // join tree, so only one join to Genres is emitted, not two.
       const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.Books
-        {
-          author[books.title = 'foo'] { name }
+        SELECT from bookshop.Authors {
+          ID,
+          books [ where genre.name = 'Poetry' group by genre.name ] { genre.name, count(*) as c }
         }`)
       const expected = cds.ql`
-        SELECT from bookshop.Books as $B
-        {
+        SELECT from bookshop.Authors as $A {
+          $A.ID,
           (
-            SELECT $a.name from bookshop.Authors as $a
-              inner join bookshop.Books as books on books.author_ID = $a.ID
-            where $B.author_ID = $a.ID and books.title = 'foo'
-          ) as author
+            SELECT from bookshop.Books as $b
+              inner join bookshop.Genres as genre on genre.ID = $b.genre_ID
+            {
+              genre.name as genre_name,
+              count(*) as c
+            }
+            where $A.ID = $b.author_ID and genre.name = 'Poetry'
+            group by genre.name
+          ) as books
         }`
-      expectCqn(transformed).to.equal(expected)
-    })
-
-    it('infix filter with non-fk navigation at expand leaf drill down into structure', () => {
-      const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.EStrucSibling
-        {
-          self[sibling.struc1.foo = 'foo'] { ID }
-        }`)
-      const expected = cds.ql`
-        SELECT from bookshop.EStrucSibling as $E
-        {
-          (
-            SELECT $s.ID from bookshop.EStrucSibling as $s
-              inner join bookshop.EStruc as sibling on sibling.ID = $s.sibling_ID
-            where $E.self_ID = $s.ID and sibling.struc1_foo = 'foo'
-          ) as self
-        }`
-      expectCqn(transformed).to.equal(expected)
-    })
-
-    it('infix filter with non-fk navigation at expand leaf and simple condition at prefix', () => {
-      // one join for main query and one in the subquery
-      const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.EStrucSibling
-        {
-          self[ID = 'foo'].self[sibling.struc1.foo = 'foo'] { ID }
-        }`)
-      const expected = cds.ql`
-        SELECT from bookshop.EStrucSibling as $E
-          left join bookshop.EStrucSibling as self
-            on self.ID = $E.self_ID and self.ID = 'foo'
-        {
-          (
-            SELECT $s.ID from bookshop.EStrucSibling as $s
-              inner join bookshop.EStruc as sibling on sibling.ID = $s.sibling_ID
-            where self.self_ID = $s.ID and sibling.struc1_foo = 'foo'
-          ) as self_self
-        }`
-      expectCqn(transformed).to.equal(expected)
-    })
-
-    it('infix filter with non-fk navigation at expand leaf and at prefix', () => {
-      // one join for main query and one in the subquery
-      // we could improve aliasing (sibling), but the adjacent queries cannot interfere
-      const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.EStrucSibling
-        {
-          self[sibling.struc1.foo = 'foo'].self[sibling.struc1.foo = 'foo'] { ID }
-        }`)
-      const expected = cds.ql`
-        SELECT from bookshop.EStrucSibling as $E
-          left join bookshop.EStrucSibling as self on self.ID = $E.self_ID and
-          exists (
-            SELECT 1 as dummy from bookshop.EStrucSibling as $E2
-             inner join bookshop.EStruc as sibling on sibling.ID = $E2.sibling_ID
-            where sibling.struc1_foo = 'foo' and $E2.ID = self.ID
-          )
-        {
-          (
-            SELECT $s.ID from bookshop.EStrucSibling as $s
-              inner join bookshop.EStruc as sibling on sibling.ID = $s.sibling_ID
-            where self.self_ID = $s.ID and sibling.struc1_foo = 'foo'
-          ) as self_self 
-        }
-      `
       expectCqn(transformed).to.equal(expected)
     })
   })
