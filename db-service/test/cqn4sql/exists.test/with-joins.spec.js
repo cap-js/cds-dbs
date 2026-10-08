@@ -678,5 +678,35 @@ describe('(exist predicate) with joins', () => {
 
       expectCqn(transformed).to.equal(expected)
     })
+
+    // Regression: a filter that mixes an `exists <assoc>` sub-predicate with a sibling path
+    // expression (joined by `or`/`and`). The `exists` must only govern its own subject; the
+    // sibling `genre.name` is a regular path expression and must be resolved via the join inside
+    // the correlated subquery - not flattened to a non-existent `books_genre_name` column.
+    it('predicate inside infix filter - EXISTS sibling to a path expression (with OR)', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors as Authors
+        {
+          ID,
+          books[exists genre or genre.name = 'A'].title
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as Authors
+          left outer join bookshop.Books as books on books.author_ID = Authors.ID
+            and exists (
+              SELECT 1 as dummy from bookshop.Books as $B
+                inner join bookshop.Genres as genre on genre.ID = $B.genre_ID
+              where exists ( SELECT 1 from bookshop.Genres as $g where $g.ID = $B.genre_ID )
+                or genre.name = 'A'
+                and $B.ID = books.ID
+            )
+        {
+          Authors.ID,
+          books.title as books_title
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
   })
 })

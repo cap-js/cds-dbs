@@ -585,7 +585,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
               ...context,
               skipJoins: skipJoinsForFilter || inExists || (inFrom && !danglingFilter),
               // A path expression here must NOT flag the parent as needing a correlated subquery when:
-              //  - it sits behind an `exists` token at this filter level (`books[exists genre[…]]`) -
+              //  - it is the subject of an `exists` token at this filter level (`books[exists genre[…]]`) -
               //    it belongs to that nested semi-join, not the enclosing association; or
               //  - it is a dangling filter in FROM (`Books[genre.name=…]`), which is equivalent to a
               //    plain WHERE and so is rendered as an ordinary (left) join, not a correlated subquery.
@@ -595,6 +595,9 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
               inInfixFilter: true,
               inFrom,
             })
+            // `exists` only governs the single path that follows it; a sibling token after it
+            // (e.g. `exists books.genre or books.genre.name is null`) is a regular path expression.
+            skipJoinsForFilter = false
           } else if (token.func) {
             if (token.args) {
               applyToFunctionArgs(token.args, inferArg, [
@@ -603,6 +606,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
                 { skipJoins: skipJoinsForFilter || inExists || (inFrom && !danglingFilter), inNoCorrelationFilter: skipJoinsForFilter || (inFrom && danglingFilter), inXpr: true, inInfixFilter: true, inFrom },
               ])
             }
+            skipJoinsForFilter = false
           }
         })
       }
