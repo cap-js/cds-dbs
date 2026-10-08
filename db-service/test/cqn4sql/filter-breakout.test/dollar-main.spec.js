@@ -98,7 +98,7 @@ describe('internal $main variable', () => {
                 where $a.ID = Books.author_ID and
                 EXISTS (
                   SELECT 1 from bookshop.Books as $b
-                  inner join bookshop.Genres as genre2 on genre2.ID = $b.genre_ID
+                  left join bookshop.Genres as genre2 on genre2.ID = $b.genre_ID
                   where $b.author_ID = $a.ID
                     and contains(genre2.name, genre.name)
                 )

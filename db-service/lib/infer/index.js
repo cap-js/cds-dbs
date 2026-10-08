@@ -668,8 +668,13 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
         }
       }
     }
-    // we need inner joins for the path expressions inside filter expressions after exists predicate
-    if ($baseLink?.pathExpressionInsideFilter) defineProperty(arg, 'join', 'inner')
+    // Path expressions inside a filter are lowered to joins. Use LEFT (outer) joins: an INNER
+    // join is a global row filter and silently invalidates any `or`-combined branch that does
+    // not require the join (e.g. `not exists books.genre or books.genre.name is null`).
+    // NOTE: with LEFT joins a navigated `… is null` leaf also matches a missing target row.
+    // Restoring the "target exists and its leaf is null" semantics (guarding `is null` with
+    // `<target>.<key> is not null`) is a separate, still-pending convenience expansion.
+    if ($baseLink?.pathExpressionInsideFilter) defineProperty(arg, 'join', 'left')
 
     // ignore whole expand if target of assoc along path has ”@cds.persistence.skip”
     if (arg.expand) {

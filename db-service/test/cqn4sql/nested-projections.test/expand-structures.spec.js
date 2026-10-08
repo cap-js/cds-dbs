@@ -830,7 +830,7 @@ describe('(nested projections) expand structures', () => {
         SELECT from bookshop.Books as $B {
           (
             SELECT $a.name from bookshop.Authors as $a
-              inner join bookshop.Books as books on books.author_ID = $a.ID
+              left join bookshop.Books as books on books.author_ID = $a.ID
             where $B.author_ID = $a.ID and books.title = 'foo'
           ) as author
         }`
@@ -849,7 +849,7 @@ describe('(nested projections) expand structures', () => {
         SELECT from bookshop.EStrucSibling as $E {
           (
             SELECT $s.ID from bookshop.EStrucSibling as $s
-              inner join bookshop.EStruc as sibling on sibling.ID = $s.sibling_ID
+              left join bookshop.EStruc as sibling on sibling.ID = $s.sibling_ID
             where $E.self_ID = $s.ID and sibling.struc1_foo = 'foo'
           ) as self
         }`

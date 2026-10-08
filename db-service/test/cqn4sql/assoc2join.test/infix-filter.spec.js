@@ -353,8 +353,8 @@ describe('(a2j) in infix filter', () => {
           left join bookshop.Authors as author2
           on author2.ID = $B.author_ID and exists (
               SELECT from bookshop.Authors as $A
-              inner join bookshop.Books as books on books.author_ID = $A.ID
-              inner join bookshop.Genres as genre on genre.ID = books.genre_ID
+              left join bookshop.Books as books on books.author_ID = $A.ID
+              left join bookshop.Genres as genre on genre.ID = books.genre_ID
               {
                 1 as dummy
               }
@@ -384,10 +384,10 @@ describe('(a2j) in infix filter', () => {
           left join bookshop.Authors as author2
           on author2.ID = $B.author_ID and exists (
               SELECT from bookshop.Authors as $A
-              inner join bookshop.Books as books
+              left join bookshop.Books as books
               on books.author_ID = $A.ID and exists (
                 SELECT from bookshop.Books as $B2
-                inner join bookshop.Genres as genre on genre.ID = $B2.genre_ID
+                left join bookshop.Genres as genre on genre.ID = $B2.genre_ID
                 {
                   1 as dummy
                 }
@@ -422,13 +422,13 @@ describe('(a2j) in infix filter', () => {
           left join bookshop.Authors as author2
           on author2.ID = $B.author_ID and exists (
               SELECT from bookshop.Authors as $A
-              inner join bookshop.Books as books
+              left join bookshop.Books as books
               on books.author_ID = $A.ID and exists (
                 SELECT from bookshop.Books as $B2
-                inner join bookshop.Genres as genre
+                left join bookshop.Genres as genre
                 on genre.ID = $B2.genre_ID and exists (
                   SELECT from bookshop.Genres as $G
-                  inner join bookshop.Genres as parent on parent.ID = $G.parent_ID
+                  left join bookshop.Genres as parent on parent.ID = $G.parent_ID
                   {
                     1 as dummy
                   }
@@ -468,10 +468,10 @@ describe('(a2j) in infix filter', () => {
           left join bookshop.Authors as author2
           on author2.ID = $B.author_ID and exists (
               SELECT from bookshop.Authors as $A
-              inner join bookshop.Books as books on books.author_ID = $A.ID
-              inner join bookshop.Genres as genre on genre.ID = books.genre_ID
+              left join bookshop.Books as books on books.author_ID = $A.ID
+              left join bookshop.Genres as genre on genre.ID = books.genre_ID
 
-              inner join bookshop.Genres as parent on parent.ID = genre.parent_ID
+              left join bookshop.Genres as parent on parent.ID = genre.parent_ID
               {
                 1 as dummy
               }

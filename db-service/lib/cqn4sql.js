@@ -471,7 +471,10 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
           const correlation = primaryKeys.flatMap(pk => {
             return [ {ref: pk.ref }, '=', { ref: [ /*outer alias added later*/...pk.ref ]} ]
           })
-          const sub = SELECT.columns('1 as dummy').from(nextAssoc.$refLink.definition._target).where([...nextAssoc.where, 'and', ...correlation])
+          // wrap the user filter so the appended correlation binds to the whole predicate,
+          // not just the last `or` branch (`(<filter>) and <correlation>`)
+          const userFilter = hasLogicalOr(nextAssoc.where) ? [asXpr([...nextAssoc.where])] : [...nextAssoc.where]
+          const sub = SELECT.columns('1 as dummy').from(nextAssoc.$refLink.definition._target).where([...userFilter, 'and', ...correlation])
           const transformedSub = transformSubquery(sub)
           transformedSub.SELECT.where.at(-1).ref[0] = arg.as // replace outer alias placeholder
 
