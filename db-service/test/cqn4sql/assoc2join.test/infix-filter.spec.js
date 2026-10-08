@@ -336,73 +336,212 @@ describe('(a2j) in infix filter', () => {
     })
   })
 
-  // The infix filter of an `expand` becomes the `where` of the correlated expand subquery.
-  // Association traversal in it is resolved via joins inside that subquery - consistent with
-  // the expand's `group by`/`order by`/`having`/column list and with `where exists` semi-joins.
-  describe('path expression in expand filter', () => {
-    it('traversal in the expand where filter resolves via a join in the subquery', () => {
+  describe('path expressions in filter', () => {
+    it('puts the filter condition into a correlated subquery in the on-condition of the join', () => {
       const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.Authors {
-          ID,
-          name,
-          books[where genre.name = 'Poetry'] { title }
-        }`)
+        SELECT from bookshop.Books
+        {
+          title,
+          author.name
+        }
+        WHERE startswith( author[books.genre.name = 'Drama'].name, 'Emily' )
+      `)
       const expected = cds.ql`
-        SELECT from bookshop.Authors as $A {
-          $A.ID,
-          $A.name,
-          (
-            SELECT $b.title from bookshop.Books as $b
-              inner join bookshop.Genres as genre on genre.ID = $b.genre_ID
-            where $A.ID = $b.author_ID and genre.name = 'Poetry'
-          ) as books
+        SELECT from bookshop.Books as $B
+          left join bookshop.Authors as author on author.ID = $B.author_ID
+
+          left join bookshop.Authors as author2
+          on author2.ID = $B.author_ID and exists (
+              SELECT from bookshop.Authors as $A
+              left join bookshop.Books as books on books.author_ID = $A.ID
+              left join bookshop.Genres as genre on genre.ID = books.genre_ID
+              {
+                1 as dummy
+              }
+              where genre.name = 'Drama' AND $A.ID = author2.ID
+            )
+        {
+          $B.title,
+          author.name as author_name
+        }
+        WHERE startswith( author2.name, 'Emily' )
+      `
+      expectCqn(transformed).to.equal(expected)
+    })
+    it('puts the filter condition into a correlated subquery in the on-condition of the join nested', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books
+        {
+          title,
+          author.name
+        }
+        WHERE startswith( author[books[genre.name = 'Drama'].title = 'Dramatic Novel'].name, 'Emily' )
+      `)
+      const expected = cds.ql`
+        SELECT from bookshop.Books as $B
+          left join bookshop.Authors as author on author.ID = $B.author_ID
+
+          left join bookshop.Authors as author2
+          on author2.ID = $B.author_ID and exists (
+              SELECT from bookshop.Authors as $A
+              left join bookshop.Books as books
+              on books.author_ID = $A.ID and exists (
+                SELECT from bookshop.Books as $B2
+                left join bookshop.Genres as genre on genre.ID = $B2.genre_ID
+                {
+                  1 as dummy
+                }
+                where genre.name = 'Drama' AND $B2.ID = books.ID
+              )
+              {
+                1 as dummy
+              }
+              where books.title = 'Dramatic Novel' AND $A.ID = author2.ID
+            )
+        {
+          $B.title,
+          author.name as author_name
+        }
+        WHERE startswith( author2.name, 'Emily' )
+      `
+      expectCqn(transformed).to.equal(expected)
+    })
+    it('one more nesting level', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books
+        {
+          title,
+          author.name
+        }
+        WHERE startswith( author[books[genre[parent.name = 'Fiction'].name = 'Science Fiction'].title = 'Sunlit Man'].name, 'Sanderson' )
+      `)
+      const expected = cds.ql`
+        SELECT from bookshop.Books as $B
+          left join bookshop.Authors as author on author.ID = $B.author_ID
+
+          left join bookshop.Authors as author2
+          on author2.ID = $B.author_ID and exists (
+              SELECT from bookshop.Authors as $A
+              left join bookshop.Books as books
+              on books.author_ID = $A.ID and exists (
+                SELECT from bookshop.Books as $B2
+                left join bookshop.Genres as genre
+                on genre.ID = $B2.genre_ID and exists (
+                  SELECT from bookshop.Genres as $G
+                  left join bookshop.Genres as parent on parent.ID = $G.parent_ID
+                  {
+                    1 as dummy
+                  }
+                  where parent.name = 'Fiction' AND $G.ID = genre.ID
+                )
+                {
+                  1 as dummy
+                }
+                where genre.name = 'Science Fiction' AND $B2.ID = books.ID
+              )
+              {
+                1 as dummy
+              }
+              where books.title = 'Sunlit Man' AND $A.ID = author2.ID
+            )
+        {
+          $B.title,
+          author.name as author_name
+        }
+        WHERE startswith( author2.name, 'Sanderson' )
+      `
+      expectCqn(transformed).to.equal(expected)
+    })
+    it('adjacent path expressions inside filter', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books
+        {
+          title,
+          author.name
+        }
+        WHERE startswith( author[books.genre.name = books.genre.parent.name].name, 'Emily' )
+      `)
+      const expected = cds.ql`
+        SELECT from bookshop.Books as $B
+          left join bookshop.Authors as author on author.ID = $B.author_ID
+
+          left join bookshop.Authors as author2
+          on author2.ID = $B.author_ID and exists (
+              SELECT from bookshop.Authors as $A
+              left join bookshop.Books as books on books.author_ID = $A.ID
+              left join bookshop.Genres as genre on genre.ID = books.genre_ID
+
+              left join bookshop.Genres as parent on parent.ID = genre.parent_ID
+              {
+                1 as dummy
+              }
+              where genre.name = parent.name AND $A.ID = author2.ID
+            )
+        {
+          $B.title,
+          author.name as author_name
+        }
+        WHERE startswith( author2.name, 'Emily' )
+      `
+      expectCqn(transformed).to.equal(expected)
+    })
+  })
+
+  // A path expression inside the filter is resolved via a correlated subquery that is joined
+  // back to the outer query on the target's primary key(s). An (unmanaged) association whose
+  // target has no key offers nothing to correlate on, so this particular combination is rejected.
+  // Navigating the association, or filtering on its own fields, keeps working.
+  describe('path expression in filter of association to keyless target', () => {
+    it('rejects a path expression in the filter (no key to correlate on)', () => {
+      expect(() =>
+        cqn4sql(cds.ql`SELECT from keyless.ToKeyless { toKeyless[toSelf.field = 'FOO'].field }`),
+      ).to.throw(
+        /Can't resolve path expression in the filter of “toKeyless” because its target “keyless.Keyless” has no primary key/,
+      )
+    })
+
+    it('rejects a path expression in the filter of a self-association', () => {
+      expect(() =>
+        cqn4sql(cds.ql`SELECT from keyless.Keyless { toSelf[toSelf.field = 'FOO'].field }`),
+      ).to.throw(
+        /Can't resolve path expression in the filter of “toSelf” because its target “keyless.Keyless” has no primary key/,
+      )
+    })
+
+    it('plain navigation along the association still works', () => {
+      const transformed = cqn4sql(cds.ql`SELECT from keyless.ToKeyless { toKeyless.field }`)
+      const expected = cds.ql`
+        SELECT from keyless.ToKeyless as $T
+          left join keyless.Keyless as toKeyless on toKeyless.field = $T.myField
+        {
+          toKeyless.field as toKeyless_field
         }`
       expectCqn(transformed).to.equal(expected)
     })
 
-    it('traversal in the shorthand expand filter (no `where` keyword)', () => {
-      const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.Authors {
-          ID,
-          books[genre.name = 'Poetry'] { title }
-        }`)
+    it('filtering on the association`s own fields (no traversal) still works', () => {
+      const transformed = cqn4sql(cds.ql`SELECT from keyless.ToKeyless { toKeyless[field = 'FOO'].field }`)
       const expected = cds.ql`
-        SELECT from bookshop.Authors as $A {
-          $A.ID,
-          (
-            SELECT $b.title from bookshop.Books as $b
-              inner join bookshop.Genres as genre on genre.ID = $b.genre_ID
-            where $A.ID = $b.author_ID and genre.name = 'Poetry'
-          ) as books
+        SELECT from keyless.ToKeyless as $T
+          left join keyless.Keyless as toKeyless
+            on toKeyless.field = $T.myField and toKeyless.field = 'FOO'
+        {
+          toKeyless.field as toKeyless_field
         }`
       expectCqn(transformed).to.equal(expected)
     })
 
-    it('traversal in nested expand filters correlates at each level', () => {
-      const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.Authors {
-          ID,
-          books[genre.name = 'Poetry'] {
-            title,
-            genre[parent.name = 'Fiction'] { name }
-          }
-        }`)
-      const expected = cds.ql`
-        SELECT from bookshop.Authors as $A {
-          $A.ID,
-          (
-            SELECT $b.title,
-              (
-                SELECT $g.name from bookshop.Genres as $g
-                  inner join bookshop.Genres as parent on parent.ID = $g.parent_ID
-                where $b.genre_ID = $g.ID and parent.name = 'Fiction'
-              ) as genre
-            from bookshop.Books as $b
-              inner join bookshop.Genres as genre on genre.ID = $b.genre_ID
-            where $A.ID = $b.author_ID and genre.name = 'Poetry'
-          ) as books
-        }`
-      expectCqn(transformed).to.equal(expected)
+    it('the same path expression is allowed in an expand filter (correlated via the on-condition)', () => {
+      // the expand subquery correlates on the association's on-condition, not on a primary key
+      expect(() =>
+        cqn4sql(cds.ql`SELECT from keyless.ToKeyless { toKeyless[toSelf.field = 'FOO'] { field } }`),
+      ).to.not.throw()
+    })
+
+    it('the same path expression is allowed in a `where exists` semi-join', () => {
+      expect(() =>
+        cqn4sql(cds.ql`SELECT from keyless.ToKeyless { myField } where exists toKeyless[toSelf.field = 'FOO']`),
+      ).to.not.throw()
     })
   })
 })

@@ -745,7 +745,7 @@ describe('(nested projections) expand', () => {
           $A.ID,
           (
             SELECT from bookshop.Books as $b
-              inner join bookshop.Genres as genre on genre.ID = $b.genre_ID
+              left join bookshop.Genres as genre on genre.ID = $b.genre_ID
             {
               genre.name as genre_name,
               count(*) as c

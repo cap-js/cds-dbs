@@ -208,7 +208,7 @@ describe('table alias access - replace $self references', () => {
         exists (
           SELECT 1 from bookshop.Authors as $a where $a.ID = Books.author_ID and exists (
             SELECT 1 from bookshop.Books as $b
-              inner join bookshop.Authors as author on author.ID = $b.author_ID
+              left join bookshop.Authors as author on author.ID = $b.author_ID
               where $b.author_ID = $a.ID and author.name = $b.title and $b.title = Books.title
           )
         ) as s
@@ -250,11 +250,11 @@ describe('table alias access - replace $self references', () => {
         exists (
           SELECT 1 from bookshop.Authors as $a where $a.ID = Books.author_ID and exists (
             SELECT 1 from bookshop.Books as $b
-              inner join bookshop.Authors as author on author.ID = $b.author_ID
+              left join bookshop.Authors as author on author.ID = $b.author_ID
               where $b.author_ID = $a.ID and author.name = $b.title and exists (
                 SELECT 1 from bookshop.Authors as $a2 where $a2.ID = $b.author_ID and exists (
                   SELECT 1 from bookshop.Books as $b2
-                    inner join bookshop.Authors as author2 on author2.ID = $b2.author_ID
+                    left join bookshop.Authors as author2 on author2.ID = $b2.author_ID
                     where $b2.author_ID = $a2.ID and author2.name = $b2.title and $b2.title = Books.title
                 )
               )

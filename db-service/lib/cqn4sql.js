@@ -104,7 +104,6 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
 
     const transformedProp = { __proto__: queryProp } // IMPORTANT: don't lose anything you might not know of
     const queryNeedsJoins = inferred.joinTree && !inferred.joinTree.isInitial
-
     // Transform the existing where, prepend table aliases, and so on...
     if (where) {
       transformedProp.where = getTransformedTokenStream(where, { prop: 'where' })
@@ -459,12 +458,38 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
       lhs.args.push(arg)
       alreadySeen.set(nextAssoc.$refLink.alias, true)
       if (nextAssoc.where) {
-        const filter = getTransformedTokenStream(nextAssoc.where, { $baseLink: nextAssoc.$refLink })
-        lhs.on = [
-          ...(hasLogicalOr(lhs.on) ? [asXpr(lhs.on)] : lhs.on),
-          'and',
-          ...(hasLogicalOr(filter) ? [asXpr(filter)] : filter),
-        ]
+        // join condition derived from on-condition
+        lhs.on = [ ...(hasLogicalOr(lhs.on) ? [asXpr(lhs.on)] : lhs.on) ]
+        // join relevant path expressions inside filter need correlated exists
+        // subquery mixed into the join's on-condition
+        if(nextAssoc.$refLink.pathExpressionInsideFilter === true) {
+          const subqueryTarget = nextAssoc.$refLink.definition._target
+          const primaryKeys = getPrimaryKey(subqueryTarget)
+          // a path expression in the filter needs the target's primary key to correlate on
+          if (primaryKeys.length === 0)
+            cds.error`Can't resolve path expression in the filter of “${nextAssoc.$refLink.definition.name}” because its target “${subqueryTarget.name}” has no primary key`
+          const correlation = primaryKeys.flatMap(pk => {
+            return [ {ref: pk.ref }, '=', { ref: [ /*outer alias added later*/...pk.ref ]} ]
+          })
+          // wrap the user filter so the appended correlation binds to the whole predicate,
+          // not just the last `or` branch (`(<filter>) and <correlation>`)
+          const userFilter = hasLogicalOr(nextAssoc.where) ? [asXpr([...nextAssoc.where])] : [...nextAssoc.where]
+          const sub = SELECT.columns('1 as dummy').from(nextAssoc.$refLink.definition._target).where([...userFilter, 'and', ...correlation])
+          const transformedSub = transformSubquery(sub)
+          transformedSub.SELECT.where.at(-1).ref[0] = arg.as // replace outer alias placeholder
+
+          lhs.on.push(...[
+            'and',
+            'exists',
+            transformedSub,
+          ])
+        }
+        // non join relevant path expressions inside filter, e.g. `author[name = 'FOO']…`
+        else {
+          const filter = getTransformedTokenStream(nextAssoc.where, { $baseLink: nextAssoc.$refLink })
+          lhs.on.push(...['and', ...(hasLogicalOr(filter) ? [asXpr(filter)] : filter)])
+        }
+
       }
       if (node.children) {
         node.children.forEach(c => {

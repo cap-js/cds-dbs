@@ -520,11 +520,15 @@ describe('Bookshop - Read', () => {
   it('select all authors which have written books that have genre.name = null', async () => {
     await insertTemporaryData()
 
-    // the path expression inside the filter after the exists predicate must not
-    // be transformed to a left outer join but to an inner join
-    // if not, we would also get all authors which have books which have no genre at all (like Lord of the Rings in our example)
+    // the path expression inside the filter after the exists predicate is transformed to a
+    // left outer join, so a navigated `genre.name = null` would also match books that have
+    // no genre at all (like Lord of the Rings in our example). We therefore guard the filter
+    // explicitly with `genre.ID is not null` to only match books that actually have a genre.
+    // TODO: once the auto `is not null` expansion lands (rewrite a navigated `<path>.leaf = null`
+    //       / `is null` to `(<path>.<key> is not null and <path>.leaf = null)`), the explicit
+    //       `genre.ID is not null` guard below becomes redundant and should be removed.
     const { Authors } = cds.entities('sap.capire.bookshop')
-    const query = SELECT`from ${Authors} where exists books[ genre.name = null ]`
+    const query = SELECT`from ${Authors} where exists books[ genre.ID is not null and genre.name = null ]`
     const equivalentQuery = SELECT`from ${Authors} where exists books[ exists genre [ name = null ] ]`
     const results = await cds.db.run(query)
     const equivalentReults = await cds.db.run(equivalentQuery)
