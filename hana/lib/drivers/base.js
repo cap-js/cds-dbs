@@ -15,7 +15,7 @@ class HANADriver {
 
     // statement cache kill switch
     if (cds.env.requires.db.hana_statements_cache === false) {
-      this._prepare = this._prepare_stmt
+      this._prepare = this._prepare_uncached
     }
   }
 
@@ -25,6 +25,16 @@ class HANADriver {
         stmt._parentConnection = this._native
         return stmt
       })
+  }
+
+  _prepare_uncached(sql, detached) {
+    const prep = this._prepare_stmt(sql)
+    if (detached) return prep
+    return prep.then(stmt => {
+      let dropped = false
+      stmt.release = () => { if (!dropped) { dropped = true; stmt.drop?.() } }
+      return stmt
+    })
   }
 
   _prepare(sql, detached) {
