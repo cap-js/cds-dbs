@@ -16,7 +16,7 @@ const handledDeep = Symbol('handledDeep')
 /**
  * @param {import('@sap/cds/apis/services').Request} req
  * @param {nextCallback} next
- * @returns {Promise<number>}
+ * @returns {Promise<number|unknown[]>}
  */
 async function onDeep(req, next) {
   const { query } = req
@@ -30,7 +30,7 @@ async function onDeep(req, next) {
 
   const target = this.infer(query)._target
   const beforeData = query.INSERT ? [] : await this.run(getExpandForDeep(query, target, true))
-  if (query.UPDATE && !beforeData.length) return 0
+  if (query.UPDATE && !beforeData.length) return this._return_affected(0)
 
   const queries = getDeepQueries(query, beforeData, target)
 
@@ -48,7 +48,7 @@ async function onDeep(req, next) {
     ...Array.from(queries.inserts.values()).map(query => this.onINSERT({ query })),
   ])
 
-  return rootResult ?? beforeData.length
+  return query.UPDATE ? this._return_affected(beforeData.length) : rootResult
 }
 
 const hasDeep = (q) => {

@@ -4,6 +4,12 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+* normalize affected-row results for deep updates
+
 ## [3.1.1](https://github.com/cap-js/cds-dbs/compare/db-service-v3.1.0...db-service-v3.1.1) (2026-09-15)
 
 

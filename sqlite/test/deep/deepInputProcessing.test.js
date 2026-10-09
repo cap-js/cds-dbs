@@ -1,4 +1,5 @@
 const cds = require('../../../test/cds')
+const DatabaseService = require('../../../db-service/lib/common/DatabaseService')
 
 describe('UUID Generation', () => {
   const { POST, PUT, GET, expect } = cds.test(__dirname, 'deep.cds')
@@ -82,13 +83,21 @@ describe('UUID Generation', () => {
     })
 
     // new children are created
-    await cds.db.update('bla.RootUUID', { ID: uuid }).set({
-      toOneChild: {
-        // we omit the UUID --> insert
-        text: 'abc',
-        toManySubChild: [{ text: 'a' }, { text: 'b' }], // we omit the UUIDs --> insert
-      },
-    })
+    const alwaysReturnArrays = DatabaseService._always_return_arrays()
+    DatabaseService._always_return_arrays(true)
+    let result
+    try {
+      result = await cds.db.update('bla.RootUUID', { ID: uuid }).set({
+        toOneChild: {
+          // we omit the UUID --> insert
+          text: 'abc',
+          toManySubChild: [{ text: 'a' }, { text: 'b' }], // we omit the UUIDs --> insert
+        },
+      })
+    } finally {
+      DatabaseService._always_return_arrays(alwaysReturnArrays)
+    }
+    expect(result.affected).to.equal(1)
     const updated = await cds.db.read('bla.RootUUID', { ID: uuid }).columns(c => {
       c`.*`,
         c.toOneChild(c1 => {
