@@ -27,11 +27,6 @@ class HANADriver {
       })
   }
 
-  // Kill-switch replacement for _prepare. With the cache off there is no reuse to
-  // coordinate, so prepare a fresh statement each time. The non-detached call sites
-  // still release() after use (all() even calls it twice), so give them an idempotent
-  // release that drops the statement instead of retaining it for the connection's
-  // lifetime; detached (streaming) callers drop the statement themselves.
   _prepare_uncached(sql, detached) {
     const prep = this._prepare_stmt(sql)
     if (detached) return prep
