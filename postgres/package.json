@@ -28,7 +28,7 @@
   },
   "dependencies": {
     "@cap-js/db-service": "^3.1.1",
-    "pg": "^8.23.0"
+    "pg": "^8.23.1"
   },
   "devDependencies": {},
   "peerDependencies": {
