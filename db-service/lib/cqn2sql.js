@@ -1399,6 +1399,19 @@ class CQN2SQLRenderer {
   func({ func, args, xpr }) {
     const wrap = e => (e === '*' ? e : { __proto__: e, toString: (x = e) => this.expr(x) })
     args = args || []
+    const embeddingModel = cds.requires.embeddings?.model
+    if (
+      embeddingModel &&
+      typeof func === 'string' &&
+      func.toLowerCase() === 'vector_embedding' &&
+      Array.isArray(args) &&
+      args.length > 0 &&
+      args.length < 3
+    ) {
+      args = [...args]
+      if (args.length < 2) args.push({ val: 'QUERY', param: false })
+      args.push({ val: embeddingModel, param: false })
+    }
     if (Array.isArray(args)) {
       args = args.map(wrap)
     } else if (typeof args === 'object') {
