@@ -3,7 +3,7 @@ const bookshop = cds.utils.path.resolve(__dirname, '../../bookshop')
 const de = { locale: 'de' }
 
 describe('Bookshop - localization', () => {
-  const { expect } = cds.test(bookshop)
+  const { GET, expect } = cds.test(bookshop)
 
   test('SELECT localized.title from Books', ()=> cds.tx (de, async()=>{
     let { Books } = cds.entities, book
@@ -68,5 +68,18 @@ describe('Bookshop - localization', () => {
       const es = await tx.run(SELECT.localized.from('AdminService.Books', {ID: 201}).columns('ID', 'title'))
       expect(es.title).to.be.eq('Cumbres borrascosas')
     })
+  })
+
+  test('$count with $top uses localized view for count query', async () => {
+    // 'Sturmhöhe' exists only in the localized (de) view — the base title is 'Wuthering Heights'.
+    // With $top=1 the page is full (n === max), so a separate DB count query is issued.
+    // That count query must hit the localized view; otherwise @odata.count returns 0.
+    const filter = encodeURIComponent("title eq 'Sturmhöhe'")
+    const res = await GET(`/browse/Books?$count=true&$top=1&$filter=${filter}`, {
+      headers: { 'accept-language': 'de' },
+    })
+    expect(res.status).to.be.eq(200)
+    expect(res.data.value).to.have.length(1)
+    expect(res.data['@odata.count']).to.be.eq('1')
   })
 })
