@@ -351,7 +351,7 @@ class SQLService extends DatabaseService {
     const cq = SELECT.one([_count]).from(
       cds.ql.clone(query, {
         columns,
-        localized: false,
+        localized: query.SELECT.localized,
         expand: false,
         limit: undefined,
         orderBy: undefined,
