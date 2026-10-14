@@ -19,7 +19,8 @@ function completeVectorSimilarity(left, right, requires) {
 
   if (!embeddingArgs) return args
 
-  const queryEmbedding = { __proto__: embedding, ...embedding, args: embeddingArgs }
+  // Keep casts and inference metadata available while replacing only the completed arguments.
+  const queryEmbedding = Object.assign(Object.create(embedding), { args: embeddingArgs })
   return left === embedding ? [queryEmbedding, right] : [left, queryEmbedding]
 }
 
