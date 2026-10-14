@@ -1,6 +1,7 @@
 'use strict'
 
 const cds = require('@sap/cds')
+const { completeVectorEmbedding, completeVectorSimilarity } = require('../../db-service/lib/vector-embedding')
 
 const StandardFunctions = {
   // ==============================
@@ -177,28 +178,10 @@ for (let each in VectorFunctions) VectorFunctions[each.toUpperCase()] = VectorFu
 module.exports = { ...StandardFunctions, ...VectorFunctions, ...HANAFunctions }
 
 function vectorSimilarity(func, left, right) {
-  const args = [left, right]
-  const embedding = args.find(arg => arg.func?.toLowerCase() === 'vector_embedding')
-  const vector =
-    args.find(arg => arg.element?.['@cds.embeddings.model'] !== undefined) ||
-    args.find(arg => arg.element?.type === 'cds.Vector')
-  const model = cds.requires[vector?.element?.['@cds.embeddings.model']]?.model || cds.requires.embeddings?.model
-
-  if (!embedding || embedding.args.length >= 3 || !model) return `${func}(${args})`
-
-  const embeddingArgs = [...embedding.args]
-  if (embeddingArgs.length < 2) embeddingArgs.push({ val: 'QUERY', param: false })
-  embeddingArgs.push({ val: model, param: false })
-  const queryEmbedding = { func: embedding.func, args: embeddingArgs }
-
-  return `${func}(${left === embedding ? this.expr(queryEmbedding) : left},${right === embedding ? this.expr(queryEmbedding) : right})`
+  const [v1, v2] = completeVectorSimilarity(left, right, cds.requires)
+  return `${func}(${this.expr(v1)},${this.expr(v2)})`
 }
 
 function vectorEmbedding(args, model) {
-  if (!args.length || args.length >= 3 || !model) return `vector_embedding(${args})`
-
-  const completed = [...args]
-  if (completed.length < 2) completed.push({ val: 'QUERY', param: false })
-  completed.push({ val: model, param: false })
-  return `vector_embedding(${completed.map(arg => this.expr(arg))})`
+  return `vector_embedding(${(completeVectorEmbedding(args, model) || args).map(arg => this.expr(arg))})`
 }
