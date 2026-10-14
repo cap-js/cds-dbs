@@ -472,7 +472,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
           // can't go through inference (they resolve against the subquery source, not the outer
           // query). wrap an `or` filter so the correlation binds to the whole predicate.
           const userFilter = hasLogicalOr(nextAssoc.where) ? [asXpr([...nextAssoc.where])] : [...nextAssoc.where]
-          const sub = SELECT.columns('1 as dummy').from(nextAssoc.$refLink.definition._target).where(userFilter)
+          const sub = SELECT.columns('1 as dummy').from(subqueryTarget).where(userFilter)
           const transformedSub = transformSubquery(sub)
           // the subquery source alias sits at the leftmost leaf of the (possibly joined) from
           let subSource = transformedSub.SELECT.from
