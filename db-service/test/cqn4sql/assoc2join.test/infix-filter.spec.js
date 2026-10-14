@@ -485,6 +485,55 @@ describe('(a2j) in infix filter', () => {
       `
       expectCqn(transformed).to.equal(expected)
     })
+
+    it('correlates on every element of a composite primary key (managed assoc)', () => {
+      // `a2j.Header` has a composite key (id, id2); the correlated subquery must bind back
+      // on BOTH key elements, not just the last one.
+      const transformed = cqn4sql(cds.ql`
+        SELECT from a2j.Item as Item { id, toHeader[toItem_fwd.elt2 = 'X'].elt as he }
+      `)
+      const expected = cds.ql`
+        SELECT from a2j.Item as Item
+          left join a2j.Header as toHeader
+            on  toHeader.id  = Item.toHeader_id
+            and toHeader.id2 = Item.toHeader_id2
+            and exists (
+              SELECT 1 as dummy from a2j.Header as $H
+                left join a2j.Item as toItem_fwd on $H.id = toItem_fwd.id
+              where toItem_fwd.elt2 = 'X'
+                and $H.id  = toHeader.id
+                and $H.id2 = toHeader.id2
+            )
+        {
+          Item.id,
+          toHeader.elt as he
+        }`
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('correlates on a composite primary key reached via an unmanaged assoc', () => {
+      // `Item:toHeaderUnmanaged` is unmanaged (joins on `elt`); the target `Header` still has
+      // a composite key, so the correlation inside the subquery binds on both id and id2.
+      const transformed = cqn4sql(cds.ql`
+        SELECT from a2j.Item as Item { id, toHeaderUnmanaged[toItem_fwd.elt2 = 'X'].elt as he }
+      `)
+      const expected = cds.ql`
+        SELECT from a2j.Item as Item
+          left join a2j.Header as toHeaderUnmanaged
+            on  Item.elt2 = toHeaderUnmanaged.elt
+            and exists (
+              SELECT 1 as dummy from a2j.Header as $H
+                left join a2j.Item as toItem_fwd on $H.id = toItem_fwd.id
+              where toItem_fwd.elt2 = 'X'
+                and $H.id  = toHeaderUnmanaged.id
+                and $H.id2 = toHeaderUnmanaged.id2
+            )
+        {
+          Item.id,
+          toHeaderUnmanaged.elt as he
+        }`
+      expectCqn(transformed).to.equal(expected)
+    })
   })
 
   // A path expression inside the filter is resolved via a correlated subquery that is joined

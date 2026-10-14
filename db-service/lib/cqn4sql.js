@@ -468,15 +468,23 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
           // a path expression in the filter needs the target's primary key to correlate on
           if (primaryKeys.length === 0)
             cds.error`Can't resolve path expression in the filter of “${nextAssoc.$refLink.definition.name}” because its target “${subqueryTarget.name}” has no primary key`
-          const correlation = primaryKeys.flatMap(pk => {
-            return [ {ref: pk.ref }, '=', { ref: [ /*outer alias added later*/...pk.ref ]} ]
+          // correlate on every key element: `<innerKey> = <outerKey> and …` for composite keys.
+          const correlation = primaryKeys.flatMap((pk, i) => {
+            // outer ref carries a placeholder alias; it is rewritten to the outer alias after transform
+            return [ ...(i > 0 ? ['and'] : []), { ref: pk.ref }, '=', { ref: [ /*outer alias*/...pk.ref ] } ]
           })
           // wrap the user filter so the appended correlation binds to the whole predicate,
           // not just the last `or` branch (`(<filter>) and <correlation>`)
           const userFilter = hasLogicalOr(nextAssoc.where) ? [asXpr([...nextAssoc.where])] : [...nextAssoc.where]
           const sub = SELECT.columns('1 as dummy').from(nextAssoc.$refLink.definition._target).where([...userFilter, 'and', ...correlation])
           const transformedSub = transformSubquery(sub)
-          transformedSub.SELECT.where.at(-1).ref[0] = arg.as // replace outer alias placeholder
+          // `transformSubquery` prefixes every ref with the subquery alias and rebuilds the tokens,
+          // so patch the outer-side refs afterwards: the correlation is the trailing `4*k-1` tokens,
+          // and within it every ref right after an `=` is an outer ref.
+          const where = transformedSub.SELECT.where
+          for (let i = where.length - (4 * primaryKeys.length - 1); i < where.length; i++) {
+            if (where[i - 1] === '=') where[i].ref[0] = arg.as // replace outer alias placeholder
+          }
 
           lhs.on.push(...[
             'and',
