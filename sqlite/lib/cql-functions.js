@@ -1,7 +1,7 @@
 'use strict'
 
 const cds = require('@sap/cds')
-const { completeVectorEmbedding, completeVectorSimilarity } = require('../../db-service/lib/vector-embedding')
+const { completeVectorEmbedding, completeVectorSimilarity } = require('@cap-js/db-service/lib/vector-embedding')
 
 const StandardFunctions = {
   // ==============================

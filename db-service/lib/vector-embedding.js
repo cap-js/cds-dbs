@@ -1,6 +1,6 @@
 'use strict'
 
-function completeVectorEmbedding(args, model) {
+function completeVectorEmbedding(args = [], model) {
   if (!args.length || args.length >= 3 || !model) return
 
   const completed = [...args]

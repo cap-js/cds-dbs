@@ -75,6 +75,13 @@ describe('SQLite vector embedding defaults', () => {
     expect(call.args).toEqual([{ val: 'needle' }])
   })
 
+  test('leaves a zero-argument nested query embedding unchanged', () => {
+    const { sql, values } = render([vector(), { func: 'vector_embedding' }])
+
+    expect(sql).toBe('SELECT cosine_similarity(embedding,vector_embedding()) as score FROM Books')
+    expect(values).toEqual([])
+  })
+
   test.each([
     [
       "cosine_similarity(embedding, vector_embedding('needle'))",

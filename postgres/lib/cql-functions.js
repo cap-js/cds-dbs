@@ -2,7 +2,7 @@
 
 const cds = require('@sap/cds')
 const session = require('./session.json')
-const { completeVectorEmbedding, completeVectorSimilarity } = require('../../db-service/lib/vector-embedding')
+const { completeVectorEmbedding, completeVectorSimilarity } = require('@cap-js/db-service/lib/vector-embedding')
 
 const StandardFunctions = {
   // ==============================

@@ -2,7 +2,7 @@
 
 const cds = require('@sap/cds')
 const session = require('./session.json')
-const { completeVectorEmbedding, completeVectorSimilarity } = require('../../db-service/lib/vector-embedding')
+const { completeVectorEmbedding, completeVectorSimilarity } = require('@cap-js/db-service/lib/vector-embedding')
 
 const isTime = /^\d{1,2}:\d{1,2}:\d{1,2}$/
 const isDate = /^\d{1,4}-\d{1,2}-\d{1,2}$/
