@@ -468,23 +468,21 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
           // a path expression in the filter needs the target's primary key to correlate on
           if (primaryKeys.length === 0)
             cds.error`Can't resolve path expression in the filter of “${nextAssoc.$refLink.definition.name}” because its target “${subqueryTarget.name}” has no primary key`
-          // correlate on every key element: `<innerKey> = <outerKey> and …` for composite keys.
-          const correlation = primaryKeys.flatMap((pk, i) => {
-            // outer ref carries a placeholder alias; it is rewritten to the outer alias after transform
-            return [ ...(i > 0 ? ['and'] : []), { ref: pk.ref }, '=', { ref: [ /*outer alias*/...pk.ref ] } ]
-          })
-          // wrap the user filter so the appended correlation binds to the whole predicate,
-          // not just the last `or` branch (`(<filter>) and <correlation>`)
+          // transform the user filter alone, then append the correlation: the outer-side refs
+          // can't go through inference (they resolve against the subquery source, not the outer
+          // query). wrap an `or` filter so the correlation binds to the whole predicate.
           const userFilter = hasLogicalOr(nextAssoc.where) ? [asXpr([...nextAssoc.where])] : [...nextAssoc.where]
-          const sub = SELECT.columns('1 as dummy').from(nextAssoc.$refLink.definition._target).where([...userFilter, 'and', ...correlation])
+          const sub = SELECT.columns('1 as dummy').from(nextAssoc.$refLink.definition._target).where(userFilter)
           const transformedSub = transformSubquery(sub)
-          // `transformSubquery` prefixes every ref with the subquery alias and rebuilds the tokens,
-          // so patch the outer-side refs afterwards: the correlation is the trailing `4*k-1` tokens,
-          // and within it every ref right after an `=` is an outer ref.
-          const where = transformedSub.SELECT.where
-          for (let i = where.length - (4 * primaryKeys.length - 1); i < where.length; i++) {
-            if (where[i - 1] === '=') where[i].ref[0] = arg.as // replace outer alias placeholder
-          }
+          // the subquery source alias sits at the leftmost leaf of the (possibly joined) from
+          let subSource = transformedSub.SELECT.from
+          while (subSource.args) subSource = subSource.args[0]
+          // correlate on every key element: `<subAlias>.<key> = <outerAlias>.<key> and …`
+          primaryKeys.forEach(pk => {
+            transformedSub.SELECT.where.push(
+              'and', { ref: [subSource.as, ...pk.ref] }, '=', { ref: [arg.as, ...pk.ref] },
+            )
+          })
 
           lhs.on.push(...[
             'and',
