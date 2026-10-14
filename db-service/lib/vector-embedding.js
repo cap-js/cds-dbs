@@ -19,7 +19,7 @@ function completeVectorSimilarity(left, right, requires) {
 
   if (!embeddingArgs) return args
 
-  const queryEmbedding = { func: embedding.func, args: embeddingArgs }
+  const queryEmbedding = { __proto__: embedding, ...embedding, args: embeddingArgs }
   return left === embedding ? [queryEmbedding, right] : [left, queryEmbedding]
 }
 

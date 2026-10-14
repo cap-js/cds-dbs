@@ -57,4 +57,11 @@ describe('PostgreSQL vector embedding defaults', () => {
     expect(sql).toBe('SELECT vector_embedding($1,$2,$3,$4) as embedding FROM Books as "$b"')
     expect(values).toEqual(['needle', 'DOCUMENT', 'EXPLICIT.MODEL', 'REMOTE.SOURCE'])
   })
+
+  test('preserves casts on completed query embeddings', () => {
+    const { sql, values } = render("SELECT from Books { cosine_similarity(embedding, cast(vector_embedding('needle') as Vector)) as score }")
+
+    expect(sql).toBe("SELECT 1 - cosine_distance(\"$b\".embedding,cast(vector_embedding($1,'QUERY','SPECIAL.MODEL') as VECTOR)) as score FROM Books as \"$b\"")
+    expect(values).toEqual(['needle'])
+  })
 })
