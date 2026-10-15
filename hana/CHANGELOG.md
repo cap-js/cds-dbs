@@ -4,6 +4,20 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.1.3](https://github.com/cap-js/cds-dbs/compare/hana-v3.1.2...hana-v3.1.3) (2026-10-15)
+
+
+### Fixed
+
+* $count uses localized view when a localized value drives the result set ([#1768](https://github.com/cap-js/cds-dbs/issues/1768)) ([0cae7ce](https://github.com/cap-js/cds-dbs/commit/0cae7cef4db02d4bad0b80c5fb38c86c38dfa126))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^3.1.2 to ^3.1.3
+
 ## [3.1.2](https://github.com/cap-js/cds-dbs/compare/hana-v3.1.1...hana-v3.1.2) (2026-10-09)
 
 
