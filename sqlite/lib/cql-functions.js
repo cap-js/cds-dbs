@@ -1,5 +1,8 @@
 'use strict'
 
+const cds = require('@sap/cds')
+const { completeVectorEmbedding, completeVectorSimilarity } = require('@cap-js/db-service/lib/vector-embedding')
+
 const StandardFunctions = {
   // ==============================
   // Date and Time Functions
@@ -82,6 +85,20 @@ const StandardFunctions = {
   matchespattern: (x, y) => `(${x} regexp ${y})`,
 }
 
+const VectorFunctions = {
+  vector_embedding: function (...args) {
+    return vectorEmbedding.call(this, args, cds.requires.embeddings?.model)
+  },
+
+  cosine_similarity: function (left, right) {
+    return vectorSimilarity.call(this, 'cosine_similarity', left, right)
+  },
+
+  l2distance: function (left, right) {
+    return vectorSimilarity.call(this, 'l2distance', left, right)
+  },
+}
+
 const HANAFunctions = {
   // ==============================
   // Timestamp Difference Functions
@@ -156,5 +173,15 @@ const HANAFunctions = {
 }
 
 for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunctions[each]
+for (let each in VectorFunctions) VectorFunctions[each.toUpperCase()] = VectorFunctions[each]
 
-module.exports = { ...StandardFunctions, ...HANAFunctions }
+module.exports = { ...StandardFunctions, ...VectorFunctions, ...HANAFunctions }
+
+function vectorSimilarity(func, left, right) {
+  const [v1, v2] = completeVectorSimilarity(left, right, cds.requires)
+  return `${func}(${this.expr(v1)},${this.expr(v2)})`
+}
+
+function vectorEmbedding(args, model) {
+  return `vector_embedding(${(completeVectorEmbedding(args, model) || args).map(arg => this.expr(arg))})`
+}

@@ -2,6 +2,7 @@
 
 const cds = require('@sap/cds')
 const session = require('./session.json')
+const { completeVectorEmbedding, completeVectorSimilarity } = require('@cap-js/db-service/lib/vector-embedding')
 
 const isTime = /^\d{1,2}:\d{1,2}:\d{1,2}$/
 const isDate = /^\d{1,4}-\d{1,2}-\d{1,2}$/
@@ -257,6 +258,20 @@ const StandardFunctions = {
 }
 
 const HANAFunctions = {
+  vector_embedding: function (...args) {
+    return vectorEmbedding.call(this, args, cds.requires.embeddings?.model)
+  },
+
+  cosine_similarity: function (left, right) {
+    const [v1, v2] = vectorSimilarity.call(this, left, right)
+    return `cosine_similarity(${this.expr(v1)},${this.expr(v2)})`
+  },
+
+  l2distance: function (left, right) {
+    const [v1, v2] = vectorSimilarity.call(this, left, right)
+    return `l2distance(${this.expr(v1)},${this.expr(v2)})`
+  },
+
   current_connection: () => 'current_connection',
   current_date: () => 'current_utcdate',
   current_schema: () => 'current_schema',
@@ -278,3 +293,11 @@ const HANAFunctions = {
 for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunctions[each]
 
 module.exports = { ...StandardFunctions, ...HANAFunctions }
+
+function vectorSimilarity(left, right) {
+  return completeVectorSimilarity(left, right, cds.requires)
+}
+
+function vectorEmbedding(args, model) {
+  return `vector_embedding(${(completeVectorEmbedding(args, model) || args).map(arg => this.expr(arg))})`
+}
