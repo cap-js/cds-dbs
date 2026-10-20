@@ -69,4 +69,25 @@ describe('Bookshop - localization', () => {
       expect(es.title).to.be.eq('Cumbres borrascosas')
     })
   })
+
+  // on a full page ($top == returned rows) a separate DB count query is issued; it must use
+  // the localized view, not the base table which holds the untranslated title
+  test('$count filtering a localized element uses the localized view', () => cds.tx(de, async () => {
+    const { Books } = cds.entities
+    // 'Sturmhöhe' only exists in the de view (base title is 'Wuthering Heights') -> exactly 1 match
+    const q = SELECT.localized.from(Books).where('title =', 'Sturmhöhe').limit(1)
+    q.SELECT.count = true
+    const res = await cds.db.run(q)
+    expect(res).to.have.length(1)
+    expect(Number(res.$count)).to.equal(1) // was 0 before the fix (count ran on base table)
+  }))
+
+  test('$count filtering a non-localized element still counts on the base table', () => cds.tx(de, async () => {
+    const { Books } = cds.entities
+    const q = SELECT.localized.from(Books).where('stock >', 0).limit(1)
+    q.SELECT.count = true
+    const res = await cds.db.run(q)
+    expect(res).to.have.length(1)
+    expect(Number(res.$count)).to.equal(6) // all fixture Books have stock > 0
+  }))
 })

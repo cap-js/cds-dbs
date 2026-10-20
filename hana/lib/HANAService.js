@@ -225,7 +225,7 @@ class HANAService extends SQLService {
     }
     if (cqn.SELECT.count) {
       // REVISIT: the runtime always expects that the count is preserved with .map, required for renaming in mocks
-      return HANAService._arrayWithCount(rows, await this.count(query, rows))
+      return HANAService._arrayWithCount(rows, await this.count(query, rows, cqn))
     }
     return isOne && !isStream ? rows[0] : rows
   }

@@ -579,6 +579,9 @@ class CQN2SQLRenderer {
           distanceVal = where[i]
           where[i] = { val: where[i].val + 1 }
         }
+        else if (c.xpr) {
+          collectDistanceTo(c.xpr, innot)
+        }
       }
     }
 

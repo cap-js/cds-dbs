@@ -260,6 +260,27 @@ describe('localized', () => {
       )
     `))
   })
+  it('resolves shorthand infix filter key for localized source', () => {
+    // localized entities carry their keys via `{__proto__: Books.elements, …}`,
+    // so the primary key must be resolved walking the prototype chain
+    const q = SELECT.localized`from bookshop.Books[201] { ID }`
+    let query = cqn4sql(q, model)
+    expect(cds.clone(query)).to.deep.equal(cds.ql`
+        SELECT from localized.bookshop.Books as $B { $B.ID }
+        where $B.ID = 201`)
+  })
+  it('resolves shorthand infix filter key for localized association target', () => {
+    const q = SELECT.localized`from bookshop.Authors { ID, books[201].title }`
+    let query = cqn4sql(q, model)
+    expect(cds.clone(query)).to.deep.equal(CQL(`
+        SELECT from bookshop.Authors as $A
+          left outer join localized.bookshop.Books as books
+            on books.author_ID = $A.ID and books.ID = 201
+        {
+          $A.ID,
+          books.title as books_title
+        }`))
+  })
   it('can handle redirections', () => {
     const q = SELECT.localized `from bookshop.Third[ID = 4711]:first { BUBU }`
     let query = cqn4sql(q, model)
@@ -269,5 +290,57 @@ describe('localized', () => {
         SELECT 1 from localized.bookshop.Third as $T where $T.ID = $f.BUBU and $T.ID = 4711
       )`
     expect(JSON.parse(JSON.stringify(expected))).to.eql(JSON.parse(JSON.stringify(query)))
+  })
+
+  // flag queries whose count depends on the localized view, so SQLService.count()
+  // keeps it only when a localized value drives the result set
+  describe('localizedCountRelevant flag (count correctness)', () => {
+    const flag = q => cqn4sql(q, model).SELECT.localizedCountRelevant
+
+    it('is NOT set when nothing is localized-sensitive (plain projection)', () => {
+      expect(flag(SELECT.localized`from bookshop.Books as Books { ID, title }`)).to.be.undefined
+    })
+
+    it('is NOT set when WHERE filters a non-localized element', () => {
+      expect(flag(SELECT.localized`from bookshop.Books as Books { ID } where stock > 1`)).to.be.undefined
+    })
+
+    it('is set when WHERE filters a localized element', () => {
+      expect(flag(SELECT.localized`from bookshop.Books as Books { ID } where title = 'Sturmhöhe'`)).to.be.true
+    })
+
+    it('is set when a localized element is filtered inside an expression / function', () => {
+      expect(flag(SELECT.localized`from bookshop.Books as Books { ID } where (title = 'x' or stock > 1)`)).to.be.true
+      expect(flag(SELECT.localized`from bookshop.Books as Books { ID } where upper(title) = 'X'`)).to.be.true
+    })
+
+    it('is set when HAVING references a localized element', () => {
+      const q = SELECT.localized`from bookshop.Books as Books { title } group by title having title = 'Sturmhöhe'`
+      expect(flag(q)).to.be.true
+    })
+
+    it('is set when GROUP BY references a localized element', () => {
+      expect(flag(SELECT.localized`from bookshop.Books as Books { count(1) as c } group by title`)).to.be.true
+    })
+
+    it('is NOT set when GROUP BY references only non-localized elements', () => {
+      expect(flag(SELECT.localized`from bookshop.Books as Books { count(1) as c } group by stock`)).to.be.undefined
+    })
+
+    it('is set when a WHERE EXISTS infix filter touches a localized element', () => {
+      const q = SELECT.localized`from bookshop.Authors as Authors { ID } where exists books[title = 'Sturmhöhe']`
+      expect(flag(q)).to.be.true
+    })
+
+    it('is NOT set when the query is not localized at all', () => {
+      // no SELECT.localized -> count may always drop to base table safely
+      expect(cqn4sql(cds.ql`SELECT ID from bookshop.Books as Books where title = 'x'`, model).SELECT.localizedCountRelevant)
+        .to.be.undefined
+    })
+
+    it('is NOT set when the filtered element opts out via @cds.localized:false', () => {
+      // bookshop.BP has @cds.localized:false, so `title` is never served from a localized view
+      expect(flag(SELECT.localized`from bookshop.BP as BP { ID } where title = 'x'`)).to.be.undefined
+    })
   })
 })

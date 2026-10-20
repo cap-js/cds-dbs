@@ -5,19 +5,15 @@ const cds = require('@sap/cds')
 const JoinTree = require('./join-tree')
 const { pseudos } = require('./pseudos')
 const { isCalculatedOnRead, getImplicitAlias, getModelUtils, defineProperty, hasOwnSkip, isRuntimeView } = require('../utils')
-const { depthGuarded, guardEntry } = require('../recursion-guard')
 const cdsTypes = cds.builtin.types
 /**
  * @param {import('@sap/cds/apis/cqn').Query|string} originalQuery
  * @param {import('@sap/cds/apis/csn').CSN} [model]
  * @returns {import('./cqn').Query} = q with .target and .elements
  */
-function _infer(originalQuery, model, useTechnicalAlias = true) {
+function infer(originalQuery, model, useTechnicalAlias = true) {
   if (!model) throw new Error('Please specify a model')
   const inferred = originalQuery
-  // guard func args / lists / xpr / exists nesting
-  // eslint-disable-next-line no-func-assign
-  inferArg = depthGuarded(inferArg)
 
   const { getDefinition } = getModelUtils(model, originalQuery)
 
@@ -295,23 +291,19 @@ function _infer(originalQuery, model, useTechnicalAlias = true) {
      */
     function walkTokenStream(tokenStream, inXpr = false) {
       let skipJoins
-      const processToken = depthGuarded(walker())
-      tokenStream.forEach(processToken)
-
-      function walker() {
-        return t => {
-          if (t === 'exists') {
-            // no joins for infix filters along `exists <path>`
-            skipJoins = true
-          } else if (t.xpr) {
-            // don't miss an exists within an expression
-            t.xpr.forEach(processToken)
-          } else {
-            inferArg(t, queryElements, null, { inExists: skipJoins, inXpr, inQueryModifier: true })
-            skipJoins = false
-          }
+      const processToken = t => {
+        if (t === 'exists') {
+          // no joins for infix filters along `exists <path>`
+          skipJoins = true
+        } else if (t.xpr) {
+          // don't miss an exists within an expression
+          t.xpr.forEach(processToken)
+        } else {
+          inferArg(t, queryElements, null, { inExists: skipJoins, inXpr, inQueryModifier: true })
+          skipJoins = false
         }
       }
+      tokenStream.forEach(processToken)
     }
     /**
      * Processes references starting with `$self`, which are intended to target other query elements.
@@ -585,6 +577,10 @@ function _infer(originalQuery, model, useTechnicalAlias = true) {
         if ((!definition.target && definition.kind !== 'entity') || (!inFrom && !inCalcElement && danglingFilter))
           throw new Error('A filter can only be provided when navigating along associations')
         if (!inFrom && !arg.expand)defineProperty(arg, 'isJoinRelevant', true)
+        // The filter of an `expand` becomes the `where` of the expand subquery.
+        // Just like `where exists <assoc>[…]` semi-joins, path expressions in it are
+        // resolved via joins inside that subquery, so they must not be rejected here.
+        const filterOfExpand = !!arg.expand
         let skipJoinsForFilter = false
         step.where.forEach(token => {
           if (token === 'exists') {
@@ -595,7 +591,7 @@ function _infer(originalQuery, model, useTechnicalAlias = true) {
             // because they will become part of an EXISTS subquery
             inferArg(token, false, arg.$refLinks[i], {
               ...context,
-              inExists: skipJoinsForFilter || inExists || (inFrom && !danglingFilter),
+              inExists: skipJoinsForFilter || inExists || filterOfExpand || (inFrom && !danglingFilter),
               inXpr: !!token.xpr,
               inInfixFilter: true,
               inFrom,
@@ -605,7 +601,7 @@ function _infer(originalQuery, model, useTechnicalAlias = true) {
               applyToFunctionArgs(token.args, inferArg, [
                 false,
                 arg.$refLinks[i],
-                { inExists: skipJoinsForFilter || inExists || (inFrom && !danglingFilter), inXpr: true, inInfixFilter: true, inFrom },
+                { inExists: skipJoinsForFilter || inExists || filterOfExpand || (inFrom && !danglingFilter), inXpr: true, inInfixFilter: true, inFrom },
               ])
             }
           }
@@ -639,7 +635,7 @@ function _infer(originalQuery, model, useTechnicalAlias = true) {
         } else if (arg.inline && queryElements) {
           const elements = resolveInline(arg)
           for (const elName in elements) {
-            if (queryElements[elName] !== undefined) rejectDuplicatedElement(elName)
+            if (queryElements[elName] !== undefined) rejectDuplicatedElement(elName)  
           }
           Object.assign(queryElements, elements)
         } else {
@@ -675,7 +671,7 @@ function _infer(originalQuery, model, useTechnicalAlias = true) {
     // ignore whole expand if target of assoc along path has ”@cds.persistence.skip”
     if (arg.expand) {
       const { $refLinks } = arg
-
+      
       const skip = $refLinks.some(link => {
         const def = getDefinition(link.definition.target)
         return hasOwnSkip(def) && !isRuntimeView(def)
@@ -1294,8 +1290,5 @@ function getMainAlias (query) {
   if(!mainAlias) throw new Error('Cannot determine main query source for $main, please report this')
   return mainAlias
 }
-
-// guardEntry bounds nested-subquery re-entry (expand, from, set)
-const infer = guardEntry(_infer)
 
 module.exports = infer
