@@ -1524,7 +1524,7 @@ class CQN2SQLRenderer {
           if (columns.find(c => c.name === e)) return false
           return true
         })
-        .map(name => ({ name }))
+        .map(name => ({ name, sql: 'NULL' }))
 
     const keys = ObjectKeys(elements).filter(e => elements[e].key && !elements[e].isAssociation)
     const keyZero = keys[0] && this.quote(keys[0])
