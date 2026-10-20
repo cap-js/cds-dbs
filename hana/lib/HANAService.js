@@ -825,7 +825,12 @@ class HANAService extends SQLService {
       const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), { ...targetElementsFiltered, ...filteredElements })
 
       // REVISIT: @cds.extension required
-      const extraction = extractions.map(c => c.extract)
+      const extraction = extractions.map((c, i) => {
+        if (i < columns.length) return c.extract
+        // managed default not in input: emit FORMAT JSON-only so managed_default's "$.NAME" IS NULL check is valid
+        const path = this.string(this.srv?.server.major <= 2 ? `$.${c.name}` : `$[${JSON.stringify(c.name)}]`)
+        return `${this.quote('$.' + c.name)} NVARCHAR(2147483647) FORMAT JSON PATH ${path}`
+      })
       const converter = extractions.map(c => c.insert)
 
       const _stream = entries => {
