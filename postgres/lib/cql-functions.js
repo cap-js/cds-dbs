@@ -1,8 +1,6 @@
 'use strict'
 
-const cds = require('@sap/cds')
 const session = require('./session.json')
-const { completeVectorEmbedding, completeVectorSimilarity } = require('@cap-js/db-service/lib/vector-embedding')
 
 const StandardFunctions = {
   // ==============================
@@ -138,12 +136,6 @@ const isVal = x => x && 'val' in x
 const castVal = x => `${x}${isVal(x) ? (isTime.test(x.val) ? '::TIME' : '::TIMESTAMP') : ''}`
 
 const HANAFunctions = {
-  vector_embedding: function (...args) {
-    // Named UDF parameters use the generic function renderer.
-    if (args.length === 1 && args[0].input) return
-    return vectorEmbedding.call(this, args, cds.requires.embeddings?.model)
-  },
-
   // ==============================
   // Time Difference Functions
   // ==============================
@@ -207,8 +199,7 @@ const HANAFunctions = {
    * @returns {string} - SQL statement
    */
   cosine_similarity(v1, v2) {
-    const [left, right] = vectorSimilarity.call(this, v1, v2)
-    return `1 - cosine_distance(${this.expr(left)},${this.expr(right)})`
+    return `1 - cosine_distance(${this.expr(v1)},${this.expr(v2)})`
   },
   /**
    * Computes the L2 distance of two vectors.
@@ -217,8 +208,7 @@ const HANAFunctions = {
    * @returns {string} - SQL statement
    */
   l2distance(v1, v2) { 
-    const [left, right] = vectorSimilarity.call(this, v1, v2)
-    return `l2_distance(${this.expr(left)},${this.expr(right)})`
+    return `l2_distance(${this.expr(v1)},${this.expr(v2)})`
   },
   /**
    * L2 normalizes the vector
@@ -233,11 +223,3 @@ const HANAFunctions = {
 for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunctions[each]
 
 module.exports = { ...StandardFunctions, ...HANAFunctions }
-
-function vectorSimilarity(left, right) {
-  return completeVectorSimilarity(left, right, cds.requires)
-}
-
-function vectorEmbedding(args, model) {
-  return `vector_embedding(${(completeVectorEmbedding(args, model) || args).map(arg => this.expr(arg))})`
-}

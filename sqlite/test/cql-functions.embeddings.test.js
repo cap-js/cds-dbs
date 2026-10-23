@@ -7,6 +7,23 @@ const SQLiteService = require('../lib/SQLiteService')
 describe('SQLite vector embedding defaults', () => {
   let requires
 
+  const model = cds.linked(
+    cds.compile.to.csn(`
+    entity Books {
+      key ID : Integer;
+      @cds.embeddings.model: 'special-embeddings'
+      embedding : Vector;
+      text : String;
+      @cds.embeddings.model: 'special-embeddings'
+      calculated : Vector = vector_embedding(text, 'DOCUMENT', 'SPECIAL.MODEL');
+      related : Association to Books;
+    }
+  `),
+  )
+
+  const prepare = expression => cqn4sql(cds.parse.cql(`SELECT from Books { ${expression} as result }`), model)
+  const render = expression => new SQLiteService.CQN2SQL({ model }).render(prepare(expression))
+
   beforeEach(() => {
     requires = {
       embeddings: cds.requires.embeddings,
@@ -25,208 +42,110 @@ describe('SQLite vector embedding defaults', () => {
     }
   })
 
-  const render = (args, func = 'cosine_similarity') =>
-    new SQLiteService.CQN2SQL().render({
-      SELECT: {
-        from: { ref: ['Books'] },
-        columns: [{ func, args, as: 'score' }],
-      },
-    })
-
-  const vector = model => ({
-    ref: ['embedding'],
-    element: { type: 'cds.Vector', ...(model && { '@cds.embeddings.model': model }) },
-  })
-
-  const query = args => ({ func: 'vector_embedding', args })
-
-  const model = cds.linked(
-    cds.compile.to.csn(`
-    entity Books {
-      key ID : Integer;
-      @cds.embeddings.model: 'special-embeddings'
-      embedding : Vector;
-      text : String;
-      @cds.embeddings.model: 'special-embeddings'
-      calculated : Vector = vector_embedding(text, 'DOCUMENT', 'SPECIAL.MODEL');
-      @cds.embeddings.model: 'special-embeddings'
-      normalized : Vector = l2normalize(vector_embedding(text, 'DOCUMENT', 'SPECIAL.MODEL'));
-      related : Association to Books;
+  test.each([true, false])('defaults standalone embeddings to QUERY with configuration present: %s', configured => {
+    if (!configured) {
+      delete cds.requires.embeddings
+      delete cds.requires['special-embeddings']
     }
-  `),
-  )
 
-  const renderCql = cql => {
-    const cqn = cqn4sql(cds.parse.cql(cql), model)
-    return new SQLiteService.CQN2SQL({ model }).render(cqn)
-  }
+    const { sql, values } = render("vector_embedding('needle')")
 
-  test('adds QUERY and the configured default model to standalone query embeddings', () => {
-    const call = query([{ val: 'needle' }])
-    const { sql, values } = new SQLiteService.CQN2SQL().render({
-      SELECT: {
-        from: { ref: ['Books'] },
-        columns: [{ ...call, as: 'embedding' }],
-      },
-    })
-
-    expect(sql).toBe("SELECT vector_embedding(?,'QUERY','DEFAULT.MODEL') as embedding FROM Books")
+    expect(sql).toBe('SELECT vector_embedding(?,\'QUERY\') as result FROM Books as "$B"')
     expect(values).toEqual(['needle'])
-    expect(call.args).toEqual([{ val: 'needle' }])
-  })
-
-  test('adds QUERY and the configured default model to a query embedding', () => {
-    const call = query([{ val: 'needle' }])
-
-    const { sql, values } = render([vector(), call])
-
-    expect(sql).toBe(
-      "SELECT cosine_similarity(embedding,vector_embedding(?,'QUERY','DEFAULT.MODEL')) as score FROM Books",
-    )
-    expect(values).toEqual(['needle'])
-    expect(call.args).toEqual([{ val: 'needle' }])
-  })
-
-  test('leaves a zero-argument nested query embedding unchanged', () => {
-    const { sql, values } = render([vector(), { func: 'vector_embedding' }])
-
-    expect(sql).toBe('SELECT cosine_similarity(embedding,vector_embedding()) as score FROM Books')
-    expect(values).toEqual([])
   })
 
   test.each([
     [
       "cosine_similarity(embedding, vector_embedding('needle'))",
-      "cosine_similarity(\"$B\".embedding,vector_embedding(?,'QUERY','SPECIAL.MODEL'))",
+      'cosine_similarity("$B".embedding,vector_embedding(?,\'QUERY\'))',
     ],
     [
       "cosine_similarity(vector_embedding('needle'), embedding)",
-      "cosine_similarity(vector_embedding(?,'QUERY','SPECIAL.MODEL'),\"$B\".embedding)",
+      'cosine_similarity(vector_embedding(?,\'QUERY\'),"$B".embedding)',
+    ],
+    ["l2distance(embedding, vector_embedding('needle'))", 'l2distance("$B".embedding,vector_embedding(?,\'QUERY\'))'],
+    ["l2distance(vector_embedding('needle'), embedding)", 'l2distance(vector_embedding(?,\'QUERY\'),"$B".embedding)'],
+    [
+      "cosine_similarity(embedding, l2normalize(vector_embedding('needle')))",
+      'cosine_similarity("$B".embedding,l2normalize(vector_embedding(?,\'QUERY\')))',
     ],
     [
-      "l2distance(embedding, vector_embedding('needle'))",
-      "l2distance(\"$B\".embedding,vector_embedding(?,'QUERY','SPECIAL.MODEL'))",
+      "L2DISTANCE(L2NORMALIZE(embedding), VECTOR_EMBEDDING('needle'))",
+      'L2DISTANCE(L2NORMALIZE("$B".embedding),vector_embedding(?,\'QUERY\'))',
     ],
-    [
-      "l2distance(vector_embedding('needle'), embedding)",
-      "l2distance(vector_embedding(?,'QUERY','SPECIAL.MODEL'),\"$B\".embedding)",
-    ],
-  ])('uses the annotated vector model for %s', (expression, expected) => {
-    const { sql, values } = renderCql(`SELECT from Books { ${expression} as score }`)
+  ])('defaults nested embeddings without using the annotated HANA model: %s', (expression, expected) => {
+    const { sql, values } = render(expression)
 
-    expect(sql).toBe(`SELECT ${expected} as score FROM Books as "$B"`)
+    expect(sql).toBe(`SELECT ${expected} as result FROM Books as "$B"`)
     expect(values).toEqual(['needle'])
   })
 
-  test('preserves explicit text types and fully specified query embeddings', () => {
-    const { sql, values } = render([
-      vector('special-embeddings'),
-      query([{ val: 'needle' }, { val: 'DOCUMENT' }, { val: 'EXPLICIT.MODEL' }]),
-    ])
-
-    expect(sql).toBe('SELECT cosine_similarity(embedding,vector_embedding(?,?,?)) as score FROM Books')
-    expect(values).toEqual(['needle', 'DOCUMENT', 'EXPLICIT.MODEL'])
-  })
-
-  test('preserves the remote source argument', () => {
-    const { sql, values } = render([
-      vector(),
-      query([{ val: 'needle' }, { val: 'QUERY' }, { val: 'EXPLICIT.MODEL' }, { val: 'REMOTE.SOURCE' }]),
-    ])
-
-    expect(sql).toBe('SELECT cosine_similarity(embedding,vector_embedding(?,?,?,?)) as score FROM Books')
-    expect(values).toEqual(['needle', 'QUERY', 'EXPLICIT.MODEL', 'REMOTE.SOURCE'])
-  })
-
-  test('leaves query embeddings unchanged without an applicable model', () => {
+  test('defaults nested embeddings without any embeddings configuration', () => {
     delete cds.requires.embeddings
     delete cds.requires['special-embeddings']
 
-    const { sql, values } = render([vector(), query([{ val: 'needle' }])])
-
-    expect(sql).toBe('SELECT cosine_similarity(embedding,vector_embedding(?)) as score FROM Books')
-    expect(values).toEqual(['needle'])
-  })
-
-  test('uses a named model without a global embeddings configuration', () => {
-    delete cds.requires.embeddings
-
-    const { sql, values } = render([vector('special-embeddings'), query([{ val: 'needle' }])])
+    const { sql, values } = render("cosine_similarity(embedding, vector_embedding('needle'))")
 
     expect(sql).toBe(
-      "SELECT cosine_similarity(embedding,vector_embedding(?,'QUERY','SPECIAL.MODEL')) as score FROM Books",
+      'SELECT cosine_similarity("$B".embedding,vector_embedding(?,\'QUERY\')) as result FROM Books as "$B"',
     )
     expect(values).toEqual(['needle'])
   })
 
-  test.each(['missing-embeddings', 'special-embeddings'])(
-    'falls back to the global model for %s',
-    name => {
-      cds.requires['special-embeddings'] = {}
-      const { sql, values } = render([vector(name), query([{ val: 'needle' }, { val: 'DOCUMENT' }])])
+  test.each([
+    ["vector_embedding('needle', 'DOCUMENT')", ['needle', 'DOCUMENT']],
+    ["VECTOR_EMBEDDING('needle', 'DOCUMENT', 'EXPLICIT.MODEL')", ['needle', 'DOCUMENT', 'EXPLICIT.MODEL']],
+    [
+      "vector_embedding('needle', 'QUERY', 'EXPLICIT.MODEL', 'REMOTE.SOURCE')",
+      ['needle', 'QUERY', 'EXPLICIT.MODEL', 'REMOTE.SOURCE'],
+    ],
+  ])('preserves supplied arguments: %s', (call, expectedValues) => {
+    const { sql, values } = render(`cosine_similarity(embedding, ${call})`)
 
-      expect(sql).toBe(
-        "SELECT cosine_similarity(embedding,vector_embedding(?,?,'DEFAULT.MODEL')) as score FROM Books",
-      )
-      expect(values).toEqual(['needle', 'DOCUMENT'])
-    },
-  )
-
-  test('resolves the annotated model through an association', () => {
-    const { sql, values } = renderCql(
-      "SELECT from Books { cosine_similarity(related.embedding, vector_embedding('needle')) as score }",
+    expect(sql).toBe(
+      `SELECT cosine_similarity("$B".embedding,vector_embedding(${expectedValues.map(() => '?')})) as result FROM Books as "$B"`,
     )
+    expect(values).toEqual(expectedValues)
+  })
 
-    expect(sql).toContain("cosine_similarity(related.embedding,vector_embedding(?,'QUERY','SPECIAL.MODEL'))")
+  test('preserves the explicit arguments of an annotated calculated vector', () => {
+    const { sql, values } = render("cosine_similarity(calculated, vector_embedding('needle'))")
+
+    expect(sql).toBe(
+      "SELECT cosine_similarity(vector_embedding(\"$B\".text,'DOCUMENT','SPECIAL.MODEL'),vector_embedding(?,'QUERY')) as result FROM Books as \"$B\"",
+    )
+    expect(values).toEqual(['needle'])
+  })
+
+  test('defaults embeddings beside an annotated association target', () => {
+    const { sql, values } = render("cosine_similarity(related.embedding, vector_embedding('needle'))")
+
+    expect(sql).toContain("cosine_similarity(related.embedding,vector_embedding(?,'QUERY'))")
     expect(sql).toContain('left JOIN Books as related ON related.ID = "$B".related_ID')
     expect(values).toEqual(['needle'])
   })
 
-  test('preserves reusable CQN wrapped in single-operand expressions', () => {
-    const call = query([{ val: 'needle' }])
-    const wrapped = { xpr: [call] }
-    const compared = { xpr: [vector('special-embeddings')] }
-
-    const { sql, values } = render([compared, wrapped])
+  test('preserves casts and reusable CQN while defaulting to QUERY', () => {
+    const cqn = prepare("cosine_similarity(embedding, cast(vector_embedding('needle') as Vector))")
+    const original = JSON.stringify(cqn)
+    const { sql, values } = new SQLiteService.CQN2SQL({ model }).render(cqn)
 
     expect(sql).toBe(
-      "SELECT cosine_similarity(embedding,vector_embedding(?,'QUERY','SPECIAL.MODEL')) as score FROM Books",
+      'SELECT cosine_similarity("$B".embedding,cast(vector_embedding(?,\'QUERY\') as BINARY_BLOB(5000))) as result FROM Books as "$B"',
     )
     expect(values).toEqual(['needle'])
-    expect(wrapped.xpr).toEqual([call])
-    expect(call.args).toEqual([{ val: 'needle' }])
-    expect(render([compared, wrapped])).toMatchObject({ sql, values })
-  })
-  test.each([
-    ["cosine_similarity(embedding, l2normalize(vector_embedding('needle')))", "cosine_similarity(\"$B\".embedding,l2normalize(vector_embedding(?,'QUERY','SPECIAL.MODEL')))"],
-    ["cosine_similarity(l2normalize(embedding), vector_embedding('needle'))", "cosine_similarity(l2normalize(\"$B\".embedding),vector_embedding(?,'QUERY','SPECIAL.MODEL'))"],
-  ])('keeps the annotated model through normalization: %s', (expression, expected) => {
-    const { sql, values } = renderCql(`SELECT from Books { ${expression} as score }`)
-
-    expect(sql).toBe(`SELECT ${expected} as score FROM Books as "$B"`)
-    expect(values).toEqual(['needle'])
+    expect(JSON.stringify(cqn)).toBe(original)
+    expect(new SQLiteService.CQN2SQL({ model }).render(cqn)).toMatchObject({ sql, values })
   })
 
-  test.each([
-    ["L2DISTANCE(L2NORMALIZE(embedding), L2NORMALIZE(VECTOR_EMBEDDING('needle', 'DOCUMENT')))", "l2distance(L2NORMALIZE(\"$B\".embedding),L2NORMALIZE(vector_embedding(?,?,'SPECIAL.MODEL')))"],
-  ])('keeps an explicit text type in normalized uppercase calls: %s', (expression, expected) => {
-    const { sql, values } = renderCql(`SELECT from Books { ${expression} as score }`)
+  test.each(['vector_embedding()', 'cosine_similarity(embedding, vector_embedding())'])(
+    'leaves zero-argument embeddings unchanged: %s',
+    expression => {
+      const { sql, values } = render(expression)
 
-    expect(sql).toBe(`SELECT ${expected} as score FROM Books as "$B"`)
-    expect(values).toEqual(['needle', 'DOCUMENT'])
-  })
-
-  test.each([
-    "cosine_similarity(calculated, vector_embedding('needle'))",
-    "cosine_similarity(vector_embedding('needle'), calculated)",
-    "l2distance(l2normalize(calculated), vector_embedding('needle'))",
-    "cosine_similarity(normalized, vector_embedding('needle'))",
-  ])('uses the model of an annotated calculated vector: %s', expression => {
-    const { sql, values } = renderCql(`SELECT from Books { ${expression} as score }`)
-
-    expect(sql).toMatch(/vector_embedding\(\?,'QUERY','SPECIAL\.MODEL'\)/)
-    expect(sql).toContain(",'DOCUMENT','SPECIAL.MODEL')")
-    expect(values).toEqual(['needle'])
-  })
-
+      expect(sql).toContain('vector_embedding()')
+      expect(sql).not.toContain('QUERY')
+      expect(values).toEqual([])
+    },
+  )
 })

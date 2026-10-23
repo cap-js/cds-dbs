@@ -25,7 +25,7 @@ function vectorWrapper(arg) {
 }
 
 function vectorElement(arg) {
-  // Calculated expressions can carry their original reference as element metadata.
+  // Calculated vector expressions can carry their original reference as element metadata.
   const element = arg.element?.$refLinks?.at(-1)?.definition || arg.element
   if (element?.['@cds.embeddings.model'] !== undefined) return element
   const property = vectorWrapper(arg)
