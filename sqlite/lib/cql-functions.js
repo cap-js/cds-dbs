@@ -82,6 +82,13 @@ const StandardFunctions = {
   matchespattern: (x, y) => `(${x} regexp ${y})`,
 }
 
+const VectorFunctions = {
+  vector_embedding: function (...args) {
+    const completed = args.length === 1 ? [...args, { val: 'QUERY', param: false }] : args
+    return `vector_embedding(${completed.map(arg => this.expr(arg))})`
+  },
+}
+
 const HANAFunctions = {
   // ==============================
   // Timestamp Difference Functions
@@ -156,5 +163,6 @@ const HANAFunctions = {
 }
 
 for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunctions[each]
+for (let each in VectorFunctions) VectorFunctions[each.toUpperCase()] = VectorFunctions[each]
 
-module.exports = { ...StandardFunctions, ...HANAFunctions }
+module.exports = { ...StandardFunctions, ...VectorFunctions, ...HANAFunctions }
