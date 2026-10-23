@@ -169,7 +169,7 @@ class SQLService extends DatabaseService {
 
       if (cqn.SELECT.count) {
         // REVISIT: the runtime always expects that the count is preserved with .map, required for renaming in mocks
-        return SQLService._arrayWithCount(rows, await this.count(query, rows))
+        return SQLService._arrayWithCount(rows, await this.count(query, rows, cqn))
       }
 
       return !iterator && isOne ? rows[0] : rows
@@ -333,7 +333,7 @@ class SQLService extends DatabaseService {
    * @param {unknown[]} ret - Results of the original query
    * @returns {Promise<number|string>}
    */
-  async count(query, ret) {
+  async count(query, ret, transformed = query) {
     if (ret?.length) {
       const { one, limit: _ } = query.SELECT,
         n = ret.length
@@ -351,7 +351,9 @@ class SQLService extends DatabaseService {
     const cq = SELECT.one([_count]).from(
       cds.ql.clone(query, {
         columns,
-        localized: false,
+        // keep the localized view only when a localized value drives the result set
+        // (flag set by cqn4sql on the transformed query), else count on the base table
+        localized: transformed.SELECT.localizedCountRelevant ? query.SELECT.localized : false,
         expand: false,
         limit: undefined,
         orderBy: undefined,

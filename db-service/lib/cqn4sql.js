@@ -318,6 +318,11 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
       }
     }
 
+    // flag queries whose count depends on the localized view
+    if (inferred.SELECT.localized && refersToLocalizedElement([having, groupBy, inferred.SELECT.where])) {
+      defineProperty(transformedQuery.SELECT, 'localizedCountRelevant', true)
+    }
+
     // Since all the expressions in the SELECT part of the query have been computed,
     // one can reference aliases of the queries columns in the orderBy clause.
     let effectiveOrderBy = orderBy
@@ -349,6 +354,29 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
       }
     }
     return transformedQuery
+  }
+
+  /**
+   * True if any token in the given clauses filters or groups on a localized element — a value
+   * that differs between base table and localized view, so a count on the base table is wrong.
+   */
+  function refersToLocalizedElement(tokenStreams) {
+    const scan = tokens => {
+      if (!tokens) return false
+      return tokens.some(t => {
+        if (t?.ref) {
+          const leaf = t.$refLinks?.[t.$refLinks.length - 1]
+          if (leaf?.definition?.localized && isLocalized(leaf.target)) return true
+          // path-filter infixes may carry their own refs (e.g. `assoc[title = 'x']`)
+          if (t.ref.some(step => typeof step === 'object' && step.where && scan(step.where))) return true
+        }
+        if (t?.xpr) return scan(t.xpr)
+        if (t?.args) return scan(Array.isArray(t.args) ? t.args : Object.values(t.args))
+        if (t?.list) return scan(t.list)
+        return false // subqueries decide for themselves
+      })
+    }
+    return tokenStreams.some(scan)
   }
 
   /**
