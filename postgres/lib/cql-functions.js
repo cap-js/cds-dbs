@@ -139,6 +139,8 @@ const castVal = x => `${x}${isVal(x) ? (isTime.test(x.val) ? '::TIME' : '::TIMES
 
 const HANAFunctions = {
   vector_embedding: function (...args) {
+    // Named UDF parameters use the generic function renderer.
+    if (args.length === 1 && args[0].input) return
     return vectorEmbedding.call(this, args, cds.requires.embeddings?.model)
   },
 
