@@ -262,12 +262,12 @@ const HANAFunctions = {
   },
 
   cosine_similarity: function (left, right) {
-    const [v1, v2] = vectorSimilarity.call(this, left, right)
+    const [v1, v2] = completeVectorOperands(left, right, cds.requires)
     return `cosine_similarity(${this.expr(v1)},${this.expr(v2)})`
   },
 
   l2distance: function (left, right) {
-    const [v1, v2] = vectorSimilarity.call(this, left, right)
+    const [v1, v2] = completeVectorOperands(left, right, cds.requires)
     return `l2distance(${this.expr(v1)},${this.expr(v2)})`
   },
 
@@ -293,10 +293,6 @@ for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunction
 
 module.exports = { ...StandardFunctions, ...HANAFunctions }
 
-function vectorSimilarity(left, right) {
-  return completeVectorSimilarity(left, right, cds.requires)
-}
-
 function vectorEmbedding(args, model) {
   return `vector_embedding(${(completeVectorEmbedding(args, model) || args).map(arg => this.expr(arg))})`
 }
@@ -310,7 +306,7 @@ function completeVectorEmbedding(args = [], model) {
   return completed
 }
 
-function completeVectorSimilarity(left, right, requires) {
+function completeVectorOperands(left, right, requires) {
   const args = [left, right]
   const elements = args.map(vectorElement)
   const vector = elements.find(element => element?.['@cds.embeddings.model'] !== undefined)
