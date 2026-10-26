@@ -258,17 +258,17 @@ const StandardFunctions = {
 
 const HANAFunctions = {
   vector_embedding: function (...args) {
-    const embedding = completeQueryVector({ func: 'vector_embedding', args }, cds.requires.embeddings?.model)
+    const embedding = completeQueryVector({ func: 'vector_embedding', args })
     return `vector_embedding(${embedding.args.map(arg => this.expr(arg))})`
   },
 
   cosine_similarity: function (left, right) {
-    const [v1, v2] = completeVectorOperands(left, right, cds.requires)
+    const [v1, v2] = completeVectorOperands(left, right)
     return `cosine_similarity(${this.expr(v1)},${this.expr(v2)})`
   },
 
   l2distance: function (left, right) {
-    const [v1, v2] = completeVectorOperands(left, right, cds.requires)
+    const [v1, v2] = completeVectorOperands(left, right)
     return `l2distance(${this.expr(v1)},${this.expr(v2)})`
   },
 
@@ -294,7 +294,7 @@ for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunction
 
 module.exports = { ...StandardFunctions, ...HANAFunctions }
 
-function completeVectorOperands(left, right, requires) {
+function completeVectorOperands(left, right, requires = cds.requires) {
   const args = [left, right]
   const elements = args.map(vectorElement)
   const vector = elements.find(element => element?.['@cds.embeddings.model'] !== undefined)
@@ -317,7 +317,7 @@ function vectorElement(arg) {
   return property ? vectorElement(arg[property][0]) || element : element
 }
 
-function completeQueryVector(arg, model) {
+function completeQueryVector(arg, model = cds.requires.embeddings?.model) {
   let property = vectorWrapper(arg)
   let completed
   if (property) {
