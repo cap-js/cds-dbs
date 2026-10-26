@@ -258,7 +258,8 @@ const StandardFunctions = {
 
 const HANAFunctions = {
   vector_embedding: function (...args) {
-    return vectorEmbedding.call(this, args, cds.requires.embeddings?.model)
+    const embedding = completeQueryVector({ func: 'vector_embedding', args }, cds.requires.embeddings?.model)
+    return `vector_embedding(${embedding.args.map(arg => this.expr(arg))})`
   },
 
   cosine_similarity: function (left, right) {
@@ -293,19 +294,6 @@ for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunction
 
 module.exports = { ...StandardFunctions, ...HANAFunctions }
 
-function vectorEmbedding(args, model) {
-  return `vector_embedding(${(completeVectorEmbedding(args, model) || args).map(arg => this.expr(arg))})`
-}
-
-function completeVectorEmbedding(args = [], model) {
-  if (!args.length || args.length >= 3 || !model) return
-
-  const completed = [...args]
-  if (completed.length < 2) completed.push({ val: 'QUERY', param: false })
-  completed.push({ val: model, param: false })
-  return completed
-}
-
 function completeVectorOperands(left, right, requires) {
   const args = [left, right]
   const elements = args.map(vectorElement)
@@ -338,8 +326,12 @@ function completeQueryVector(arg, model) {
     if (queryVector === operand) return arg
     completed = [queryVector]
   } else if (arg.func?.toLowerCase() === 'vector_embedding') {
+    const { args = [] } = arg
+    if (!args.length || args.length >= 3 || !model) return arg
     property = 'args'
-    completed = completeVectorEmbedding(arg.args, model)
+    completed = [...args]
+    if (completed.length < 2) completed.push({ val: 'QUERY', param: false })
+    completed.push({ val: model, param: false })
   }
   if (!completed) return arg
 
