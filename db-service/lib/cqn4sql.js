@@ -816,7 +816,13 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
         res.push(...expandNestedProjectionWildcard(col, i, prop))
       } else {
         const nameParts = col.as ? [col.as] : [col.ref.map(idOnly).join('_')]
-        nameParts.push(nestedProjection.as ? nestedProjection.as : nestedProjection.ref.map(idOnly).join('_'))
+        nameParts.push(
+          nestedProjection.as
+            ? nestedProjection.as
+            : nestedProjection.ref
+              ? nestedProjection.ref.map(idOnly).join('_')
+              : nestedProjection.func || `expr${i}`,
+        )
         const name = nameParts.join('_')
         if (nestedProjection.ref) {
           const augmentedInlineCol = augmentInlineRefWithParent(nestedProjection, col)
@@ -844,9 +850,11 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
           if (!res.some(c => (c.as || c.ref.slice(1).map(idOnly).join('_')) === name)) {
             const rewrittenColumn = { ...nestedProjection }
             rewrittenColumn.as = name
-            // For xpr, we need to transform refs inside to include the struct prefix
+            // For xpr/func, we need to transform refs inside to include the struct prefix
             if (nestedProjection.xpr && col.ref) {
               rewrittenColumn.xpr = augmentInlineXprRefs(nestedProjection.xpr, col)
+            } else if (nestedProjection.func && nestedProjection.args && col.ref) {
+              rewrittenColumn.args = augmentInlineXprRefs([nestedProjection], col)[0].args
             }
             rewrittenColumns.push(rewrittenColumn)
           }
@@ -895,15 +903,21 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
         if (token.xpr) {
           return { ...token, xpr: augmentInlineXprRefs(token.xpr, parentCol) }
         }
+        if (token.list) {
+          return { ...token, list: augmentInlineXprRefs(token.list, parentCol) }
+        }
         if (token.func && token.args) {
-          return {
-            ...token, args: token.args.map(arg =>
-              arg.ref ? augmentInlineXprRefs([arg], parentCol)[0] : arg
-            )
-          }
+          return { ...token, args: augmentInlineFunctionArgs(token.args, parentCol) }
         }
         return token
       })
+    }
+
+    function augmentInlineFunctionArgs(args, parentCol) {
+      if (Array.isArray(args)) return augmentInlineXprRefs(args, parentCol)
+      const result = {}
+      for (const prop in args) result[prop] = augmentInlineXprRefs([args[prop]], parentCol)[0]
+      return result
     }
   }
 
