@@ -1,5 +1,3 @@
-'use strict'
-
 const cds = require('@sap/cds')
 const cqn4sql = require('../../db-service/lib/cqn4sql')
 const HANAService = require('../lib/HANAService')
@@ -68,6 +66,7 @@ describe('HANA vector embedding defaults', () => {
     expect(sql).toBe('SELECT vector_embedding(?,?,?,?) as embedding FROM Books as "$B"')
     expect(values).toEqual(['needle', 'DOCUMENT', 'EXPLICIT.MODEL', 'REMOTE.SOURCE'])
   })
+
   test.each([
     ["cosine_similarity(embedding, l2normalize(vector_embedding('needle')))", "cosine_similarity(\"$B\".embedding,l2normalize(vector_embedding(?,'QUERY','SPECIAL.MODEL')))"],
     ["cosine_similarity(l2normalize(embedding), vector_embedding('needle'))", "cosine_similarity(l2normalize(\"$B\".embedding),vector_embedding(?,'QUERY','SPECIAL.MODEL'))"],
@@ -99,5 +98,4 @@ describe('HANA vector embedding defaults', () => {
     expect(sql).toContain(",'DOCUMENT','SPECIAL.MODEL')")
     expect(values).toEqual(['needle'])
   })
-
 })
