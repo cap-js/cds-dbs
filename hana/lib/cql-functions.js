@@ -10,6 +10,7 @@ const getTimeType = x => (isTime.test(x.val) ? 'TIME' : 'TIMESTAMP')
 const getTimeCast = x => (isVal(x) ? `TO_${getTimeType(x)}(${x})` : x)
 const getDateType = x => (isDate.test(x.val) ? 'DATE' : 'TIMESTAMP')
 const getDateCast = x => (isVal(x) ? `TO_${getDateType(x)}(${x})` : x)
+const completedEmbedding = Symbol('completed vector embedding')
 
 const StandardFunctions = {
   /**
@@ -259,7 +260,10 @@ const StandardFunctions = {
 const HANAFunctions = {
   vector_embedding: function (...args) {
     const embedding = completeQueryVector({ func: 'vector_embedding', args })
-    return `vector_embedding(${embedding.args.map(arg => this.expr(arg))})`
+    // Remote sources are catalog identifiers whose spelling is independent of CDS name mapping.
+    return `vector_embedding(${embedding.args.map((arg, i) => i === 3 && arg.ref
+      ? arg.ref.map(name => `"${name.replace(/"/g, '""')}"`).join('.')
+      : this.expr(arg))})`
   },
 
   cosine_similarity: function (left, right) {
@@ -299,8 +303,12 @@ function completeVectorOperands(left, right, requires = cds.requires) {
   const elements = args.map(vectorElement)
   const vector = elements.find(element => element?.['@cds.embeddings.model'] !== undefined)
     || elements.find(element => element?.type === 'cds.Vector')
-  const model = requires[vector?.['@cds.embeddings.model']]?.model || requires.embeddings?.model
-  return args.map(arg => completeQueryVector(arg, model))
+  const config = requires[vector?.['@cds.embeddings.model']]
+  const embedding = {
+    model: config?.model || requires.embeddings?.model,
+    remote: (config || requires.embeddings)?.remote,
+  }
+  return args.map(arg => completeQueryVector(arg, embedding))
 }
 
 // Normalization and parentheses preserve the embedding model of their operand.
@@ -317,21 +325,26 @@ function vectorElement(arg) {
   return property ? vectorElement(arg[property][0]) || element : element
 }
 
-function completeQueryVector(arg, model = cds.requires.embeddings?.model) {
+function completeQueryVector(arg, embedding = cds.requires.embeddings) {
   let property = vectorWrapper(arg)
   let completed
   if (property) {
     const operand = arg[property][0]
-    const queryVector = completeQueryVector(operand, model)
+    const queryVector = completeQueryVector(operand, embedding)
     if (queryVector === operand) return arg
     completed = [queryVector]
   } else if (arg.func?.toLowerCase() === 'vector_embedding') {
     const { args = [] } = arg
-    if (!args.length || args.length >= 3 || !model) return arg
+    const { model, remote } = embedding || {}
+    if (!args.length || args.length >= 4 || args[0][completedEmbedding]) return arg
+    if (args.length < 3 && !model) return arg
     property = 'args'
     completed = [...args]
     if (completed.length < 2) completed.push({ val: 'QUERY', param: false })
-    completed.push({ val: model, param: false })
+    if (completed.length < 3) completed.push({ val: model, param: false })
+    if (remote) completed.push({ ref: remote.split('.') })
+    // Renderer argument wrappers must retain the selected configuration's completion.
+    completed[0] = Object.assign(Object.create(completed[0]), { [completedEmbedding]: true })
   }
   if (!completed) return arg
 
