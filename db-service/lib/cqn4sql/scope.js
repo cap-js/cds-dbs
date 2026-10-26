@@ -1,11 +1,30 @@
 'use strict'
 
-module.exports = { createState, getCalculatedValue }
+module.exports = { createState, createScope, getCalculatedValue }
 
 const cloneCqn = require('./clone')
+const { getModelUtils, getImplicitAlias } = require('../utils')
 
 function createState() {
   return { resolutions: new WeakMap(), metadata: new WeakMap(), sourceAliases: new WeakMap() }
+}
+
+function createScope(query, model, useTechnicalAlias = true, resolveNestedElements = false, state = createState()) {
+  if (!model) throw new Error('Please specify a model')
+  if (query.SET) throw new Error('”UNION” based queries are not supported')
+  return {
+    model,
+    state,
+    useTechnicalAlias,
+    resolveNestedElements,
+    query,
+    clause: query.SELECT || query.INSERT || query.UPSERT || query.UPDATE || query.DELETE || query.CREATE || query.DROP,
+    ...getModelUtils(model, query),
+    getImplicitAlias: name => getImplicitAlias(name, useTechnicalAlias),
+    alreadySeenCalcElements: new Set(),
+    calculatedValues: new WeakMap(),
+    projectionPlans: new WeakMap(),
+  }
 }
 
 // Calculated expressions are scoped to their occurrence (implicit wildcard

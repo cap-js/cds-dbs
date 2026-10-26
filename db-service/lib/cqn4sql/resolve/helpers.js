@@ -6,15 +6,7 @@ const cds = require('@sap/cds')
 const cdsTypes = cds.builtin.types
 const { defineProperty } = require('../../utils')
 
-/**
- * Assigns the given `element` as non-enumerable property 'element' onto `col`.
- *
- * @param {object} col
- * @param {csn.Element} element
- */
-function setElementOnColumns(col, element) {
-  defineProperty(col, 'element', element)
-}
+const { setElementOnColumns, idOnly } = require('../helpers')
 
 function rejectDuplicatedElement(elementName) {
   throw new Error(`Duplicate definition of element “${elementName}”`)
@@ -77,10 +69,6 @@ function getCdsTypeForVal(val) {
   }
 }
 
-function getDefinitionFromSources(sources, id) {
-  return sources[id].definition
-}
-
 /**
  * Determines if a given association is a non-foreign key navigation.
  *
@@ -110,12 +98,6 @@ function isForeignKeyOf(e, assoc) {
   if (!assoc.isAssociation) return false
   return e in (assoc.elements || foreignKeysOf(assoc) || {})
 }
-const idOnly = ref => ref.id || ref
-
-function applyToFunctionArgs(funcArgs, cb, cbArgs) {
-  if (Array.isArray(funcArgs)) funcArgs.forEach(arg => cb(arg, ...cbArgs))
-  else if (typeof funcArgs === 'object') Object.keys(funcArgs).forEach(prop => cb(funcArgs[prop], ...cbArgs))
-}
 
 function getMainAlias(query) {
   let mainAlias
@@ -129,7 +111,6 @@ module.exports = {
   isNonForeignKeyNavigation,
   rejectNonFkNavigation,
   isForeignKeyOf,
-  applyToFunctionArgs,
   getMainAlias,
   idOnly,
   setElementOnColumns,
@@ -137,5 +118,4 @@ module.exports = {
   getElementForCast,
   getCopyWithAnnos,
   getCdsTypeForVal,
-  getDefinitionFromSources,
 }

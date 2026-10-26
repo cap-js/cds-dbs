@@ -261,26 +261,10 @@ function getTableAlias(ctx, node, $baseLink = null) {
   if (!node || !node.$refLinks || !node.ref) {
     throw new Error('Invalid node')
   }
-  if (node.$refLinks[0].$main) {
-    if (node.isJoinRelevant) {
-      return getJoinRelevantAlias(node)
-    }
-    return node.$refLinks[0].alias
-  }
-  if ($baseLink) {
-    return getBaseLinkAlias($baseLink)
-  }
-  if (node.isJoinRelevant) {
-    return getJoinRelevantAlias(node)
-  }
-  return getSelectOrEntityAlias(node) || getCombinedElementAlias(node)
-  function getBaseLinkAlias($baseLink) {
-    return $baseLink.alias
-  }
-
-  function getJoinRelevantAlias(node) {
-    return bindingFor(ctx, node).join.alias
-  }
+  if (node.$refLinks[0].$main) return node.isJoinRelevant ? bindingFor(ctx, node).join.alias : node.$refLinks[0].alias
+  if ($baseLink) return $baseLink.alias
+  if (node.isJoinRelevant) return bindingFor(ctx, node).join.alias
+  return getSelectOrEntityAlias(node) || elementSources(ctx.query, node.ref[0].id || node.ref[0])?.[0].index
 
   function getSelectOrEntityAlias(node) {
     let firstRefLink = node.$refLinks[0].definition
@@ -304,10 +288,6 @@ function getTableAlias(ctx, node, $baseLink = null) {
       }
       return node.ref[0]
     }
-  }
-
-  function getCombinedElementAlias(node) {
-    return elementSources(ctx.query, node.ref[0].id || node.ref[0])?.[0].index
   }
 }
 

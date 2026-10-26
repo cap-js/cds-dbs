@@ -2,6 +2,8 @@
 
 module.exports = { linkCalculatedElement, isColumnJoinRelevant }
 
+const { forEachChild } = require('../expression-tree')
+
 const { getCalculatedValue } = require('../scope')
 
 const referencesModule = require('./references')
@@ -45,52 +47,18 @@ function linkCalculatedElement(ctx, column, baseLink, baseColumn, context = {}) 
       if (leafOfCalculatedElementRef.value) mergePathsIntoJoinTree(getCalculatedValue(ctx, arg), basePath)
 
       mergePathIfNecessary(basePath, arg)
-    } else if (arg.xpr || arg.args) {
-      const prop = arg.xpr ? 'xpr' : 'args'
-      let inExists = false
-      Object.values(arg[prop]).forEach(step => {
-        if (step === 'exists') {
-          inExists = true
-          return
-        }
-        let subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
-        if (step.ref) {
-          if (inExists) {
-            // refs following `exists` become subqueries in cqn4sql — only the basePath prefix
-            // needs a JOIN (for correlation), the exists-target association itself does not.
-            if (subPath.$refLinks.length > 0) {
-              ctx.query.joinTree.mergeColumn(subPath, ctx.query.outerQueries)
-              // The exists subquery correlates against the last assoc in basePath,
-              // so it's not just a FK access — force a real JOIN.
-              const lastLink = subPath.$refLinks[subPath.$refLinks.length - 1]
-              if (lastLink.onlyForeignKeyAccess) lastLink.onlyForeignKeyAccess = false
-              if (!value.isJoinRelevant) defineProperty(step, 'isJoinRelevant', true)
-            }
-          } else {
-            step.$refLinks.forEach((link, i) => {
-              const { definition } = link
-              if (definition.value) {
-                mergePathsIntoJoinTree(getCalculatedValue(ctx, step), subPath)
-              } else {
-                subPath.$refLinks.push(link)
-                subPath.ref.push(step.ref[i])
-              }
-            })
-            mergePathIfNecessary(subPath, step)
+    } else {
+      forEachChild(arg, (step, i, prop, siblings) => {
+        const subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
+        if (step.ref && prop === 'xpr' && siblings[i - 1] === 'exists') {
+          // EXISTS owns its target scope. Only the prefix needs an outer join
+          // to correlate the subquery, even if that prefix otherwise uses FKs.
+          if (subPath.$refLinks.length) {
+            ctx.query.joinTree.mergeColumn(subPath, ctx.query.outerQueries)
+            subPath.$refLinks.at(-1).onlyForeignKeyAccess = false
+            if (!value.isJoinRelevant) defineProperty(step, 'isJoinRelevant', true)
           }
-          inExists = false
-        } else if (step.args || step.xpr) {
-          const nestedProp = step.xpr ? 'xpr' : 'args'
-          Object.values(step[nestedProp]).forEach(a => {
-            // reset sub path for each nested argument
-            // e.g. case when <path> then <otherPath> else <anotherPath> end
-            if (!a.ref) subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
-            mergePathsIntoJoinTree(a, subPath)
-          })
-          inExists = false
-        } else {
-          if (step !== 'not') inExists = false
-        }
+        } else mergePathsIntoJoinTree(step, subPath)
       })
     }
 

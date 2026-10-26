@@ -2,6 +2,8 @@
 
 module.exports = { resolveExpression, getFullPathForLinkedArg }
 
+const { forEachChild } = require('../expression-tree')
+
 const { elementSources } = require('./sources')
 
 const projectionsModule = require('./projections')
@@ -16,13 +18,11 @@ const { isCalculatedOnRead, defineProperty, hasOwnSkip, isRuntimeView } = requir
 const {
   isNonForeignKeyNavigation,
   rejectNonFkNavigation,
-  applyToFunctionArgs,
   getMainAlias,
   idOnly,
   rejectDuplicatedElement,
   getElementForCast,
   getCopyWithAnnos,
-  getDefinitionFromSources,
 } = require('./helpers')
 
 /**
@@ -64,16 +64,15 @@ const {
 function resolveExpression(ctx, arg, queryElements = null, $baseLink = null, context = {}) {
   const { inExists, inXpr, inCalcElement, baseColumn, inInfixFilter, inQueryModifier, inFrom, dollarSelfRefs } = context
   if (arg.param || arg.SELECT) return // parameter references are only resolved into values on execution e.g. :val, :1 or ?
-  if (arg.args) applyToFunctionArgs(arg.args, (...args) => resolveExpression(ctx, ...args), [null, $baseLink, context])
-  if (arg.list) arg.list.forEach(arg => resolveExpression(ctx, arg, null, $baseLink, context))
-  if (arg.xpr)
-    arg.xpr.forEach((token, i) =>
-      resolveExpression(ctx, token, queryElements, $baseLink, {
-        ...context,
-        inXpr: true,
-        inExists: inExists || arg.xpr[i - 1] === 'exists',
-      }),
-    ) // e.g. function in expression
+  forEachChild(arg, (token, i, prop, siblings) =>
+    resolveExpression(
+      ctx,
+      token,
+      prop === 'xpr' ? queryElements : null,
+      $baseLink,
+      prop === 'xpr' ? { ...context, inXpr: true, inExists: inExists || siblings[i - 1] === 'exists' } : context,
+    ),
+  )
 
   if (!arg.ref) {
     if (arg.expand && queryElements) queryElements[arg.as] = projectionsModule.resolveExpand(ctx, arg)
@@ -154,8 +153,8 @@ function resolveExpression(ctx, arg, queryElements = null, $baseLink = null, con
         arg.$refLinks.push({ definition, target: definition })
       } else if (firstStepIsTableAlias) {
         arg.$refLinks.push({
-          definition: getDefinitionFromSources(ctx.sources, id),
-          target: getDefinitionFromSources(ctx.sources, id),
+          definition: ctx.sources[id].definition,
+          target: ctx.sources[id].definition,
         })
       } else if (firstStepIsSelf) {
         const nextStep = arg.ref[1]?.id || arg.ref[1]
@@ -171,8 +170,8 @@ function resolveExpression(ctx, arg, queryElements = null, $baseLink = null, con
         // outer query accessed via alias
         const outerAlias = ctx.query.outerQueries.find(outer => id in outer.sources)
         arg.$refLinks.push({
-          definition: getDefinitionFromSources(outerAlias.sources, id),
-          target: getDefinitionFromSources(outerAlias.sources, id),
+          definition: outerAlias.sources[id].definition,
+          target: outerAlias.sources[id].definition,
         })
       } else if (elementSources(ctx.query, id)) {
         if (elementSources(ctx.query, id).length > 1) stepIsAmbiguous(id) // exit
@@ -183,8 +182,8 @@ function resolveExpression(ctx, arg, queryElements = null, $baseLink = null, con
       } else if (expandOnTableAlias) {
         // expand on table alias
         arg.$refLinks.push({
-          definition: getDefinitionFromSources(ctx.sources, id),
-          target: getDefinitionFromSources(ctx.sources, id),
+          definition: ctx.sources[id].definition,
+          target: ctx.sources[id].definition,
         })
       } else {
         stepNotFoundInCombinedElements(id) // REVISIT: fails with {__proto__:elements)
@@ -260,29 +259,16 @@ function resolveExpression(ctx, arg, queryElements = null, $baseLink = null, con
         if (token === 'exists') {
           // books[exists genre[code='A']].title --> column is join relevant but inner exists filter is not
           skipJoinsForFilter = true
-        } else if (token.ref || token.xpr || token.list) {
+        } else if (token.ref || token.xpr || token.list || token.func) {
           // For scoped queries (non-dangling filters in FROM), treat filter contents as EXISTS context
           // because they will become part of an EXISTS subquery
           resolveExpression(ctx, token, false, arg.$refLinks[i], {
             ...context,
             inExists: skipJoinsForFilter || inExists || filterOfExpand || (inFrom && !danglingFilter),
-            inXpr: !!token.xpr,
+            inXpr: !!(token.xpr || token.func),
             inInfixFilter: true,
             inFrom,
           })
-        } else if (token.func) {
-          if (token.args) {
-            applyToFunctionArgs(token.args, (...args) => resolveExpression(ctx, ...args), [
-              false,
-              arg.$refLinks[i],
-              {
-                inExists: skipJoinsForFilter || inExists || filterOfExpand || (inFrom && !danglingFilter),
-                inXpr: true,
-                inInfixFilter: true,
-                inFrom,
-              },
-            ])
-          }
         }
       })
     }
@@ -298,7 +284,7 @@ function resolveExpression(ctx, arg, queryElements = null, $baseLink = null, con
         const base = getElementForCast(arg)
         if (insertIntoQueryElements())
           queryElements[arg.as || flatName] = getCopyWithAnnos(arg, base, ctx.resolveNestedElements)
-      } else if (arg.expand) {
+      } else if (arg.expand && !context.inNestedProjection) {
         const elements = projectionsModule.resolveExpand(ctx, arg)
         let elementName
         // expand on table alias

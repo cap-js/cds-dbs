@@ -85,6 +85,50 @@ describe('SQL planning regressions', () => {
     assert.deepEqual(db.prepare(sql).all(...values), [{ present: 'Boss A', absent: null }])
   })
 
+  it('binds functions and lists in unmanaged conditions and their backlinks', () => {
+    const model = cds.linked(
+      cds.compile(
+        [
+          'entity Boss { key ID: Integer; name: String; staff: Association to many Worker on staff.manager = $self; }',
+          'entity Worker { key ID: Integer; boss: Association to Boss;',
+          "manager: Association to Boss on manager.ID = boss.ID and (lower(manager.name) = 'boss a' or manager.name in ('Boss B', 'Other')); }",
+        ].join(' '),
+      ),
+    )
+    db.exec('CREATE TABLE Worker (ID INTEGER PRIMARY KEY, boss_ID INTEGER); INSERT INTO Worker VALUES (1,11),(2,12);')
+    for (const [query, expected] of [
+      [
+        'SELECT from Worker {ID as worker, manager.name} order by worker',
+        [
+          { worker: 1, manager_name: 'Boss A' },
+          { worker: 2, manager_name: 'Boss B' },
+        ],
+      ],
+      ['SELECT from Boss {ID} where exists staff order by ID', [{ ID: 11 }, { ID: 12 }]],
+    ]) {
+      const { sql, values } = cqn2sql(cds.ql(query), model)
+      assert.deepEqual(db.prepare(sql).all(...values), expected)
+    }
+  })
+
+  it('retains nested query syntax and metadata while planning absolute SQL references', () => {
+    const infer = require('../../lib/infer')
+    const model = cds.linked(
+      cds.compile('entity E { key ID: Integer; details: { name: String; nested: { value: Integer; }; }; }'),
+    )
+    const query = cds.ql("SELECT from E { details { name, nested { value }, 'label' as label } }")
+    const original = JSON.parse(JSON.stringify(query))
+    const inferred = infer(query, model)
+    assert.deepEqual(JSON.parse(JSON.stringify(inferred)), original)
+    assert.equal(inferred.elements.details.elements.nested.elements.value.type, 'cds.Integer')
+    assert.equal(inferred.elements.details.elements.label.as, 'label')
+    assert.deepEqual(
+      cqn4sql(query, model).SELECT.columns.map(c => c.as || c.ref.at(-1)),
+      ['details_name', 'details_nested_value', 'details_label'],
+    )
+    assert.deepEqual(JSON.parse(JSON.stringify(query)), original)
+  })
+
   it('rejects direct and expression $self cycles without hanging', () => {
     isolated(
       [

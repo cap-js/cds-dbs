@@ -222,19 +222,11 @@ function getTransformedColumns(ctx, columns) {
 }
 
 function resolveCalculatedElement(ctx, column, omitAlias = false, $baseLink = null) {
-  let value
-
-  if (column.$refLinks) {
-    value = getCalculatedValue(ctx, column)
-    if (column.$refLinks.length > 1) {
-      $baseLink =
-        bindingFor(ctx, column).association ||
-        // if there is no association in the path, the table alias is the base link
-        // TA might refer to subquery -> we need to propagate the alias to all paths of the calc element
-        column.$refLinks[0]
-    }
-  } else {
-    value = getCalculatedValue(ctx, column)
+  const value = getCalculatedValue(ctx, column)
+  if (column.$refLinks?.length > 1) {
+    // A calculated occurrence resolves against its last association, or its
+    // source alias when the path stays within that source (including SELECTs).
+    $baseLink = bindingFor(ctx, column).association || column.$refLinks[0]
   }
   const { ref, val, xpr, func } = value
 
@@ -266,9 +258,7 @@ function resolveCalculatedElement(ctx, column, omitAlias = false, $baseLink = nu
  */
 function calculateDollarSelfColumn(ctx, col, omitAlias = false) {
   const cache = ctx.selfColumns || (ctx.selfColumns = new WeakMap())
-  const dummyColumn = buildDummyColumnForDollarSelf({ ...col }, col.$refLinks)
-
-  return dummyColumn
+  return buildDummyColumnForDollarSelf({ ...col }, col.$refLinks)
 
   function buildDummyColumnForDollarSelf(dollarSelfColumn, $refLinks) {
     const { ref, as } = dollarSelfColumn
@@ -302,13 +292,8 @@ function calculateDollarSelfColumn(ctx, col, omitAlias = false) {
     } else {
       // target column is `val`, `xpr`, or `func` — destructure and throw away the ref with the $self
       // eslint-disable-next-line no-unused-vars
-      const { xpr, val, func, args, ref, as: _as, ...rest } = referencedColumn
-      if (xpr) rest.xpr = xpr
-      else if (func) {
-        rest.func = func
-        rest.args = args
-      } else rest.val = val
-      dollarSelfColumn = { ...rest } // reassign dummyColumn without 'ref'
+      const { ref, as: _as, ...rest } = referencedColumn
+      dollarSelfColumn = rest
       if (!omitAlias) dollarSelfColumn.as = as
     }
     return dollarSelfColumn.ref?.[0] === '$self'

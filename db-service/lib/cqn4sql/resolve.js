@@ -5,8 +5,8 @@ module.exports = Object.assign(resolve, { resolveQuery })
 const sources = require('./resolve/sources')
 const columns = require('./resolve/columns')
 
-const { getModelUtils, defineProperty } = require('../utils')
-const { createState } = require('./scope')
+const { defineProperty } = require('../utils')
+const { createScope } = require('./scope')
 
 /**
  * Plan SQL references and joins on an owned query. Definitions are read-only;
@@ -15,29 +15,19 @@ const { createState } = require('./scope')
  * resolved in their own SQL scope; only the compatibility API and grouped
  * expands require their nested result metadata ahead of transformation.
  */
-function resolve(query, model, useTechnicalAlias = true, resolveNestedElements = false, state = createState()) {
-  if (!model) throw new Error('Please specify a model')
-  if (query.SET) throw new Error('”UNION” based queries are not supported')
-  const calculatedValues = new WeakMap()
-  const ctx = {
-    model,
-    state,
-    useTechnicalAlias,
-    resolveNestedElements,
-    query,
-    clause: query.SELECT || query.INSERT || query.UPSERT || query.UPDATE || query.DELETE || query.CREATE || query.DROP,
-    ...getModelUtils(model, query),
-    alreadySeenCalcElements: new Set(),
-    wildcardCalculations: new WeakMap(),
-    calculatedValues,
-    projectionPlans: new WeakMap(),
-  }
-
+function resolve(
+  query,
+  model,
+  useTechnicalAlias,
+  resolveNestedElements,
+  state,
+  ctx = createScope(query, model, useTechnicalAlias, resolveNestedElements, state),
+) {
   ctx.sources = sources.resolveSources(
     ctx,
     ctx.clause.into || ctx.clause.from || ctx.clause.entity,
     {},
-    useTechnicalAlias,
+    ctx.useTechnicalAlias,
   )
   ctx.aliases = Object.keys(ctx.sources)
   ctx.target = ctx.aliases.length === 1 ? ctx.sources[ctx.aliases[0]].definition : query
@@ -53,9 +43,9 @@ function resolve(query, model, useTechnicalAlias = true, resolveNestedElements =
       },
     })
     const elements = columns.resolveColumns(ctx)
-    if (query.SELECT || resolveNestedElements) defineProperty(query, 'elements', elements)
+    if (query.SELECT || ctx.resolveNestedElements) defineProperty(query, 'elements', elements)
   }
-  state.resolutions.set(query, ctx)
+  ctx.state.resolutions.set(query, ctx)
   return ctx
 }
 

@@ -1,5 +1,7 @@
 'use strict'
 
+const { forEachChild } = require('../expression-tree')
+
 const { planFor, validateSelfDependencies } = require('../projection-plan')
 
 module.exports = { resolveColumns, resolveWildcard, getElementForXprOrSubquery }
@@ -10,13 +12,11 @@ const calculatedModule = require('./calculated')
 const cds = require('@sap/cds')
 const { isCalculatedOnRead } = require('../../utils')
 const {
-  applyToFunctionArgs,
   setElementOnColumns,
   rejectDuplicatedElement,
   getElementForCast,
   getCopyWithAnnos,
   getCdsTypeForVal,
-  getDefinitionFromSources,
 } = require('./helpers')
 
 /**
@@ -52,14 +52,7 @@ function resolveColumns(ctx) {
           queryElements[as] = getElementForXprOrSubquery(ctx, col, queryElements, dollarSelfRefs)
         }
         if (col.func) {
-          if (col.args) {
-            // {func}.args are optional
-            applyToFunctionArgs(col.args, (...args) => referencesModule.resolveExpression(ctx, ...args), [
-              false,
-              null,
-              { dollarSelfRefs },
-            ])
-          }
+          forEachChild(col, arg => referencesModule.resolveExpression(ctx, arg, false, null, { dollarSelfRefs }))
           queryElements[as] = getElementForCast(col)
         }
         if (!queryElements[as]) {
@@ -191,7 +184,7 @@ function resolveWildcard(ctx, queryElements) {
   const exclude = ctx.clause.excluding ? x => ctx.clause.excluding.includes(x) : () => false
 
   if (Object.keys(queryElements).length === 0 && ctx.aliases.length === 1) {
-    const { elements } = getDefinitionFromSources(ctx.sources, ctx.aliases[0])
+    const { elements } = ctx.sources[ctx.aliases[0]].definition
     // only one query source and no overwritten columns
     for (const k in elements) {
       if (!exclude(k)) {

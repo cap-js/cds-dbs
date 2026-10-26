@@ -2,6 +2,8 @@
 
 module.exports = { getTransformedTokenStream, expandComparison, assertNoStructInXpr, getTransformedFunctionArgs }
 
+const { mapArgs } = require('./expression-tree')
+
 const { elementSources } = require('./resolve/sources')
 
 const { getCalculatedValue } = require('./scope')
@@ -404,23 +406,5 @@ function assertNoStructInXpr(ctx, token, context) {
 }
 
 function getTransformedFunctionArgs(ctx, args, $baseLink = null) {
-  let result = null
-  if (Array.isArray(args)) {
-    result = args.flatMap(t => {
-      if (!t.val)
-        // this must not be touched
-        return getTransformedTokenStream(ctx, [t], { $baseLink })
-      return t
-    })
-  } else if (typeof args === 'object') {
-    result = {}
-    for (const prop in args) {
-      const t = args[prop]
-      if (!t.val)
-        // this must not be touched
-        result[prop] = getTransformedTokenStream(ctx, [t], { $baseLink })[0]
-      else result[prop] = t
-    }
-  }
-  return result
+  return mapArgs(args, token => (token.val ? [token] : getTransformedTokenStream(ctx, [token], { $baseLink })))
 }

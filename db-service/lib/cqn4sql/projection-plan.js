@@ -1,5 +1,9 @@
 'use strict'
 
+const { defineProperty } = require('../utils')
+const { forEachChild } = require('./expression-tree')
+const cloneCqn = require('./clone')
+
 // Preserve column order while indexing the names used by smart wildcards,
 // exclusions, replacements, ORDER BY, and $self dependencies.
 function projectionPlan(columns = ['*'], excluding = []) {
@@ -25,7 +29,10 @@ function projectionPlan(columns = ['*'], excluding = []) {
 function planFor(ctx, owner, prop = 'columns') {
   const plans = ctx.projectionPlans || (ctx.projectionPlans = new WeakMap())
   let plan = plans.get(owner)
-  if (!plan) plans.set(owner, (plan = projectionPlan(owner[prop], owner.excluding)))
+  if (!plan) {
+    const columns = prop === 'columns' ? owner[prop] : cloneCqn(owner[prop])
+    plans.set(owner, (plan = projectionPlan(columns, owner.excluding)))
+  }
   return plan
 }
 
@@ -34,7 +41,7 @@ function indexColumns(columns = []) {
   return new Map(columns.map(column => [column.as || column.ref?.at(-1) || column, column]))
 }
 
-module.exports = { projectionPlan, planFor, indexColumns, validateSelfDependencies }
+module.exports = { projectionPlan, planFor, indexColumns, validateSelfDependencies, qualifyNestedColumn }
 
 function validateSelfDependencies(plan, sources) {
   const complete = new Set(),
@@ -59,6 +66,20 @@ function validateSelfDependencies(plan, sources) {
     if (token.ref?.length > 1 && ['$self', '$projection'].includes(token.ref[0]) && !(token.ref[0] in sources)) {
       if (token.as || token !== plan.byName.get(token.ref[1])) visit(token.ref[1])
     }
-    for (const child of token.xpr || token.list || Object.values(token.args || {})) walk(child)
+    forEachChild(token, walk)
+  }
+}
+
+// Qualify the already-bound occurrence in its plan, retaining its calculation
+// identity. The original nested syntax remains intact for the infer facade.
+function qualifyNestedColumn(column, parent) {
+  if (column === '*') return
+  if (column.ref && parent.ref) {
+    column.ref = [...parent.ref, ...column.ref]
+    defineProperty(column, '$refLinks', [...parent.$refLinks, ...column.$refLinks])
+    defineProperty(column, 'isJoinRelevant', column.isJoinRelevant || parent.isJoinRelevant)
+    defineProperty(column, 'flatName', [parent.flatName, column.flatName].filter(Boolean).join('_'))
+  } else {
+    forEachChild(column, token => qualifyNestedColumn(token, parent))
   }
 }

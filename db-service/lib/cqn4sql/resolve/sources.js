@@ -8,7 +8,6 @@ const cds = require('@sap/cds')
 const { resolveQuery } = require('../resolve')
 const JoinTree = require('../join-tree')
 const { getImplicitAlias } = require('../../utils')
-const { getDefinitionFromSources } = require('./helpers')
 
 /**
  * Infers all query sources from a given SQL-like query's `from` clause.
@@ -103,7 +102,7 @@ function resolveSources(ctx, from, querySources, useTechnicalAlias) {
 function combineElements(ctx) {
   const combinedElements = {}
   for (const index in ctx.sources) {
-    const tableAlias = getDefinitionFromSources(ctx.sources, index)
+    const tableAlias = ctx.sources[index].definition
     for (const key in tableAlias.elements) {
       if (key in combinedElements) combinedElements[key].push({ index, tableAlias })
       else combinedElements[key] = [{ index, tableAlias }]
@@ -118,6 +117,6 @@ function elementSources(query, name) {
   const aliases = Object.keys(query.sources)
   if (aliases.length !== 1) return query.$combinedElements[name]
   const index = aliases[0]
-  const tableAlias = getDefinitionFromSources(query.sources, index)
+  const tableAlias = query.sources[index].definition
   return name in tableAlias.elements ? [{ index, tableAlias }] : undefined
 }

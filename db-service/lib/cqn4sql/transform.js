@@ -11,26 +11,13 @@ const runtimeViews = require('./runtime-views')
 
 const cds = require('@sap/cds')
 const resolve = require('./resolve')
-const { getImplicitAlias: _getImplicitAlias, defineProperty, getModelUtils } = require('../utils')
+const { defineProperty } = require('../utils')
+const { createScope } = require('./scope')
 const { assignQueryModifiers, getPrimaryKey } = require('./helpers')
 
 function transformOwned(query, model, useTechnicalAlias, state) {
-  const getImplicitAlias = str => _getImplicitAlias(str, useTechnicalAlias)
-  const { getLocalizedName, isLocalized, getDefinition } = getModelUtils(model, query)
+  const ctx = createScope(query, model, useTechnicalAlias, false, state)
   let transformedQuery
-  const ctx = {
-    model,
-    useTechnicalAlias,
-    state,
-    getImplicitAlias,
-    getLocalizedName,
-    isLocalized,
-    getDefinition,
-    query,
-    get transformedQuery() {
-      return transformedQuery
-    },
-  }
   const hasCustomJoins = query.SELECT?.from.args && (!query.joinTree || query.joinTree.isInitial)
 
   if (!hasCustomJoins && query.SELECT?.search) {
@@ -58,14 +45,11 @@ function transformOwned(query, model, useTechnicalAlias, state) {
   if (query.UPDATE?.entity.ref?.at(-1).id) {
     assignQueryModifiers(query.UPDATE, query.UPDATE.entity.ref.at(-1))
   }
-  const resolution = resolve(query, model, useTechnicalAlias, false, state)
-  ctx.wildcardCalculations = resolution.wildcardCalculations
-  ctx.calculatedValues = resolution.calculatedValues
-  ctx.projectionPlans = resolution.projectionPlans
+  resolve(query, model, useTechnicalAlias, false, state, ctx)
   // Custom joins keep their shape; source resolution supplies renderer metadata.
   if (hasCustomJoins) return query
 
-  transformedQuery = cds.ql.clone(query)
+  transformedQuery = ctx.transformedQuery = cds.ql.clone(query)
   const kind = query.kind || Object.keys(query)[0]
 
   if (query.INSERT || query.UPSERT) {

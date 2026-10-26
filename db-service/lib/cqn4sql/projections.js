@@ -11,6 +11,7 @@ const columnsModule = require('./columns')
 const flattenModule = require('./flatten')
 const sourcesModule = require('./sources')
 
+const { defineProperty } = require('../utils')
 const { keysOf } = require('./model')
 const cloneCqn = require('./clone')
 const { planFor, indexColumns } = require('./projection-plan')
@@ -25,136 +26,25 @@ const {
   asXpr,
 } = require('./helpers')
 
-/**
- * Calculates the columns for a nested projection on a structure.
- *
- * @param {object} col
- * @param {'inline'|'expand'} prop the property on which to operate. Default is `inline`.
- * @returns a list of flat columns.
- */
+// Binding and naming are part of the projection plan. Emission only flattens
+// those bound entries and applies the wildcard's ordered replacements.
 function nestedProjectionOnStructure(ctx, col, prop = 'inline') {
-  const res = []
-  const names = new Set()
-  function append(...columns) {
-    for (const column of columns) {
-      names.add(column.as || column.ref?.slice(1).map(idOnly).join('_'))
-      res.push(column)
-    }
-  }
-
-  col[prop].forEach((nestedProjection, i) => {
-    let rewrittenColumns = []
-    if (nestedProjection === '*') {
-      append(...expandNestedProjectionWildcard(ctx, col, prop))
-    } else {
-      const nameParts = col.as ? [col.as] : [col.ref.map(idOnly).join('_')]
-      nameParts.push(
-        nestedProjection.as
-          ? nestedProjection.as
-          : nestedProjection.ref
-            ? nestedProjection.ref.map(idOnly).join('_')
-            : nestedProjection.func || `expr${i}`,
-      )
-      const name = nameParts.join('_')
-      if (nestedProjection.ref) {
-        const augmentedInlineCol = augmentInlineRefWithParent(nestedProjection, col)
-        if (
-          col.as ||
-          nestedProjection.as ||
-          nestedProjection.$refLinks[nestedProjection.$refLinks.length - 1].definition.value ||
-          nestedProjection.isJoinRelevant
-        ) {
-          augmentedInlineCol.as = nameParts.join('_')
-        }
-        const flatColumns = columnsModule.getTransformedColumns(ctx, [augmentedInlineCol])
-        flatColumns.forEach(flatColumn => {
-          const flatColumnName = flatColumn.as || flatColumn.ref[flatColumn.ref.length - 1]
-          if (!names.has(flatColumnName)) {
-            const rewrittenColumn = { ...flatColumn }
-            if (nestedProjection.as) rewrittenColumn.as = flatColumnName
-            rewrittenColumns.push(rewrittenColumn)
-          }
-        })
-      } else {
-        // func, xpr, val..
-        // we need to check if the column was already added
-        // in the wildcard expansion
-        if (!names.has(name)) {
-          const rewrittenColumn = { ...nestedProjection }
-          rewrittenColumn.as = name
-          // For xpr/func, we need to transform refs inside to include the struct prefix
-          if (nestedProjection.xpr && col.ref) {
-            rewrittenColumn.xpr = augmentInlineXprRefs(nestedProjection.xpr, col)
-          } else if (nestedProjection.func && nestedProjection.args && col.ref) {
-            rewrittenColumn.args = augmentInlineXprRefs([nestedProjection], col)[0].args
-          }
-          rewrittenColumns.push(rewrittenColumn)
-        }
+  const result = [],
+    names = new Set()
+  for (const column of planFor(ctx, col, prop).columns) {
+    const columns =
+      column === '*'
+        ? expandNestedProjectionWildcard(ctx, col, prop)
+        : columnsModule.getTransformedColumns(ctx, [column])
+    for (const flat of columns) {
+      const name = flat.as || flat.ref?.at(-1)
+      if (!names.has(name)) {
+        names.add(name)
+        result.push(flat)
       }
     }
-    append(...rewrittenColumns)
-  })
-
-  return res
-
-  /**
-   * Augment a ref column with the parent column's path and $refLinks.
-   */
-  function augmentInlineRefWithParent(refCol, parentCol) {
-    const augmented = { ...refCol }
-    if (ctx.projectionPlans.has(refCol)) ctx.projectionPlans.set(augmented, ctx.projectionPlans.get(refCol))
-    if (ctx.wildcardCalculations.has(refCol))
-      ctx.wildcardCalculations.set(augmented, ctx.wildcardCalculations.get(refCol))
-    if (ctx.calculatedValues.has(refCol)) ctx.calculatedValues.set(augmented, ctx.calculatedValues.get(refCol))
-    augmented.ref = parentCol.ref ? [...parentCol.ref, ...refCol.ref] : refCol.ref
-    Object.defineProperties(augmented, {
-      $refLinks: { value: [...refCol.$refLinks], writable: true },
-      isJoinRelevant: { value: refCol.isJoinRelevant, writable: true },
-    })
-    if (parentCol.ref) {
-      augmented.$refLinks.unshift(...parentCol.$refLinks)
-      augmented.isJoinRelevant = augmented.isJoinRelevant || parentCol.isJoinRelevant
-    }
-    return augmented
   }
-
-  /**
-   * Augment refs inside an xpr with the parent column's path and $refLinks,
-   * then transform them to flat refs.
-   */
-  function augmentInlineXprRefs(xpr, parentCol) {
-    return xpr.map(token => {
-      if (typeof token === 'string' || token.val !== undefined) {
-        return token
-      }
-      if (token.ref && token.$refLinks) {
-        const augmented = augmentInlineRefWithParent(token, parentCol)
-        // Transform this single ref column to get the flat version
-        const transformed = columnsModule.getTransformedColumns(ctx, [augmented])
-        if (transformed.length === 1) {
-          return transformed[0]
-        }
-        return augmented
-      }
-      if (token.xpr) {
-        return { ...token, xpr: augmentInlineXprRefs(token.xpr, parentCol) }
-      }
-      if (token.list) {
-        return { ...token, list: augmentInlineXprRefs(token.list, parentCol) }
-      }
-      if (token.func && token.args) {
-        return { ...token, args: augmentInlineFunctionArgs(token.args, parentCol) }
-      }
-      return token
-    })
-  }
-
-  function augmentInlineFunctionArgs(args, parentCol) {
-    if (Array.isArray(args)) return augmentInlineXprRefs(args, parentCol)
-    const result = {}
-    for (const prop in args) result[prop] = augmentInlineXprRefs([args[prop]], parentCol)[0]
-    return result
-  }
+  return result
 }
 
 /**
@@ -173,7 +63,7 @@ function expandNestedProjectionWildcard(ctx, col, prop = 'inline') {
   const res = []
   const plan = planFor(ctx, col, prop)
   const exclude = plan.exclude
-  const replace = new Map()
+  const replace = plan.replace
 
   const baseRef = col.ref || []
   const baseRefLinks = col.$refLinks || []
@@ -186,15 +76,6 @@ function expandNestedProjectionWildcard(ctx, col, prop = 'inline') {
     baseRef.push(tableAlias)
     baseRefLinks.push({ definition, source: definition })
   }
-  // we need to make the refs absolute
-  plan.replace.forEach((c, name) => {
-    const fakeColumn = { ...c }
-    if (fakeColumn.ref) {
-      fakeColumn.ref = [...baseRef, ...fakeColumn.ref]
-      fakeColumn.$refLinks = [...baseRefLinks, ...c.$refLinks]
-    }
-    replace.set(name, fakeColumn)
-  })
 
   if (baseRefLinks.at(-1).definition.kind === 'entity') {
     res.push(...flattenModule.getColumnsForWildcard(ctx, exclude, replace, col.as))
@@ -277,7 +158,7 @@ function expandAssociationWildcard(ctx, col, baseRef, baseRefLinks, exclude, rep
       if (elemDef.value) {
         const calcElement = columnsModule.resolveCalculatedElement(
           ctx,
-          ctx.wildcardCalculations.get(col).get(elemName),
+          planFor(ctx, col, 'inline').calculations.get(elemName),
           true,
           baseRefLinks.at(-1),
         )
@@ -304,30 +185,14 @@ function expandAssociationWildcard(ctx, col, baseRef, baseRefLinks, exclude, rep
  * association's ON condition. Only the selected target query is transformed.
  */
 function expandColumn(ctx, column) {
-  let outerAlias
-  let subqueryFromRef
   const ref = column.$refLinks[0].definition.kind === 'entity' ? column.ref.slice(1) : column.ref
   const assoc = column.$refLinks.at(-1)
   sourcesModule.ensureValidForeignKeys(ctx, assoc.definition, column.ref, 'expand')
-  if (column.isJoinRelevant) {
-    // all n-1 steps of the expand column are already transformed into joins
-    // find the last join relevant association. That is the n-1 assoc in the ref path.
-    // slice the ref array beginning from the n-1 assoc in the ref and take that as the postfix for the subqueries from ref.
-    ;[...column.$refLinks]
-      .reverse()
-      .slice(1)
-      .find((link, i) => {
-        if (link.definition.isAssociation) {
-          subqueryFromRef = [link.definition.target, ...column.ref.slice(-(i + 1), column.ref.length)]
-          // alias of last join relevant association is also the correlation alias for the subquery
-          outerAlias = link.alias
-          return true
-        }
-      })
-  } else {
-    outerAlias = ctx.transformedQuery.SELECT.from.as
-    subqueryFromRef = [ctx.transformedQuery._target.name, ...ref]
-  }
+  const preceding =
+    column.isJoinRelevant &&
+    column.$refLinks.findLast((link, i) => i < column.$refLinks.length - 1 && link.definition.isAssociation)
+  const parent = preceding ? ctx.getDefinition(preceding.definition.target) : ctx.transformedQuery._target
+  const outerAlias = preceding ? preceding.alias : ctx.transformedQuery.SELECT.from.as
 
   // this is the alias of the column which holds the correlated subquery
   const columnAlias = column.as || ref.map(idOnly).join('_')
@@ -357,8 +222,7 @@ function expandColumn(ctx, column) {
     as: uniqueSubqueryAlias,
   }
   const subqueryBase = {}
-  const queryModifiers = { ...column }
-  for (const [key, value] of Object.entries(queryModifiers)) {
+  for (const [key, value] of Object.entries(column)) {
     if (key in { limit: 1, orderBy: 1, groupBy: 1, excluding: 1, where: 1, having: 1, count: 1 })
       subqueryBase[key] = value
   }
@@ -374,7 +238,6 @@ function expandColumn(ctx, column) {
   }
   if (leafStep.id) assignQueryModifiers(subquery.SELECT, leafStep)
   const expanded = sourcesModule.transformSubquery(ctx, subquery)
-  const parent = ctx.getDefinition(subqueryFromRef[0])
   const condition = joinsModule.onCondFor(
     ctx,
     { ...assoc, alias: uniqueSubqueryAlias },
@@ -460,19 +323,8 @@ function expandColumn(ctx, column) {
       from: null,
       columns: expandedColumns,
     }
-    return Object.defineProperties(
-      {},
-      {
-        SELECT: {
-          value: Object.defineProperties(SELECT, {
-            expand: { value: true, writable: true }, // non-enumerable
-            one: { value: column.$refLinks.at(-1).definition.is2one, writable: true }, // non-enumerable
-          }),
-          enumerable: true,
-        },
-        as: { value: subqueryAlias, enumerable: true, writable: true },
-        elements: { value: elements }, // non-enumerable
-      },
-    )
+    defineProperty(SELECT, 'expand', true)
+    defineProperty(SELECT, 'one', column.$refLinks.at(-1).definition.is2one)
+    return defineProperty({ SELECT, as: subqueryAlias }, 'elements', elements)
   }
 }
