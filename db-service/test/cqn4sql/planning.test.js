@@ -148,17 +148,16 @@ describe('SQL planning regressions', () => {
   })
 
   it('transforms each nested FROM query once even when every scope needs a join', () => {
-    const count = isolated(
+    isolated(
       [
         'const path = require.resolve("./db-service/lib/cqn4sql/resolve"), resolve = require(path); let calls = 0;',
         'require.cache[path].exports = Object.assign((...args) => { calls++; return resolve(...args) }, resolve);',
         'const cqn4sql = require("./db-service/lib/cqn4sql");',
         'let q = cds.ql("SELECT from B {ID, a}");',
         'for(let i=0;i<8;i++) q = { SELECT: { from:q, columns:[{ref:["ID"]},{ref:["a"]},{ref:["a","name"],as:"n"}] } };',
-        'cqn4sql(q, model); console.log(calls);',
+        'cqn4sql(q, model); require("node:assert/strict").equal(calls, 9);',
       ].join('\n'),
     )
-    assert.equal(Number(count), 9)
   })
 
   for (const kind of ['INSERT', 'UPSERT']) {
