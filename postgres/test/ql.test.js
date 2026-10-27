@@ -181,5 +181,11 @@ describe('QL to PostgreSQL', () => {
       const affectedRows = await cds.run(UPDATE(Beers).set({ abv: 1.0 }))
       expect(affectedRows).to.equal(11)
     })
+
+    test('-> Boolean SET and Boolean WHERE', async () => {
+      const { TypeChecks } = cds.entities('csw')
+      const affectedRows = await cds.run(UPDATE(TypeChecks).set({ type_Boolean: false }).where({ type_Boolean: true }))
+      expect(affectedRows).to.be.a('number')
+    })
   })
 })
