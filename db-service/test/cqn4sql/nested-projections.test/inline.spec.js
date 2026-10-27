@@ -1257,7 +1257,7 @@ describe('(nested projections) inline', () => {
       const expected = cds.ql`
         SELECT from nestedProjections.RetiredEmployee as Employee
           left join nestedProjections.RetiredEmployee as self on self.id = Employee.self_id
-          left join nestedProjections.Department as department on department.id = Employee.department_id
+          left join nestedProjections.Department as department on department.id = self.department_id
         {
           Employee.self_id,
           (department.name = 'Retired') as self_isRetired,
@@ -1280,7 +1280,7 @@ describe('(nested projections) inline', () => {
         SELECT from nestedProjections.RetiredEmployee as Employee
           left join nestedProjections.RetiredEmployee as self on self.id = Employee.self_id
             and self.job = 'PO'
-          left join nestedProjections.Department as department on department.id = Employee.department_id
+          left join nestedProjections.Department as department on department.id = self.department_id
         {
           self.id,
           (department.name = 'Retired') as self_isRetired,

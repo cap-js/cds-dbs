@@ -31,16 +31,7 @@ function hasOwnSkip(definition) {
 
 function isRuntimeView(definition) {
   if (!definition || !cds.env.features.runtime_views) return false
-  if (definition['_isRuntimeView']) return true
-  if (!definition['@cds.persistence.skip']) {
-    Object.defineProperty(definition, '_isRuntimeView', {
-      value: true,
-      writable: false,
-      configurable: true,
-      enumerable: false
-    })
-    return true
-  }
+  if (!definition['@cds.persistence.skip']) return true
   // views with "as select from" variant are also runtime views, even if they are annotated with persistence skip
   if (definition.query && !definition.query._target) return true
   if (definition.query) return isRuntimeView(definition.query._target)
