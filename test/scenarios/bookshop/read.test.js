@@ -517,22 +517,8 @@ describe('Bookshop - Read', () => {
     for (const row of results) expect(row).to.deep.eq([{ ID: 207 }, { ID: 252 }, { ID: 271 }])
   })
 
-  it('select all authors which have written books that have genre.name = null', async () => {
-    await insertTemporaryData()
-
-    // the path expression inside the filter after the exists predicate must not
-    // be transformed to a left outer join but to an inner join
-    // if not, we would also get all authors which have books which have no genre at all (like Lord of the Rings in our example)
-    const { Authors } = cds.entities('sap.capire.bookshop')
-    const query = SELECT`from ${Authors} where exists books[ genre.name = null ]`
-    const equivalentQuery = SELECT`from ${Authors} where exists books[ exists genre [ name = null ] ]`
-    const results = await cds.db.run(query)
-    const equivalentReults = await cds.db.run(equivalentQuery)
-    expect(results).to.have.length(1)
-    expect(results.length).to.equal(equivalentReults.length) // only J.K. Rowling has written a book with genre.name = null
-
-
-    async function insertTemporaryData() {
+  describe('path expressions in subquery filters', () => {
+    before(async () => {
       await cds.run(INSERT.into('sap.capire.bookshop.Books').entries([
         { ID: 272, title: 'Harry Potter', descr: 'The genre of this book has no name', author_ID: 171, genre_ID: 25 },
         { ID: 273, title: 'Lord of the Rings', descr: 'This book has no genre', author_ID: 172, genre_ID: null }
@@ -544,7 +530,58 @@ describe('Bookshop - Read', () => {
       await cds.run(INSERT.into('sap.capire.bookshop.Genres').entries([
         { ID: 25, parent_ID: 20, name: null }
       ]))
+    })
+
+    for (const operator of ['=', 'is']) {
+      it(`EXISTS with genre.name ${operator} null and genre.ID is not null requires a genre`, async () => {
+        const { Authors } = cds.entities('sap.capire.bookshop')
+        // Exclude Tolkien's book without a genre explicitly, so only Rowling
+        // matches, just as with the nested EXISTS genre predicate.
+        const query = SELECT.from(Authors).columns('ID')
+          .where(`exists books[ genre.name ${operator} null and genre.ID is not null ]`).orderBy('ID')
+        const withGenre = SELECT.from(Authors).columns('ID')
+          .where(`exists books[ exists genre[ name ${operator} null ] ]`).orderBy('ID')
+        expect(await query).to.deep.equal([{ ID: 171 }])
+        expect(await withGenre).to.deep.equal([{ ID: 171 }])
+      })
     }
+
+    it('expand with genre.name is null also includes books without a genre', async () => {
+      const { Authors } = cds.entities('sap.capire.bookshop')
+      const query = SELECT`from ${Authors} {
+        ID, books[genre.name is null] { title }
+      } where ID in (171, 172) order by ID`
+      expect(await query).to.deep.equal([
+        { ID: 171, books: [{ title: 'Harry Potter' }] },
+        { ID: 172, books: [{ title: 'Lord of the Rings' }] },
+      ])
+    })
+
+    it('expand with OR includes books without a genre when the title matches', async () => {
+      const { Authors } = cds.entities('sap.capire.bookshop')
+      const query = SELECT`from ${Authors} {
+        ID, books[genre.name = 'Drama' or title = 'Lord of the Rings'] { title }
+      } order by ID`
+      expect(await query).to.deep.equal([
+        { ID: 101, books: [{ title: 'Wuthering Heights' }] },
+        { ID: 107, books: [{ title: 'Jane Eyre' }] },
+        { ID: 150, books: [] },
+        { ID: 170, books: [] },
+        { ID: 171, books: [] },
+        { ID: 172, books: [{ title: 'Lord of the Rings' }] },
+      ])
+    })
+
+    it('EXISTS with OR matches books without a genre when the title matches', async () => {
+      const { Authors, Books } = cds.entities('sap.capire.bookshop')
+      const query = SELECT`from ${Authors} { ID }
+        where exists books[genre.name = 'Drama' or title = 'Lord of the Rings'] order by ID`
+      const scopedQuery = SELECT`from ${Books}[genre.name = 'Drama' or title = 'Lord of the Rings']:author
+        { ID } order by ID`
+      const expected = [{ ID: 101 }, { ID: 107 }, { ID: 172 }]
+      expect(await query).to.deep.equal(expected)
+      expect(await scopedQuery).to.deep.equal(expected)
+    })
   })
 
   it('cross joins without on condition', async () => {

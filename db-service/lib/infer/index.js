@@ -665,9 +665,6 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
         }
       }
     }
-    // we need inner joins for the path expressions inside filter expressions after exists predicate
-    if ($baseLink?.pathExpressionInsideFilter) defineProperty(arg, 'join', 'inner')
-
     // ignore whole expand if target of assoc along path has ”@cds.persistence.skip”
     if (arg.expand) {
       const { $refLinks } = arg
