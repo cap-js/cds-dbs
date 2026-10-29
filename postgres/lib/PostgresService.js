@@ -199,11 +199,9 @@ GROUP BY k
   }
 
   _getValues(values) {
-    // empty values
-    if (!values || Object.keys(values).length === 0) return null
-    // values are already in array form
-    if (Array.isArray(values)) return values
-    return values
+    // pg needs an array or nothing; a non-array (empty object, or inlined-only DML's
+    // leftover data object) carries no placeholders, so pass no values
+    return Array.isArray(values) ? values : null
   }
 
   _prepareStreams(query, values) {
