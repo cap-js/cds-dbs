@@ -803,26 +803,29 @@ class HANAService extends SQLService {
 
       const entity = q._target ? this.table_name(q) : INSERT.into.ref[0]
       const transitions = this.srv.resolve.transitions(q)
-      const transitionsTargetElements = transitions.target.elements
 
-      const filteredElements = !elements ? {} :
-        ObjectKeys(elements).filter(c => this.physical_column(elements, c)
+      const columns = elements
+        ? ObjectKeys(elements).filter(c => this.physical_column(elements, c)
           && (c = transitions.mapping.get(c)?.ref?.[0] || c)
-          && c in transitionsTargetElements
-          && this.physical_column(transitionsTargetElements, c)
+          && c in transitions.target.elements
+          && this.physical_column(transitions.target.elements, c)
           && !elements[c]?.[SYSTEM_VERSIONED]
-        ).reduce( (res, key) => (res[key] = elements[key], res), {} )
+        )
+        : ObjectKeys(INSERT.entries[0])
+      this.columns = columns
 
-      const columns = this.columns = elements ? ObjectKeys(filteredElements) : ObjectKeys(INSERT.entries[0])
+      const insertElements = { ...elements }
+      const targetColumns = columns.map(c => transitions.mapping.get(c)?.ref?.[0] || c)
+      // Add unexposed defaults, excluding non-writable fields and targets already exposed under an alias.
+      for (const name of ObjectKeys(transitions.target.elements)) {
+        const element = transitions.target.elements[name]
+        if (targetColumns.includes(name) || !this.physical_column(transitions.target.elements, name) || element[SYSTEM_VERSIONED]) continue
+        if (!(element.default || element['@cds.on.insert'] || element['@cds.on.update'])) continue
+        insertElements[name] = element
+        columns.push(name)
+      }
 
-      const mappedTransitionsTargets = new Set(columns.map(c => transitions.mapping.get(c)?.ref?.[0]).filter(Boolean))
-      const targetElementsFiltered = Object.fromEntries(
-        ObjectKeys(transitionsTargetElements)
-          .filter(key => !mappedTransitionsTargets.has(key))
-          .map(key => [key, transitionsTargetElements[key]]),
-      )
-
-      const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), { ...targetElementsFiltered, ...filteredElements })
+      const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), insertElements).slice(0, columns.length)
 
       // REVISIT: @cds.extension required
       const extraction = extractions.map(c => c.extract)
@@ -862,7 +865,7 @@ class HANAService extends SQLService {
       // With the buffer table approach the data is processed in chunks of a configurable size
       // Which allows even smaller HANA systems to process large datasets
       // But the chunk size determines the maximum size of a single row
-      return (this.sql = `INSERT INTO ${this.quote(entity)} (${extractions.map(c => this.quote(transitions.mapping.get(c.name)?.ref?.[0] || c.name))
+      return (this.sql = `INSERT INTO ${this.quote(entity)} (${this.columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))
         }) WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
       SELECT ${converter} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON ERROR) AS NEW`)
     }
