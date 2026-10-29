@@ -256,6 +256,23 @@ const StandardFunctions = {
   fractionalseconds: x => `(TO_DECIMAL(SECOND(${x}),5,3) - TO_INTEGER(SECOND(${x})))`,
 }
 
+let standard_model
+const default_model = 'SAP_GXY.20250407'
+const getEmbeddingsModel = element => {
+  standard_model ??= cds.env.requires?.embeddings?.model || default_model
+  return element?.['@cds.embeddings.model']
+    ? cds.env.requires?.[element['@cds.embeddings.model']]?.model || standard_model
+    : standard_model
+}
+const ensureEmbeddingsFunc = right => {
+  if (typeof right.val === 'string' && !right.cast) return { func: 'vector_embedding', args: [{ val: right.val }] }
+  return right
+}
+const augmentEmbeddingsArgs = (args, element) => {
+  if (args.length === 1) args.push({ val: 'QUERY', param: false })
+  if (args.length === 2) args.push({ val: getEmbeddingsModel(element), param: false })
+}
+
 const HANAFunctions = {
   current_connection: () => 'current_connection',
   current_date: () => 'current_utcdate',
@@ -273,6 +290,21 @@ const HANAFunctions = {
   HIERARCHY: undefined,
   HIERARCHY_DESCENDANTS: undefined,
   HIERARCHY_ANCESTORS: undefined,
+
+  vector_embedding: function (...args) {
+    augmentEmbeddingsArgs(args)
+    return `vector_embedding(${args.map(arg => this.expr(arg))})`
+  },
+  cosine_similarity: function (left, right) {
+    right = ensureEmbeddingsFunc(right)
+    if (right.func?.toLowerCase() === 'vector_embedding') augmentEmbeddingsArgs(right.args, left.element)
+    return `cosine_similarity(${left},${this.expr(right)})`
+  },
+  l2distance: function (left, right) {
+    right = ensureEmbeddingsFunc(right)
+    if (right.func?.toLowerCase() === 'vector_embedding') augmentEmbeddingsArgs(right.args, left.element)
+    return `l2distance(${left},${this.expr(right)})`
+  },
 }
 
 for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunctions[each]
