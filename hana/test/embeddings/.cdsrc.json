@@ -1,0 +1,7 @@
+{
+  "requires": {
+    "embeddings": {
+      "model": "TEST.MODEL"
+    }
+  }
+}
