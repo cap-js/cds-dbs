@@ -2,6 +2,9 @@
   "requires": {
     "embeddings": {
       "model": "TEST.MODEL"
+    },
+    "special-embeddings": {
+      "model": "SPECIAL.MODEL"
     }
   }
 }
