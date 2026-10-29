@@ -428,6 +428,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
    * Rewrites the from clause based on the `query.joinTree`.
    *
    * For each join relevant node in the join tree, the respective join is generated.
+   * Use left joins also in expand and EXISTS filters to preserve rows for OR and null comparisons.
    * Each join relevant node in the join tree has an unique table alias which is the query source for the respective
    * path traversals. Hence, all join relevant `ref`s must be rewritten to point to the generated join aliases. However,
    * this is done in the @function getFlatColumnsFor().
@@ -451,10 +452,10 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
         const id = getLocalizedName(r.queryArtifact)
         args.push({ ref: [r.args ? { id, args: r.args } : id], as: r.alias })
       }
-      from = { join: r.join || 'left', args, on: [] }
+      from = { join: 'left', args, on: [] }
       r.children.forEach(c => {
         from = joinForBranch(from, c)
-        from = { join: c.join || 'left', args: [from], on: [] }
+        from = { join: 'left', args: [from], on: [] }
       })
     })
     return from.args.length > 1 ? from : from.args[0]
@@ -496,7 +497,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
       }
       if (node.children) {
         node.children.forEach(c => {
-          lhs = { join: c.join || 'left', args: [lhs], on: [] }
+          lhs = { join: 'left', args: [lhs], on: [] }
           lhs = joinForBranch(lhs, c)
         })
       }
