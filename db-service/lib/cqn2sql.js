@@ -925,7 +925,7 @@ class CQN2SQLRenderer {
     const insertElements = { ...elements }
     const targetColumns = columns.map(c => transitions.mapping.get(c)?.ref?.[0] || c)
     // Add unexposed defaults, excluding non-writable fields and targets already exposed under an alias.
-    for (const name of ObjectKeys(transitions.target.elements)) {
+    for (const name of q.UPSERT ? [] : ObjectKeys(transitions.target.elements)) {
       const element = transitions.target.elements[name]
       if (targetColumns.includes(name) || !this.physical_column(transitions.target.elements, name)) continue
       if (!(element.default || element['@cds.on.insert'] || element['@cds.on.update'])) continue
