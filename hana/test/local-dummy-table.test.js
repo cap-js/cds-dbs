@@ -14,7 +14,7 @@ describe('when local schema contains a table named DUMMY', () => {
   })
 
   test('local DUMMY table shadows SYS.DUMMY', async () => {
-    const [{ count }] = await cds.run('SELECT COUNT(*) AS count FROM DUMMY')
+    const [{ count }] = await cds.run('SELECT COUNT(*) AS "count" FROM DUMMY')
     expect(count).to.eq(0)
   })
 
