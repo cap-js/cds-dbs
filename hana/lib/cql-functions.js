@@ -160,6 +160,15 @@ const StandardFunctions = {
     // `{ score, ranked_search }` carrying it as `.score`
     const fuzzyConfig = cds.env.hana?.fuzzy
     const fuzzyIndex = (typeof fuzzyConfig === 'object' ? fuzzyConfig?.score : fuzzyConfig) || 0.7
+    const similarityCalculationMode = cds.env.hana?.similarityCalculationMode ?? 'search'
+    const similarityCalculationModes = [
+      'compare', 'type ahead', 'search compare', 'search', 'symmetric search', 'substring search', 'flexible',
+    ]
+    if (!similarityCalculationModes.includes(similarityCalculationMode)) {
+      throw new Error(
+        `Invalid configuration ${similarityCalculationMode} for cds.hana.similarityCalculationMode. Supported values: ${similarityCalculationModes.join(', ')}.`,
+      )
+    }
 
     const csnElements = ref.list || [ref]
     // if column specific value is provided, the configuration has to be defined on column level
@@ -184,7 +193,7 @@ const StandardFunctions = {
               `Invalid configuration ${rank} for @Search.ranking. HIGH, MEDIUM, LOW are supported values.`,
             )
         }
-        fuzzy += ` MINIMAL SCORE ${e.element?.['@Search.fuzzinessThreshold'] || fuzzyIndex} SIMILARITY CALCULATION MODE 'search'`
+        fuzzy += ` MINIMAL SCORE ${e.element?.['@Search.fuzzinessThreshold'] || fuzzyIndex} SIMILARITY CALCULATION MODE '${similarityCalculationMode}'`
         // rewrite ref to xpr to mix in search config
         // ensure in place modification to reuse .toString method that ensures quoting.
         // idempotent: the same search() args may be rendered twice (e.g. WHERE predicate and the
@@ -195,7 +204,7 @@ const StandardFunctions = {
         delete e.ref
       })
     } else {
-      ref = `${ref} FUZZY MINIMAL SCORE ${fuzzyIndex} SIMILARITY CALCULATION MODE 'search'`
+      ref = `${ref} FUZZY MINIMAL SCORE ${fuzzyIndex} SIMILARITY CALCULATION MODE '${similarityCalculationMode}'`
     }
 
     // ensure the fuzzy config is eventually included
