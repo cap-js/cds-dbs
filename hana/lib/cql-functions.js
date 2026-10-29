@@ -258,8 +258,9 @@ const StandardFunctions = {
 
 let standard_model
 const default_model = 'SAP_GXY.20250407'
-const getEmbeddingsModel = element => {
+const getEmbeddingsModel = operand => {
   standard_model ??= cds.env.requires?.embeddings?.model || default_model
+  const element = operand?.func?.toLowerCase() === 'l2normalize' ? operand.args[0].element : operand?.element
   return element?.['@cds.embeddings.model']
     ? cds.env.requires?.[element['@cds.embeddings.model']]?.model || standard_model
     : standard_model
@@ -268,9 +269,9 @@ const ensureEmbeddingsFunc = right => {
   if (typeof right.val === 'string' && !right.cast) return { func: 'vector_embedding', args: [{ val: right.val }] }
   return right
 }
-const augmentEmbeddingsArgs = (args, element) => {
+const augmentEmbeddingsArgs = (args, left) => {
   if (args.length === 1) args.push({ val: 'QUERY', param: false })
-  if (args.length === 2) args.push({ val: getEmbeddingsModel(element), param: false })
+  if (args.length === 2) args.push({ val: getEmbeddingsModel(left), param: false })
 }
 
 const HANAFunctions = {
@@ -297,12 +298,18 @@ const HANAFunctions = {
   },
   cosine_similarity: function (left, right) {
     right = ensureEmbeddingsFunc(right)
-    if (right.func?.toLowerCase() === 'vector_embedding') augmentEmbeddingsArgs(right.args, left.element)
+    let { func, args } = right
+    if (func?.toLowerCase() === 'l2normalize' && args[0].func?.toLowerCase() === 'vector_embedding')
+      [func, args] = [args[0].func, right.args[0].args]
+    if (func?.toLowerCase() === 'vector_embedding') augmentEmbeddingsArgs(args, left)
     return `cosine_similarity(${left},${this.expr(right)})`
   },
   l2distance: function (left, right) {
     right = ensureEmbeddingsFunc(right)
-    if (right.func?.toLowerCase() === 'vector_embedding') augmentEmbeddingsArgs(right.args, left.element)
+    let { func, args } = right
+    if (func?.toLowerCase() === 'l2normalize' && args[0].func?.toLowerCase() === 'vector_embedding')
+      [func, args] = [args[0].func, right.args[0].args]
+    if (func?.toLowerCase() === 'vector_embedding') augmentEmbeddingsArgs(args, left)
     return `l2distance(${left},${this.expr(right)})`
   },
 }
