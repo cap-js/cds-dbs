@@ -1,5 +1,5 @@
 {
-  "[embeddings]": {
+  "cds": {
     "requires": {
       "db": {
         "kind": "hana",

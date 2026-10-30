@@ -1,7 +1,7 @@
-const cds = require('../../test/cds')
+const cds = require('../../../test/cds')
 
 describe('HANA vector embedding shorthand and model selection', () => {
-  const { expect, data } = cds.test(__dirname, 'embeddings.cds', '--profile', 'embeddings')
+  const { expect, data } = cds.test(__dirname, 'embeddings.cds')
   data.autoIsolation(false)
 
   describe('vector_embedding', () => {
