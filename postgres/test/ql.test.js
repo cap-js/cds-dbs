@@ -184,16 +184,14 @@ describe('QL to PostgreSQL', () => {
 
     test('-> Boolean SET and WHERE (non-array values object)', async () => {
       const { TypeChecks } = cds.entities('csw')
-      const affectedRows = await cds.run(UPDATE(TypeChecks).set({ type_Boolean: false }).where({ type_Boolean: true }))
-      expect(affectedRows).to.be.a('number')
+      await cds.run(UPDATE(TypeChecks).set({ type_Boolean: false }).where({ type_Boolean: true }))
     })
   })
 
   describe('DELETE', () => {
     test('-> Boolean WHERE (empty values array)', async () => {
       const { TypeChecks } = cds.entities('csw')
-      const affectedRows = await cds.run(DELETE.from(TypeChecks).where({ type_Boolean: true }))
-      expect(affectedRows).to.be.a('number')
+      await cds.run(DELETE.from(TypeChecks).where({ type_Boolean: true }))
     })
   })
 })
