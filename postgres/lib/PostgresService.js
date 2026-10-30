@@ -199,8 +199,6 @@ GROUP BY k
   }
 
   _getValues(values) {
-    // pg needs an array or nothing; a non-array (empty object, or inlined-only DML's
-    // leftover data object) carries no placeholders, so pass no values
     return Array.isArray(values) ? values : null
   }
 
