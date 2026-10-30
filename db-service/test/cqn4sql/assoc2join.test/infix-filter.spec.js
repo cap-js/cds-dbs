@@ -340,6 +340,24 @@ describe('(a2j) in infix filter', () => {
   // Association traversal in it is resolved via joins inside that subquery - consistent with
   // the expand's `group by`/`order by`/`having`/column list and with `where exists` semi-joins.
   describe('path expression in expand filter', () => {
+    it('preserves books without a genre for the other OR branch', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors {
+          name,
+          books[genre.name = 'foo' or title = 'bar'] { title }
+        }`)
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as $A {
+          $A.name,
+          (
+            SELECT $b.title from bookshop.Books as $b
+              left outer join bookshop.Genres as genre on genre.ID = $b.genre_ID
+            where $A.ID = $b.author_ID and (genre.name = 'foo' or $b.title = 'bar')
+          ) as books
+        }`
+      expectCqn(transformed).to.equal(expected)
+    })
+
     it('traversal in the expand where filter resolves via a join in the subquery', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Authors {
@@ -353,7 +371,7 @@ describe('(a2j) in infix filter', () => {
           $A.name,
           (
             SELECT $b.title from bookshop.Books as $b
-              inner join bookshop.Genres as genre on genre.ID = $b.genre_ID
+              left outer join bookshop.Genres as genre on genre.ID = $b.genre_ID
             where $A.ID = $b.author_ID and genre.name = 'Poetry'
           ) as books
         }`
@@ -371,7 +389,7 @@ describe('(a2j) in infix filter', () => {
           $A.ID,
           (
             SELECT $b.title from bookshop.Books as $b
-              inner join bookshop.Genres as genre on genre.ID = $b.genre_ID
+              left outer join bookshop.Genres as genre on genre.ID = $b.genre_ID
             where $A.ID = $b.author_ID and genre.name = 'Poetry'
           ) as books
         }`
@@ -394,11 +412,11 @@ describe('(a2j) in infix filter', () => {
             SELECT $b.title,
               (
                 SELECT $g.name from bookshop.Genres as $g
-                  inner join bookshop.Genres as parent on parent.ID = $g.parent_ID
+                  left outer join bookshop.Genres as parent on parent.ID = $g.parent_ID
                 where $b.genre_ID = $g.ID and parent.name = 'Fiction'
               ) as genre
             from bookshop.Books as $b
-              inner join bookshop.Genres as genre on genre.ID = $b.genre_ID
+              left outer join bookshop.Genres as genre on genre.ID = $b.genre_ID
             where $A.ID = $b.author_ID and genre.name = 'Poetry'
           ) as books
         }`
