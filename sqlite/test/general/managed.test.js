@@ -162,4 +162,21 @@ describe('Managed thingies', () => {
       expect(result[0].createdBy).to.equal(result[1].createdBy)
     }
   })
+
+  // Regression: since @cap-js/db-service@2.9.0, managed fields excluded from a
+  // service projection are silently dropped from the generated INSERT.
+  // See https://github.tools.sap/cap/issues/issues/20583
+  test('managed fields excluded from the projection still reach the INSERT', async () => {
+    const resPost = await POST('/test/fooManagedRestricted', { ID: 99, value: 'test' })
+    expect(resPost.status).to.equal(201)
+
+    // Read the underlying DB entity directly: the managed columns are not
+    // exposed through the restricted projection, so we must query db.fooManaged.
+    const db = await cds.connect.to('db')
+    const row = await db.run(SELECT.one.from('db.fooManaged').where({ ID: 99 }))
+    // On the buggy version the managed columns are NULL because they were
+    // dropped from the INSERT; assert on the whole row for a readable diff.
+    expect(row).to.containSubset({ ID: 99, value: 'test', createdBy: 'anonymous' })
+    expect(typeof row.createdAt).to.eq('string')
+  })
 })
