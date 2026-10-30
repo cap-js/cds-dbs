@@ -5,5 +5,5 @@ entity Books {
   annotated : Vector;
   text : String;
   @cds.embeddings.model: 'special-embeddings'
-  calculated : Vector = vector_embedding(text) stored;
+  calculated : Vector = vector_embedding(text);
 }
