@@ -1,5 +1,8 @@
 'use strict'
 
+// Copy syntax while preserving descriptors and query prototypes and leaving payloads opaque.
+// Provide shared helpers for path names, hidden metadata and predicate composition.
+
 const transient = new Set(['sources', 'joinTree', '$combinedElements', '$refLinks', 'isJoinRelevant', 'flatName', 'elements', '_target', 'element'])
 const id = step => step?.id || step
 const hidden = (object, name, value) => Object.defineProperty(object, name, { value, configurable: true, writable: true })

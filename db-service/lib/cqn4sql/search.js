@@ -1,5 +1,8 @@
 'use strict'
 
+// Translate search terms into WHERE or HAVING predicates over searchable columns.
+// Plan association searches and optional HANA ranking without changing caller syntax.
+
 const { computeColumnsToBeSearched } = require('../search')
 const { shell, and } = require('./syntax')
 

@@ -1,5 +1,8 @@
 'use strict'
 
+// Build logical result elements for metadata-only inference and custom joins.
+// Copy query syntax and attach source, target and column metadata without SQL lowering.
+
 const cds = require('@sap/cds')
 const { copy, hidden } = require('./syntax')
 

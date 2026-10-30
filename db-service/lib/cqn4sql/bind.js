@@ -1,5 +1,8 @@
 'use strict'
 
+// Bind reference paths and calculated expressions to sources and model elements.
+// Record association traversals and derive physical column locations from completed bindings.
+
 const { id } = require('./syntax')
 const { calculated, typeFor } = require('./model')
 const { pseudos } = require('../infer/pseudos')

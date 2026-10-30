@@ -1,5 +1,8 @@
 'use strict'
 
+// Finalize deterministic source and join aliases across nested query scopes.
+// Attach physical column locations to bound references before SQL CQN emission.
+
 const { location } = require('./bind')
 
 // Bindings retain source identities. Allocate names after the whole scope is

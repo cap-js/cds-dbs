@@ -1,5 +1,8 @@
 'use strict'
 
+// Build managed and unmanaged association conditions, including backlinks and EXISTS.
+// Share correlation rules across joins, expands, navigation and write predicates.
+
 const { id } = require('./syntax')
 const { expression, lower } = require('./expressions')
 const { pseudos } = require('../infer/pseudos')

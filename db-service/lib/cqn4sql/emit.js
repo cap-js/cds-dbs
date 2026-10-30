@@ -1,5 +1,8 @@
 'use strict'
 
+// Emit fresh SQL-shaped CQN from completed plans, including joins, expands and writes.
+// Use finalized aliases and bindings without resolving model names or discovering joins.
+
 const { shell, copy, hidden, and, prototype } = require('./syntax')
 
 function emit(plan) {

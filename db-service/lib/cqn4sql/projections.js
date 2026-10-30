@@ -1,5 +1,8 @@
 'use strict'
 
+// Plan ordered SELECT columns, wildcard replacements, exclusions and result elements.
+// Resolve projection dependencies and flatten inline columns or plan nested expands.
+
 const cds = require('@sap/cds')
 const { reference } = require('./bind')
 const { id, nameOf } = require('./syntax')

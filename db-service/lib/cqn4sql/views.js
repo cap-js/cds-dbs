@@ -1,5 +1,8 @@
 'use strict'
 
+// Plan runtime views once per compilation as shared common table expressions.
+// Order view dependencies, detect cycles and preserve the model-defined query syntax.
+
 const { copy } = require('./syntax')
 const { entries } = require('./model')
 

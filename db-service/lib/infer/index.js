@@ -1,5 +1,8 @@
 'use strict'
 
+// Infer logical sources, targets and result elements through the compiler metadata mode.
+// Return an enriched copy of the query without changing its input or lowering it to SQL.
+
 const cds = require('@sap/cds')
 const Compiler = require('../cqn4sql/plan')
 const { emit } = require('../cqn4sql/logical')

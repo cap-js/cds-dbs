@@ -1,5 +1,8 @@
 'use strict'
 
+// Own the planning state for one query and its relationship to enclosing scopes.
+// Resolve source names and track projections, aliases and reusable association paths.
+
 const { getImplicitAlias } = require('../utils')
 
 class Scope {

@@ -1,5 +1,8 @@
 'use strict'
 
+// Bind expression trees, function arguments, lists and nested queries.
+// Lower structured comparisons and EXISTS while checking scalar operand requirements.
+
 const { reference } = require('./bind')
 const { typeFor, fullName } = require('./model')
 const { id } = require('./syntax')

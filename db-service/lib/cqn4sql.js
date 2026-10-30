@@ -1,5 +1,8 @@
 'use strict'
 
+// Public entry point: capture options, plan the query, allocate aliases and emit SQL CQN.
+// Return fresh query syntax and runtime-view CTEs without modifying input CQN or CSN.
+
 const cds = require('@sap/cds')
 const Compiler = require('./cqn4sql/plan')
 const emit = require('./cqn4sql/emit')

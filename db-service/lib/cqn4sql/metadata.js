@@ -1,5 +1,8 @@
 'use strict'
 
+// Complete enum values and casts on bound expressions when type resolution is needed.
+// Track whether filters and grouping require localized data for count queries.
+
 function complete(scope) {
   if (!scope.needsMetadata && !scope.localized) return
   const model = scope.model

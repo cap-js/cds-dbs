@@ -1,5 +1,8 @@
 'use strict'
 
+// Derive model facts: targets, flattened leaves, association key pairs and result types.
+// Cache facts per compilation outside the CSN so caller-owned models remain unchanged.
+
 const cds = require('@sap/cds')
 const { id } = require('./syntax')
 

@@ -1,5 +1,8 @@
 'use strict'
 
+// Coordinate query planning across sources, projections, expressions and associations.
+// Build nested scopes, navigation, expands and write selections, then complete their plans.
+
 const Scope = require('./scope')
 const { Model, fullName } = require('./model')
 const { expression, stream } = require('./expressions')
