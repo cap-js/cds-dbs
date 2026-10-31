@@ -814,7 +814,18 @@ class HANAService extends SQLService {
         : ObjectKeys(INSERT.entries[0])
       this.columns = columns
 
-      const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), elements).slice(0, columns.length)
+      const insertElements = { ...elements }
+      const targetColumns = columns.map(c => transitions.mapping.get(c)?.ref?.[0] || c)
+      // Add unexposed defaults, excluding non-writable fields and targets already exposed under an alias.
+      for (const name of q.UPSERT ? [] : ObjectKeys(transitions.target.elements)) {
+        const element = transitions.target.elements[name]
+        if (targetColumns.includes(name) || !this.physical_column(transitions.target.elements, name) || element[SYSTEM_VERSIONED]) continue
+        if (!(element.default || element['@cds.on.insert'] || element['@cds.on.update'])) continue
+        insertElements[name] = element
+        columns.push(name)
+      }
+
+      const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), insertElements).slice(0, columns.length)
 
       // REVISIT: @cds.extension required
       const extraction = extractions.map(c => c.extract)

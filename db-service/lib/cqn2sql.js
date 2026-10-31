@@ -922,7 +922,18 @@ class CQN2SQLRenderer {
       this.entries = [[...this.values, stream]]
     }
 
-    const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), elements)
+    const insertElements = { ...elements }
+    const targetColumns = columns.map(c => transitions.mapping.get(c)?.ref?.[0] || c)
+    // Add unexposed defaults, excluding non-writable fields and targets already exposed under an alias.
+    for (const name of q.UPSERT ? [] : ObjectKeys(transitions.target.elements)) {
+      const element = transitions.target.elements[name]
+      if (targetColumns.includes(name) || !this.physical_column(transitions.target.elements, name)) continue
+      if (!(element.default || element['@cds.on.insert'] || element['@cds.on.update'])) continue
+      insertElements[name] = element
+      columns.push(name)
+    }
+
+    const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), insertElements)
     return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))
       }) SELECT ${extractions.slice(0, columns.length).map(c => c.insert)} FROM json_each(?)`)
   }
