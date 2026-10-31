@@ -85,6 +85,34 @@ describe('SQL planning regressions', () => {
     assert.deepEqual(db.prepare(sql).all(...values), [{ present: 'Boss A', absent: null }])
   })
 
+  it('evaluates virtual draft calculations in wildcard and explicit projections', () => {
+    const model = cds.compile.for.nodejs(cds.linked(cds.compile(
+      'entity Base { key ID: UUID; n: Integer; } service S { @odata.draft.enabled entity Tasks as select from Base { ' +
+      '*, virtual null as PlannedDuration: Integer, virtual 3 as ApprovalType_fc: Integer, ' +
+      'virtual n + 1 as NextValue: Integer }; }',
+    )))
+    const draft = model.definitions['S.Tasks.drafts']
+    assert.equal(draft.elements.PlannedDuration.virtual, true)
+    assert.deepEqual(draft.elements.PlannedDuration.value, { val: null })
+    const database = new Database(':memory:')
+    try {
+      database.exec(
+        'CREATE TABLE S_Tasks_drafts (ID TEXT, n INTEGER, HasActiveEntity BOOLEAN, DraftAdministrativeData_DraftUUID TEXT);' +
+        "INSERT INTO S_Tasks_drafts VALUES ('task', 4, 0, NULL);",
+      )
+      for (const projection of ['', '{ ID, PlannedDuration, ApprovalType_fc, NextValue }']) {
+        const { sql, values } = cqn2sql(cds.ql('SELECT from S.Tasks.drafts ' + projection), model)
+        const row = database.prepare(sql).get(...values)
+        assert.equal(row.ID, 'task')
+        assert.equal(row.PlannedDuration, null)
+        assert.equal(row.ApprovalType_fc, 3)
+        assert.equal(row.NextValue, 5)
+      }
+    } finally {
+      database.close()
+    }
+  })
+
   it('binds functions and lists in unmanaged conditions and their backlinks', () => {
     const model = cds.linked(
       cds.compile(

@@ -106,7 +106,8 @@ function reference(scope, syntax, context = {}) {
   const element = steps.at(-1)?.element || source.definition
   const binding = { kind: 'ref', syntax, source, path, steps, element: typeFor(syntax, element),
     leaf: element, physicalPrefix: context.physicalPrefix, name: syntax.as || userPath.map(id).join('_') }
-  binding.skip = steps.some(step => step.element.virtual || !scope.model.persisted(step.element))
+  // Draft elements can remain virtual while carrying a compiler-provided calculation.
+  binding.skip = steps.some(step => (step.element.virtual && !calculated(step.element)) || !scope.model.persisted(step.element))
   if (!context.deferJoins && (!binding.skip || (!context.projection && !['groupBy', 'orderBy'].includes(context.clause)))) {
     if (steps.some(step => step.useJoin)) for (const step of steps) if (step.join)
       step.join.order ??= scope.joinOrder = (scope.joinOrder || 0) + 1
