@@ -575,7 +575,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
         const danglingFilter = !(arg.ref[i + 1] || arg.expand || arg.inline || inExists)
         const definition = arg.$refLinks[i].definition
         if ((!definition.target && definition.kind !== 'entity') || (!inFrom && !inCalcElement && danglingFilter))
-          throw new Error('A filter can only be provided when navigating along associations')
+          throw new cds.error(400, 'A filter can only be provided when navigating along associations')
         if (!inFrom && !arg.expand)defineProperty(arg, 'isJoinRelevant', true)
         // The filter of an `expand` becomes the `where` of the expand subquery.
         // Just like `where exists <assoc>[…]` semi-joins, path expressions in it are
@@ -635,7 +635,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
         } else if (arg.inline && queryElements) {
           const elements = resolveInline(arg)
           for (const elName in elements) {
-            if (queryElements[elName] !== undefined) rejectDuplicatedElement(elName)  
+            if (queryElements[elName] !== undefined) rejectDuplicatedElement(elName)
           }
           Object.assign(queryElements, elements)
         } else {
@@ -668,7 +668,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
     // ignore whole expand if target of assoc along path has ”@cds.persistence.skip”
     if (arg.expand) {
       const { $refLinks } = arg
-      
+
       const skip = $refLinks.some(link => {
         const def = getDefinition(link.definition.target)
         return hasOwnSkip(def) && !isRuntimeView(def)
@@ -823,7 +823,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
       const { expand, $refLinks } = col
       const $leafLink = $refLinks?.[$refLinks.length - 1] || inferred.SELECT.from.$refLinks.at(-1) // fallback to anonymous expand
       if (!$leafLink.definition.target && !$leafLink.definition.elements) {
-        throw new Error(
+        throw new cds.error(400,
           `Unexpected “expand” on “${col.ref.map(idOnly)}”; can only be used after a reference to a structure, association or table alias`,
         )
       }
@@ -869,7 +869,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
     }
 
     function stepNotFoundInPredecessor(step, def) {
-      throw new Error(`"${step}" not found in "${def}"`)
+      throw Object.assign (new Error(`"${step}" not found in "${def}"`), { code: 400 })
     }
 
     function stepIsAmbiguous(step) {
@@ -881,12 +881,12 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
     }
 
     function stepNotFoundInCombinedElements(step) {
-      throw new Error(
+      throw Object.assign (new Error(
         `"${step}" not found in the elements of ${Object.values(sources)
           .map(s => s.definition)
           .map(def => `"${def.name || /* subquery */ def.as}"`)
           .join(', ')}`,
-      )
+      ), { code: 400 })
     }
 
     function stepNotFoundInColumnList(step) {
