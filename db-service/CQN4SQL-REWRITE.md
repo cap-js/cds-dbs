@@ -122,6 +122,10 @@ constructs ordered projection records. Maps and sets handle wildcard replacement
 exclusion, duplicate detection and output names without repeatedly searching
 the full column list. Ordinary scalar fields found by a root wildcard have a
 fast path: their source and element are already known.
+Wildcard expansion iterates the model's elements directly, including inherited
+elements, without first allocating an array of name/element pairs. Final
+projection assembly appends each record's output and checks duplicates in the
+same loop, preserving column order without an intermediate flattened array.
 
 `project(scope, record)` computes a record's output on demand and saves it in
 `record.output`. If a column refers to `$self.otherColumn`, the dependency is
@@ -139,6 +143,10 @@ For each association traversal the binder asks whether the requested path is
 available through a local foreign key. `department.ID` can use `department_ID`;
 `department.name` requires the target row. Filters or arguments can make the FK
 shortcut inapplicable. A candidate join can exist without being required.
+The binder only derives key pairs for this decision when the reference continues
+beyond the association. Selecting the terminal association itself, as wildcard
+expansion does, leaves its foreign-key flattening to the projection's leaf
+descriptors.
 
 Each source/join has a `children` map. These maps form an association prefix
 tree: common traversals reuse the same node under the same source occurrence.
@@ -224,6 +232,10 @@ the final join list. Each ordinary reference receives a `place` record from
 `bind.location()`: `{ source, name }`. `source` still points to the source/join
 object, and `name` is the physical column name. Emission will read that object's
 final alias.
+If a binding ends at an association and already carries an expanded leaf, that
+leaf supplies the physical foreign-key suffix. `location()` uses it directly
+instead of rebuilding key pairs. References that continue through an association
+still use key-pair matching to handle renamed and structured keys.
 
 This is why alias changes do not require walking emitted CQN to patch strings.
 It also preserves useful FK shortcuts: a root `department.ID` can still read
@@ -236,6 +248,11 @@ expressions and child queries from the finalized plan. It combines correlations
 and filters with the necessary grouping. No model reference resolution or join
 discovery happens here. The phase guard rejects unfinished plans; `Scope.join()`
 also rejects join discovery outside the binding phase.
+
+Physical `column` nodes, including ordinary scalar wildcard columns, return
+their fresh reference and hidden element metadata immediately. They bypass the
+generic descriptor-copying path, which would create an unused syntax shell for
+these nodes. Other node kinds retain descriptor-preserving emission.
 
 [syntax.js](lib/cqn4sql/syntax.js) centralizes syntax ownership. It preserves
 query class prototypes and extension descriptors without invoking extension
@@ -447,8 +464,10 @@ recursion, so it is not stack-independent at arbitrary nesting depths.
 
 ## Validation record
 
-Completed on 2026-10-30 against main at `c176754c`. The production implementation
-contains no fallback to either the original transformer or PR #1774.
+The initial acceptance boundary was completed on 2026-10-30 against main at
+`c176754c`. Later wildcard measurements and checks are recorded separately
+below. The production implementation contains no fallback to either the original
+transformer or PR #1774.
 
 ### Module boundaries
 
@@ -478,11 +497,11 @@ At the initial rewrite, the private infer entry point was a 15-line facade over
 the same planner in metadata-only mode. SQL lowering does not invoke it.
 SQLService and HANAService use `cds.infer.target` at the service boundary; joins
 and FROM subqueries retain result metadata without requiring a single entity
-target. No external `@sap/cds`
-files were changed: its installed inference API does not yet replace all the
-compatibility behavior covered by this repository's infer tests.
+target. No external `@sap/cds` files were changed: its installed inference API
+does not yet replace all the compatibility behavior covered by this repository's
+infer tests.
 
-### Test results
+### Initial test results
 
 All final runs used Node.js v22.23.3.
 
@@ -524,13 +543,15 @@ Only three existing expectations changed:
 
 ### Performance and size
 
+#### Original rewrite measurement (`4bedcd4d`)
+
 Transformation timings exclude parsing, model loading, SQL rendering and database
 execution. Each implementation received its own model and query, with 200 warmup
 calls followed by seven batches of 1,000 calls. Values below are median
 microseconds per transformation on this ARM development machine. The baseline
 is main at `c176754c`.
 
-| Query | Main | Rewrite |
+| Query | Main `c176754c` | Initial rewrite `4bedcd4d` |
 | --- | ---: | ---: |
 | Scalar select | 9.7 | 7.8 |
 | Root wildcard | 17.0 | 20.5 |
@@ -540,26 +561,87 @@ is main at `c176754c`.
 | Calculated columns | 22.9 | 19.1 |
 | Wide projection, 200 columns | 302.9 | 211.3 |
 
-Warm root wildcards are about 21% slower in this measurement. The other sampled
-cases improve by 1.20–2.52 times. Main benefits from mutation-based caches across
-calls; this implementation deliberately keeps derived facts per compilation so
-mutable input models cannot leave stale cross-call results. These are sampled
-microbenchmarks, not an end-to-end throughput claim. Broader unmanaged-association
-and allocation profiling remains useful follow-up work.
+Warm root wildcards were about 21% slower in this original measurement. The other
+sampled cases improved by 1.20–2.52 times. Main benefits from mutation-based caches
+across calls; the rewrite keeps derived facts per compilation so mutable input
+models cannot leave stale cross-call results. Subsequent profiling also found
+avoidable allocation and key-derivation overhead, addressed by the changes below.
+The original 21% figure does not describe the optimized implementation. These
+are sampled transformation microbenchmarks, not end-to-end throughput results.
+
+#### Wildcard optimization (`f3c0006b`)
+
+The wildcard benchmark measures the whole compilation, not just the loop that
+replaces `*`. For simple projections, creating temporary records, traversing
+arrays and handling generic syntax can account for a noticeable part of that
+work. Besides per-compilation model facts, profiling identified avoidable work
+in projection assembly, physical naming and emission.
+
+The optimization changes three modules within the existing plan/allocate/emit
+pipeline:
+
+| Module | Removed work | Preserved behavior |
+| --- | --- | --- |
+| `projections.js` | Materializing element-entry pairs and separately flattening/filtering output arrays | Inherited elements, projection order, replacements, exclusions and duplicate handling |
+| `bind.js` | Deriving traversal key pairs for terminal associations; rebuilding physical mappings when an expanded leaf already supplies the suffix | Key matching for continuing paths, renamed/structured keys, and join decisions |
+| `emit.js` | Constructing a generic syntax shell before returning a physical column | Fresh output references, hidden element metadata, and descriptor preservation for other nodes |
+
+There are no new caches across compilations and no changes to input ownership,
+alias allocation or the inference boundary.
+
+The following comparison used isolated copies of main at `c176754c`, the rewrite
+before optimization at `498b831a`, and the optimization subsequently committed as
+`f3c0006b`. It ran on this ARM machine with Node.js v22.23.3. Each variant had its
+own linked model and parsed query. After 1,500 warmup calls per case, nine batches
+ran with variant order rotated between batches. Batches contained 2,000 calls,
+or 700 for the 200-column case. Values are median microseconds per compilation;
+parsing, model preparation, SQL rendering and execution are excluded.
+
+The scalar models contain an integer key and 19 or 199 string fields. Books uses
+the [bookshop test schema](test/bookshop/db/schema.cds), either linked directly
+or flattened with `cds.compile.for.nodejs()`. The wildcard queries select all
+columns from those entities. These cases and batch sizes differ from the original
+experiment above; compare implementations within each table.
+
+| Query | Main | Before optimization | Optimized | Reduction vs. before |
+| --- | ---: | ---: | ---: | ---: |
+| Wildcard, 20 scalar columns | 10.72 | 11.10 | 8.33 | 25.0% |
+| Wildcard, 200 scalar columns | 79.91 | 83.47 | 58.23 | 30.2% |
+| Books wildcard, structured CSN | 15.51 | 20.15 | 16.76 | 16.8% |
+| Books wildcard, flat CSN | 16.47 | 17.63 | 12.23 | 30.6% |
+| Explicit Books `{ ID, title }` | 8.07 | 5.60 | 5.50 | 1.8% |
+| Books association join `{ ID, author.name }` | 11.26 | 7.93 | 6.97 | 12.1% |
+
+The four wildcard cases improve by approximately **17–31% over the previous
+rewrite**. The scalar and flat Books cases also beat main in this run. Structured
+Books remains about 8% slower than main (16.76 vs. 15.51 microseconds); the
+optimization does not eliminate every cost of the new pipeline. The explicit
+select and join cases are controls, not evidence of a universal speedup.
+
+After applying the optimization, **1,161 reference/infer tests in 72 suites
+passed, with 19 skipped and no expectation changes**. Changed-file lint and
+`git diff --check` passed. At `f3c0006b`, the PR's
+[Tests (22) check](https://github.com/cap-js/cds-dbs/actions/runs/41439089589/job/125256150580)
+and CodeQL checks also passed. These checks supplement the initial validation
+record above; no new stakeholder-suite result is recorded here.
+
+#### Production size
 
 At the initial rewrite (`4bedcd4d`), production JavaScript for the cqn4sql entry
 point/modules, infer JavaScript and shared utils decreased from **4,796 to 1,543
-physical lines**, a reduction of **3,253 lines (67.8%)**. Including the subsequent
-module descriptions and calculated-virtual-field fix (`391a0dd6`), the total is
-**1,595 lines: 3,201 fewer than main (66.7%)**. These counts include blank/comment
-lines and exclude tests, this document, and the shared search/service files.
+physical lines**, a reduction of **3,253 lines (67.8%)**. The module descriptions
+and calculated-virtual-field fix brought this to 1,595 lines (`391a0dd6`). The
+wildcard optimization adds three net lines, bringing the current total to
+**1,598 lines: 3,198 fewer than main (66.7%)** at `f3c0006b`. These counts include
+blank/comment lines and exclude tests, this document, and the shared
+search/service files.
 
-| Production JavaScript | Main `c176754c` | Initial rewrite `4bedcd4d` | With comments and AFC fix `391a0dd6` |
-| --- | ---: | ---: | ---: |
-| `cqn4sql.js` and `cqn4sql/*.js` | 3,027 | 1,471 | 1,517 |
-| `infer/*.js` | 1,592 | 39 | 45 |
-| `utils.js` | 177 | 33 | 33 |
-| **Total** | **4,796** | **1,543** | **1,595** |
+| Production JavaScript | Main `c176754c` | Initial rewrite `4bedcd4d` | With comments and AFC fix `391a0dd6` | Wildcard optimization `f3c0006b` |
+| --- | ---: | ---: | ---: | ---: |
+| `cqn4sql.js` and `cqn4sql/*.js` | 3,027 | 1,471 | 1,517 | 1,520 |
+| `infer/*.js` | 1,592 | 39 | 45 | 45 |
+| `utils.js` | 177 | 33 | 33 | 33 |
+| **Total** | **4,796** | **1,543** | **1,595** | **1,598** |
 
 ### Why this needs less code
 
@@ -589,7 +671,7 @@ planner, and logical compatibility behavior remains in `logical.js`.
 Compact formatting and less repeated commentary also contribute to physical
 line reduction. A 66.7% LOC reduction therefore does not mean 66.7% fewer
 operations or prove correctness. The reference/integration results establish
-behavior, and the separate timing measurements above show both the gains and
-the wildcard regression. The architectural benefit is that a correction to
-reference binding, key flattening or correlation has one common implementation
-used by several query constructs.
+behavior, and the separate timing measurements above show the gains, the later
+wildcard improvements and the remaining structured-model gap. The architectural
+benefit is that a correction to reference binding, key flattening or correlation
+has one common implementation used by several query constructs.
