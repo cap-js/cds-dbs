@@ -1,29 +1,24 @@
-# CQN4SQL compiler rewrite
+# CQN4SQL compiler
 
-## Objective and acceptance boundary
+`cqn4sql` compiles CQL or CQN against a CSN model into SQL-shaped CQN. It resolves
+references, flattens structures and association keys, plans joins and nested
+queries, and returns fresh query syntax with result metadata. Caller-owned CQN
+and CSN are read-only inputs.
 
-Replace the transformation and its private inference machinery with a compiler
-that reads caller-owned CQN and CSN, plans each query scope once, and emits fresh
-SQL-shaped CQN. Preserve the existing feature set, result metadata, error
-contracts, projection order, and deterministic aliases. The baseline includes
-current main, especially left joins in expand/EXISTS filters, and the correctness
-and ownership regressions from PR #1774.
+This guide covers the [compilation pipeline](#compilation-pipeline),
+[module responsibilities](#modules),
+[data structures](#data-structures-and-their-lifetimes),
+[worked examples](#worked-examples) and [algorithms](#algorithms-and-cost).
 
-Completion requires the reference and infer compatibility tests, all local
-db-service/SQLite tests, and the remote HANA tests to pass. HANA runs remotely;
-the HANA container does not run on this ARM development machine. Existing
-reference expectations stay unchanged except where execution demonstrates a
-semantic correction. Record every such exception.
+## Compilation pipeline
 
-## Architecture
-
-The central change is to **keep semantic decisions in a plan until they are
-complete, then emit CQN**. A path such as `department.name` first becomes a
+The compiler **keeps semantic decisions in a plan until they are
+complete, then emits CQN**. A path such as `department.name` first becomes a
 binding to a particular source, association and element. Its SQL alias and
 physical column name are finalized later. This avoids rewriting reference
 strings whenever another part of the query discovers a join.
 
-The normal SQL path in [cqn4sql.js](lib/cqn4sql.js) is literally:
+The SQL path in [cqn4sql.js](../cqn4sql.js) has three stages:
 
 ```js
 const compiler = new Compiler(model, options)
@@ -73,7 +68,7 @@ The entry point parses string input and captures technical-alias, runtime-view
 and HANA ranked-search settings. One `Compiler` owns one `Model` wrapper and the
 runtime-view registry. All nested scopes in that invocation share these objects.
 
-[model.js](lib/cqn4sql/model.js) reads definitions and derives facts on demand:
+[model.js](model.js) reads definitions and derives facts on demand:
 
 - `leaves(element)` flattens structures and managed association keys into
   descriptors such as `{ name, alias, path, element }`. A structured leaf could
@@ -99,7 +94,7 @@ independently of that configuration.
 
 ### Step 2: create a query scope and its sources
 
-[plan.js](lib/cqn4sql/plan.js) creates a [Scope](lib/cqn4sql/scope.js) for the
+[plan.js](plan.js) creates a [Scope](scope.js) for the
 query occurrence. It records the operation, input clause, parent scope, source
 maps, projection records, joins and result elements. Source-path modifiers are
 merged into an owned clause when needed.
@@ -117,7 +112,7 @@ aliases have explicit lookup rules in the binder.
 
 ### Step 3: plan projections and bind their references
 
-[projections.js](lib/cqn4sql/projections.js) first collects explicit columns and
+[projections.js](projections.js) first collects explicit columns and
 constructs ordered projection records. Maps and sets handle wildcard replacement,
 exclusion, duplicate detection and output names without repeatedly searching
 the full column list. Ordinary scalar fields found by a root wildcard have a
@@ -133,7 +128,7 @@ projected first. `record.active` and `scope.dependencies` track the active
 dependency chain and reject cycles. **There is no separately built dependency
 graph or repeated whole-list sorting pass.**
 
-[bind.js](lib/cqn4sql/bind.js) resolves each reference into a binding record. It
+[bind.js](bind.js) resolves each reference into a binding record. It
 walks the model path, keeps each encountered element, and records association
 traversals. This is where SQL-relevant inference happens: resolving an element
 is already necessary to decide whether to flatten, calculate or join it. Its
@@ -164,14 +159,14 @@ the compiler-provided virtual calculations found in draft projections.
 
 ### Step 4: bind expressions and introduce nested plans
 
-[expressions.js](lib/cqn4sql/expressions.js) uses the same binder inside functions,
+[expressions.js](expressions.js) uses the same binder inside functions,
 lists and expression token arrays. It preserves operators and explicit grouping,
 while lowering constructs such as structured equality into comparisons of
 matching leaves. A nested SELECT invokes `plan(syntax, parentScope)` and becomes
 a `{ kind: 'query', query: childPlan }` node.
 
 Association behavior is shared through
-[associations.js](lib/cqn4sql/associations.js): managed associations use key
+[associations.js](associations.js): managed associations use key
 pairs; unmanaged conditions bind their ON expressions against explicit source
 and target objects. Backlinks recurse through the same condition builder with
 cycle detection. The callers retain their different behavior:
@@ -190,7 +185,7 @@ INSERT/UPSERT retain their write payloads and normalize the target; they do not
 turn payload contents into expression trees. UPDATE expressions in `with` use
 the common expression binder.
 
-[search.js](lib/cqn4sql/search.js) adds search predicates before clause binding.
+[search.js](search.js) adds search predicates before clause binding.
 Deep association search can generate a key-selecting subquery; HANA ranking can
 generate a correlated score subquery. Both enter the same planner. Localization
 is a scope/model lookup setting, with separate count-relevance metadata.
@@ -202,12 +197,12 @@ conditions and filters, which can themselves discover further paths.
 `finish(scope)` completes outstanding required join conditions, runs conditional
 metadata completion, registers runtime views and sets `phase = 'planned'`.
 
-[metadata.js](lib/cqn4sql/metadata.js) completes enum values, casts and localized
+[metadata.js](metadata.js) completes enum values, casts and localized
 count information. It returns immediately when neither type completion nor
 localization is needed. Ordinary result elements have already been collected
 while binding projections.
 
-[views.js](lib/cqn4sql/views.js) maintains one runtime-view record per definition
+[views.js](views.js) maintains one runtime-view record per definition
 in the compiler's `views` map. It plans an owned copy of the view query, detects
 cycles and appends views to `viewOrder` after their dependencies. A source keeps
 a link to its runtime-view record. The entry point later allocates/emits these
@@ -221,7 +216,7 @@ plan, not a second `plan()` or a recursive call on SQL-shaped CQN.
 
 ### Step 6: finalize aliases and physical locations
 
-[aliases.js](lib/cqn4sql/aliases.js) walks the completed plans. Planning has
+[aliases.js](aliases.js) walks the completed plans. Planning has
 provisional names for lookup and ordering; this stage finalizes generated names
 using the now-known outer sources, joins and nested queries. Case-insensitive
 sets track reservations, and suffix counters resolve collisions deterministically.
@@ -243,7 +238,7 @@ It also preserves useful FK shortcuts: a root `department.ID` can still read
 
 ### Step 7: emit owned output and metadata
 
-[emit.js](lib/cqn4sql/emit.js) constructs source CQN, left joins, columns,
+[emit.js](emit.js) constructs source CQN, left joins, columns,
 expressions and child queries from the finalized plan. It combines correlations
 and filters with the necessary grouping. No model reference resolution or join
 discovery happens here. The phase guard rejects unfinished plans; `Scope.join()`
@@ -254,7 +249,7 @@ their fresh reference and hidden element metadata immediately. They bypass the
 generic descriptor-copying path, which would create an unused syntax shell for
 these nodes. Other node kinds retain descriptor-preserving emission.
 
-[syntax.js](lib/cqn4sql/syntax.js) centralizes syntax ownership. It preserves
+[syntax.js](syntax.js) centralizes syntax ownership. It preserves
 query class prototypes and extension descriptors without invoking extension
 getters. Caller syntax is not retained as a mutable output prototype. Transient
 old inference properties are excluded. Model definitions remain shared metadata;
@@ -267,14 +262,14 @@ metadata, plus expand/count flags where needed. Plans keep result elements even
 when there is no single entity target. Plain nested query objects keep `SELECT`
 as their first own property for compatibility with CDS query-cloning helpers.
 
-### Where inference still fits
+## Inference compatibility
 
-SQL lowering no longer invokes the private infer function before transforming
-the query. It learns source/element information while planning and retains it.
-SQLService and HANAService use `cds.infer.target` at their service boundary.
+SQL lowering resolves source and element information during planning. It does
+not invoke the private infer function before transforming
+the query. SQLService and HANAService use `cds.infer.target` at their service boundary.
 
-The private [infer facade](lib/infer/index.js) creates the same compiler with
-`metadataOnly: true`, then calls [logical.emit](lib/cqn4sql/logical.js). This
+The private [infer facade](../infer/index.js) creates the same compiler with
+`metadataOnly: true`, then calls [logical.emit](logical.js). This
 mode resolves logical sources and projections and emits an enriched copy
 without physical flattening or association-to-join lowering. It preserves the
 repository's infer compatibility contract, which the installed `cds.infer` API
@@ -282,10 +277,27 @@ does not yet fully replace.
 
 Explicit custom joins (`from.args`) also select `semanticOnly` mode, inherited
 by their child scopes. Their existing syntax is copied and decorated with
-metadata rather than passed through normal SQL lowering. Consequently the
-rewrite also avoids returning caller-owned syntax in that compatibility path.
+metadata rather than passed through normal SQL lowering. This compatibility
+path returns owned syntax as well.
 
-### Data structures and their lifetimes
+## Modules
+
+| Module | Responsibility |
+| --- | --- |
+| [cqn4sql.js](../cqn4sql.js) | Capture options, plan, allocate names, emit queries and CTEs |
+| [syntax.js](syntax.js) | Descriptor-preserving syntax copies and opaque payload ownership |
+| [model.js](model.js) | Per-compilation model facts, flattened leaves, keys and types |
+| [scope.js](scope.js), [bind.js](bind.js) | Lexical sources, association trees, reference and calculation binding |
+| [projections.js](projections.js) | Ordered wildcards, replacements, dependencies, inline and expand |
+| [expressions.js](expressions.js), [associations.js](associations.js) | Expressions, structured comparisons and shared association correlations |
+| [plan.js](plan.js) | Query scopes, navigation, expands and write selection |
+| [aliases.js](aliases.js) | Final alias allocation and physical reference locations |
+| [metadata.js](metadata.js), [logical.js](logical.js) | Conditional type completion and logical inference compatibility |
+| [search.js](search.js), [views.js](views.js) | Search/ranking and shared runtime-view CTE planning |
+| [emit.js](emit.js) | SQL-shaped CQN from completed plans |
+| [infer/index.js](../infer/index.js) | Metadata-only entry point using the same planner |
+
+## Data structures and their lifetimes
 
 These are small JavaScript records, arrays, maps and sets. The plan is an
 internal graph with back-references, not a serializable second CQN format.
@@ -334,7 +346,9 @@ comparison, a generated physical column uses the smaller
 cover projection aliases (`alias`), projection dependencies (`self`), enum
 values (`enum`) and unchanged parameter/pseudo references (`opaque`).
 
-### Worked example: a calculation and a join inside EXISTS
+## Worked examples
+
+### A calculation and a join inside EXISTS
 
 This model illustrates both FK optimization and association filters:
 
@@ -417,261 +431,96 @@ further child scopes; FROM subqueries, projection subqueries and expands use
 the same parent/child relationship. Reusing input syntax in different scope
 occurrences does not permit sharing its bindings.
 
-The call counts were checked against the planner. The CQL and displayed SQL
-were also executed against the same SQLite rows, including different employee
-and manager departments and a null employee department; their results matched.
+The employee and manager can belong to different departments. A missing employee
+department still preserves that employee row when the manager passes the EXISTS
+filter, because the outer department join is a left join.
 
-## Algorithms and performance criteria
+### Wildcards, foreign keys and exclusions
 
-- Map lookup for source aliases; element lookup across the current scope's
-  sources for unqualified references, with ambiguity detection.
-- Ordered projection arrays plus maps for replacement, exclusion, and aliases.
-- On-demand dependency evaluation and active-chain cycle detection for `$self`
-  and calculations; completed projection records cache their output.
-- Association prefix tries with compatible traversal reuse, cached filter keys,
-  and monotone foreign-key/join decisions.
-- Lazy structures for simple queries. Process each nested query occurrence once.
-- Work should scale with syntax, reference lengths, dependencies, and emitted
-  output. Do not claim constant cost for expanded output or share bindings
-  across different scopes just because the same syntax object was reused.
-- Measure transformation separately from parsing, rendering, and execution;
-  include ordinary selects as well as wide/deep and unmanaged-association cases.
+Using the same model, this query selects the employee's fields while excluding
+the manager association from the output:
 
-This is not a claim of one traversal or strictly linear runtime. Binding,
-conditional metadata completion, allocation and emission do different work.
-Unqualified lookup examines the current sources; join allocation sorts sibling
-branches by recorded order; wildcard/structure expansion and calculations cost
-at least the size of the output they create. The implementation uses JavaScript
-recursion, so it is not stack-independent at arbitrary nesting depths.
-
-## Implementation sequence (completed)
-
-1. Capture baseline tests and representative outputs; preserve both current main
-   and the prior refactor as reference implementations outside production code.
-2. Implement model descriptors, scopes, bindings, ordered projections, and fresh
-   emission for scalar/structured queries and managed associations.
-3. Complete expressions, calculations, dependencies, unmanaged conditions,
-   navigation, EXISTS, inline/expand, subqueries, and write operations.
-4. Complete search, localization, runtime views, inference compatibility, and
-   result metadata. Remove the old production pipeline rather than retaining a
-   fallback that hides unsupported cases.
-5. Run the full reference corpus; fix implementations before considering any
-   expectation changes. Add execution regressions for discovered semantic bugs.
-6. Verify immutable inputs/models, reused queries, scoped calculations, cycles,
-   query-occurrence counts, unknown metadata, and opaque payloads.
-7. Run local integration suites, remote HANA (including quoted names), lint, and
-   representative benchmarks. Record final results and remaining tradeoffs.
-
-## Validation record
-
-The initial acceptance boundary was completed on 2026-10-30 against main at
-`c176754c`. Later wildcard measurements and checks are recorded separately
-below. The production implementation contains no fallback to either the original
-transformer or PR #1774.
-
-### Module boundaries
-
-| Module | Responsibility |
-| --- | --- |
-| `cqn4sql.js` | Capture options, plan, allocate names, emit queries and CTEs |
-| `syntax.js` | Descriptor-preserving syntax copies and opaque payload ownership |
-| `model.js` | Per-compilation model facts, flattened leaves, keys and types |
-| `scope.js`, `bind.js` | Lexical sources, association tries, reference and calculation binding |
-| `projections.js` | Ordered wildcards, replacements, dependencies, inline and expand |
-| `expressions.js`, `associations.js` | Expressions, tuple lowering and shared association correlations |
-| `plan.js` | Query scopes, navigation, expands and write selection |
-| `aliases.js` | Final alias allocation and physical reference locations |
-| `metadata.js`, `logical.js` | Conditional type completion and inference compatibility |
-| `search.js`, `views.js` | Search/ranking and shared runtime-view CTE planning |
-| `emit.js` | SQL-shaped CQN from completed plans |
-
-Mutable state belongs to the compiler and its plans. Input CQN and CSN are never
-enriched with SQL state or cached search columns. Emitted syntax is owned by the
-result; model definitions remain shared metadata, and literals, streams and write
-payloads remain opaque. Query class prototypes and extension descriptors are
-preserved. A query is planned once per occurrence; correlation can complete its
-join requirements before aliases and physical locations are finalized. Emission
-does not resolve model references or discover joins.
-
-At the initial rewrite, the private infer entry point was a 15-line facade over
-the same planner in metadata-only mode. SQL lowering does not invoke it.
-SQLService and HANAService use `cds.infer.target` at the service boundary; joins
-and FROM subqueries retain result metadata without requiring a single entity
-target. No external `@sap/cds` files were changed: its installed inference API
-does not yet replace all the compatibility behavior covered by this repository's
-infer tests.
-
-### Initial test results
-
-All final runs used Node.js v22.23.3.
-
-| Suite | Passed | Skipped |
-| --- | ---: | ---: |
-| db-service, including cqn4sql references and infer compatibility | 1,182 | 21 |
-| SQLite, better-sqlite3 | 857 | 286 |
-| SQLite, sql.js | 857 | 286 |
-| Remote HANA, full suite | 860 | 293 |
-| Remote HANA, quoted-name bookshop | 183 | 15 |
-
-Lint passed with zero errors and seven existing warnings. `git diff --check`
-passed. Remote tests used the configured HANA endpoint through VPN, not a local
-HANA container. PostgreSQL was outside this first verification boundary.
-
-Local commands:
-
-```sh
-CDS_REQUIRES_DB_DRIVER=better-sqlite3 npm test
-CDS_REQUIRES_DB_DRIVER=sql.js npm test -w sqlite
-npm run lint
+```cql
+SELECT from Employees as e { * } excluding { manager }
 ```
 
-Thirty added regression cases cover frozen inputs/models, descriptor accessors,
-opaque write payloads, per-path and filtered calculations, inline wildcard
-execution, nested inference, dependency cycles, a reverse-ordered 200-column
-dependency chain, one planning call per nested FROM scope, runtime-view
-immutability, and aliased expands used by CDS query cloning.
+With readable aliases, its emitted columns are:
 
-Only three existing expectations changed:
+```js
+[
+  { ref: ['e', 'ID'] },
+  { ref: ['e', 'department_ID'] },
+  { ref: ['department', 'name'], as: 'departmentName' },
+]
+```
 
-- Two inline calculation ON conditions now use `department.id =
-  self.department_id` instead of `department.id = Employee.department_id`. A
-  calculation on an associated employee must read that employee's department.
-  Execution regressions with different root/associated rows verify this semantic
-  correction.
-- The search test now asserts that `__searchableColumns` is absent from the
-  model. Its SQL expectation is unchanged.
+The scalar `ID` becomes a physical `column` node directly. The `department`
+association expands to its foreign-key leaf, whose suffix `ID` supplies the
+physical name `department_ID`. The binder does not need traversal key pairs for
+that terminal association. The calculated `departmentName` independently binds
+`department.name`, requiring a left join to `Departments`.
 
-### Performance and size
+Excluding both associations gives:
 
-#### Original rewrite measurement (`4bedcd4d`)
+```cql
+SELECT from Employees as e { * } excluding { department, manager }
+```
 
-Transformation timings exclude parsing, model loading, SQL rendering and database
-execution. Each implementation received its own model and query, with 200 warmup
-calls followed by seven batches of 1,000 calls. Values below are median
-microseconds per transformation on this ARM development machine. The baseline
-is main at `c176754c`.
+This removes `department_ID` from the output, but the department join remains:
+the selected calculation still needs the employee's department name. Exclusions
+control projected fields; they do not remove dependencies of other selected
+expressions.
 
-| Query | Main `c176754c` | Initial rewrite `4bedcd4d` |
-| --- | ---: | ---: |
-| Scalar select | 9.7 | 7.8 |
-| Root wildcard | 17.0 | 20.5 |
-| Association joins | 15.7 | 11.6 |
-| EXISTS with association filter | 30.0 | 15.4 |
-| Nested expands | 61.2 | 24.3 |
-| Calculated columns | 22.9 | 19.1 |
-| Wide projection, 200 columns | 302.9 | 211.3 |
+## Algorithms and cost
 
-Warm root wildcards were about 21% slower in this original measurement. The other
-sampled cases improved by 1.20–2.52 times. Main benefits from mutation-based caches
-across calls; the rewrite keeps derived facts per compilation so mutable input
-models cannot leave stale cross-call results. Subsequent profiling also found
-avoidable allocation and key-derivation overhead, addressed by the changes below.
-The original 21% figure does not describe the optimized implementation. These
-are sampled transformation microbenchmarks, not end-to-end throughput results.
-
-#### Wildcard optimization (`f3c0006b`)
-
-The wildcard benchmark measures the whole compilation, not just the loop that
-replaces `*`. For simple projections, creating temporary records, traversing
-arrays and handling generic syntax can account for a noticeable part of that
-work. Besides per-compilation model facts, profiling identified avoidable work
-in projection assembly, physical naming and emission.
-
-The optimization changes three modules within the existing plan/allocate/emit
-pipeline:
-
-| Module | Removed work | Preserved behavior |
+| Operation | Algorithm | Work that remains |
 | --- | --- | --- |
-| `projections.js` | Materializing element-entry pairs and separately flattening/filtering output arrays | Inherited elements, projection order, replacements, exclusions and duplicate handling |
-| `bind.js` | Deriving traversal key pairs for terminal associations; rebuilding physical mappings when an expanded leaf already supplies the suffix | Key matching for continuing paths, renamed/structured keys, and join decisions |
-| `emit.js` | Constructing a generic syntax shell before returning a physical column | Fresh output references, hidden element metadata, and descriptor preservation for other nodes |
+| Source lookup | Maps for qualified names; current-source scan for unqualified names | Qualified lookup can walk parent scopes; unqualified lookup checks ambiguity |
+| Reference binding | Walk model path steps, retaining source and element identities | Continuing association paths may compare against multiple key descriptors |
+| Model facts | Per-compilation `WeakMap` memoization | Derive encountered leaf/key descriptors and materialize expanded output |
+| Projection assembly | Ordered records, maps/sets for names, direct element iteration | Expand wildcards and structures in output order, check duplicates while appending |
+| `$self` dependencies | On-demand recursive evaluation with cached projection output | Traverse dependencies; detect cycles using the active chain |
+| Calculations | Bind the model expression relative to each source/path occurrence | Different occurrences require different bindings, even for shared syntax |
+| Join reuse | Association prefix trees with filter/argument signatures | Serialize each encountered signature once per syntax object; retain distinct traversals |
+| Alias allocation | Reserved-name sets, suffix counters, ordered branch traversal | Sort sibling branches by recorded order and finalize physical locations |
+| Runtime views | Registry keyed by model definition; recursive dependency planning | Detect cycles and append each view after its dependencies |
+| Emission | Walk completed plan nodes and create fresh CQN | Materialize the result syntax and required metadata |
 
-There are no new caches across compilations and no changes to input ownership,
-alias allocation or the inference boundary.
+Binding, conditional metadata completion, allocation and emission are separate
+traversals with different responsibilities. Overall work depends on syntax size,
+path lengths, key comparisons, dependencies and expanded output. A wildcard or
+structured projection necessarily costs at least the size of the columns it
+emits. The implementation uses JavaScript recursion, so it is not
+stack-independent at arbitrary nesting depths.
 
-The following comparison used isolated copies of main at `c176754c`, the rewrite
-before optimization at `498b831a`, and the optimization subsequently committed as
-`f3c0006b`. It ran on this ARM machine with Node.js v22.23.3. Each variant had its
-own linked model and parsed query. After 1,500 warmup calls per case, nine batches
-ran with variant order rotated between batches. Batches contained 2,000 calls,
-or 700 for the 200-column case. Values are median microseconds per compilation;
-parsing, model preparation, SQL rendering and execution are excluded.
+Several mechanisms keep common queries small: scalar wildcard fields skip
+reference-path binding, terminal associations reuse expanded leaf names,
+projection assembly avoids intermediate entry/flattening arrays, and physical
+columns bypass generic syntax copying during emission. These shortcuts preserve
+the same scope, dependency, ownership and metadata rules as other queries.
 
-The scalar models contain an integer key and 19 or 199 string fields. Books uses
-the [bookshop test schema](test/bookshop/db/schema.cds), either linked directly
-or flattened with `cds.compile.for.nodejs()`. The wildcard queries select all
-columns from those entities. These cases and batch sizes differ from the original
-experiment above; compare implementations within each table.
+## Maintaining the compiler
 
-| Query | Main | Before optimization | Optimized | Reduction vs. before |
-| --- | ---: | ---: | ---: | ---: |
-| Wildcard, 20 scalar columns | 10.72 | 11.10 | 8.33 | 25.0% |
-| Wildcard, 200 scalar columns | 79.91 | 83.47 | 58.23 | 30.2% |
-| Books wildcard, structured CSN | 15.51 | 20.15 | 16.76 | 16.8% |
-| Books wildcard, flat CSN | 16.47 | 17.63 | 12.23 | 30.6% |
-| Explicit Books `{ ID, title }` | 8.07 | 5.60 | 5.50 | 1.8% |
-| Books association join `{ ID, author.name }` | 11.26 | 7.93 | 6.97 | 12.1% |
+Changes should preserve these boundaries:
 
-The four wildcard cases improve by approximately **17–31% over the previous
-rewrite**. The scalar and flat Books cases also beat main in this run. Structured
-Books remains about 8% slower than main (16.76 vs. 15.51 microseconds); the
-optimization does not eliminate every cost of the new pipeline. The explicit
-select and join cases are controls, not evidence of a universal speedup.
+- Discover joins while a scope is binding. Complete correlations before final
+  alias allocation and emission.
+- Keep source/join object identities in bindings until emission. Share model
+  facts within a compilation, and bind each query occurrence in its own scope.
+- Keep mutable SQL planning state off caller-owned CQN and CSN. Preserve
+  descriptors and query prototypes while treating literal and write payloads
+  as opaque data.
+- Collect result elements while planning and use the logical compatibility path
+  where SQL lowering does not apply.
 
-After applying the optimization, **1,161 reference/infer tests in 72 suites
-passed, with 19 skipped and no expectation changes**. Changed-file lint and
-`git diff --check` passed. At `f3c0006b`, the PR's
-[Tests (22) check](https://github.com/cap-js/cds-dbs/actions/runs/41439089589/job/125256150580)
-and CodeQL checks also passed. These checks supplement the initial validation
-record above; no new stakeholder-suite result is recorded here.
+The [reference suite](../../test/cqn4sql/) covers query transformations, and the
+[infer suite](../../test/cds-infer/) checks logical metadata compatibility.
+[Planning regressions](../../test/cqn4sql/planning.test.js) exercise scoped
+calculations, recursive planning and execution semantics;
+[immutability tests](../../test/cqn4sql/immutability.test.js) cover input
+ownership and descriptors. Run the reference and infer suites from the repository
+root with:
 
-#### Production size
-
-At the initial rewrite (`4bedcd4d`), production JavaScript for the cqn4sql entry
-point/modules, infer JavaScript and shared utils decreased from **4,796 to 1,543
-physical lines**, a reduction of **3,253 lines (67.8%)**. The module descriptions
-and calculated-virtual-field fix brought this to 1,595 lines (`391a0dd6`). The
-wildcard optimization adds three net lines, bringing the current total to
-**1,598 lines: 3,198 fewer than main (66.7%)** at `f3c0006b`. These counts include
-blank/comment lines and exclude tests, this document, and the shared
-search/service files.
-
-| Production JavaScript | Main `c176754c` | Initial rewrite `4bedcd4d` | With comments and AFC fix `391a0dd6` | Wildcard optimization `f3c0006b` |
-| --- | ---: | ---: | ---: | ---: |
-| `cqn4sql.js` and `cqn4sql/*.js` | 3,027 | 1,471 | 1,517 | 1,520 |
-| `infer/*.js` | 1,592 | 39 | 45 | 45 |
-| `utils.js` | 177 | 33 | 33 | 33 |
-| **Total** | **4,796** | **1,543** | **1,595** | **1,598** |
-
-### Why this needs less code
-
-Splitting a large function into modules would not by itself reduce its size.
-The main saving comes from removing duplicate representations and the code
-needed to keep them synchronized. The old entry point cloned the query, called
-private `infer()`, then cloned/transformed the inferred query. Inference and
-transformation both handled references, calculations, projections and nested
-queries. Much of that behavior now shares one set of records and rules.
-
-| Previous work | Replacement |
-| --- | --- |
-| Infer references/projections, attach `$refLinks`, `$combinedElements` and join state, then interpret those again during transformation | Resolve sources/elements while binding, retain the result on owned plan records, collect output metadata there |
-| Separate wildcard/inline/expand processing in inference and SQL transformation | Ordered projection records and a common `columns()` / `project()` implementation, with logical-mode output where needed |
-| Re-enter `cqn4sql()` for subqueries, write selections and runtime views, repeating entry-point setup and inference | Child scopes share the compiler/model facts; writes reuse their bound selection; runtime views have a per-definition plan registry |
-| Reconstruct calculation paths and source aliases from transformed syntax and reference links | Bind each calculation with an explicit base source/path; keep source identities until emission |
-| Multiple helpers flatten structures, managed keys and comparison operands | Shared leaf/key-pair descriptors used by projections, expressions, correlations and physical location resolution |
-| Alias lookups and rewrites spread across joins, expands, subqueries and runtime views | A final allocation stage plus links to source/join/view records |
-| Copying and preservation rules scattered among transformation helpers | Shared syntax ownership helpers and focused emission functions |
-
-The association prefix tree is a retained idea from the old join tree, not a
-new SQL optimization. The simplification is that its nodes are ordinary plan
-objects directly referenced by bindings. Similarly, the tiny infer facade does
-not mean inference disappeared: its essential work moved into the shared
-planner, and logical compatibility behavior remains in `logical.js`.
-
-Compact formatting and less repeated commentary also contribute to physical
-line reduction. A 66.7% LOC reduction therefore does not mean 66.7% fewer
-operations or prove correctness. The reference/integration results establish
-behavior, and the separate timing measurements above show the gains, the later
-wildcard improvements and the remaining structured-model gap. The architectural
-benefit is that a correction to reference binding, key flattening or correlation
-has one common implementation used by several query constructs.
+```sh
+node node_modules/.bin/cds-test db-service/test/cqn4sql/ db-service/test/cds-infer/ --timeout 15000
+```
