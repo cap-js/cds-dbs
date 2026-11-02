@@ -65,6 +65,11 @@ function tokens(input) { return input?.map(value => node(value)) }
 
 function node(bound, projection = false) {
   if (!bound || typeof bound !== 'object') return bound
+  if (bound.kind === 'column') {
+    const column = { ref: [bound.source.alias, bound.name] }
+    if (bound.element) hidden(column, 'element', bound.element)
+    return column
+  }
   const syntax = bound.syntax || {}
   const properties = bound.generated ? {} : shell(syntax, ['ref', 'xpr', 'args', 'list', 'SELECT', 'expand', 'inline', 'excluding'])
   // CDS query helpers identify plain queries by their first own property.
@@ -72,11 +77,6 @@ function node(bound, projection = false) {
     ? Object.defineProperties({ SELECT: undefined }, Object.getOwnPropertyDescriptors(properties)) : properties
   if (!projection) delete result.as
   if (result.implicit !== undefined) hidden(result, 'implicit', result.implicit)
-  if (bound.kind === 'column') {
-    const column = { ref: [bound.source.alias, bound.name] }
-    if (bound.element) hidden(column, 'element', bound.element)
-    return column
-  }
   if (bound.kind === 'ref') {
     if (bound.calculation) {
       const expression = node(bound.calculation)

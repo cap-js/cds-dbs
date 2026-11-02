@@ -6,7 +6,7 @@
 const cds = require('@sap/cds')
 const { reference } = require('./bind')
 const { id, nameOf } = require('./syntax')
-const { typeFor, entries, calculated } = require('./model')
+const { typeFor, calculated } = require('./model')
 
 function columns(scope, syntax = scope.clause.columns || ['*'], context = {}) {
   const excluding = new Set(context.excluding || scope.clause.excluding || [])
@@ -49,7 +49,9 @@ function columns(scope, syntax = scope.clause.columns || ['*'], context = {}) {
       if (ambiguous.length) throw new Error('Ambiguous wildcard elements:' + ambiguous.map(([key, aliases]) => '\n       select "' + key + '" explicitly with ' + aliases.join(', ')).join(''))
     }
     for (const { source, definition } of definitions) {
-      for (const [key, element] of entries(scope.model.target(definition).elements || {})) {
+      const elements = scope.model.target(definition).elements || {}
+      for (const key in elements) {
+        const element = elements[key]
         if (excluding.has(key) || placedNames.has(key)) continue
         if (!context.base && !context.nested && (element.type === 'cds.LargeBinary' || element.type === 'cds.Vector')) continue
         const omitProjection = !scope.semanticOnly && element.target && (scope.model.csn.meta?.transformation === 'odata' || scope.model.csn.meta?.unfolded?.includes('structs'))
@@ -67,14 +69,15 @@ function columns(scope, syntax = scope.clause.columns || ['*'], context = {}) {
     for (const record of ordered) scope.byName.set(record.key, record)
     for (const record of ordered) scope.compiler.projection(scope, record.key)
     const names = new Set()
-    scope.projections = ordered.flatMap(record => record.output).filter(column => {
+    scope.projections = []
+    for (const record of ordered) for (const column of record.output) {
       if (names.has(column.name)) {
         if (scope.semanticOnly) throw new Error('Duplicate definition of element “' + column.name + '”')
-        return false
+        continue
       }
       names.add(column.name)
-      return true
-    })
+      scope.projections.push(column)
+    }
     if (!scope.semanticOnly && !scope.projections.length && ordered.some(record => record.bound.skip || record.bound.leaf?.virtual)) throw new Error('Queries must have at least one non-virtual column')
     return scope.projections
   }

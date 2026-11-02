@@ -84,7 +84,7 @@ function reference(scope, syntax, context = {}) {
     if (element.target) {
       definition = scope.model.target(element, scope.localized)
       const rest = path.slice(i + 1).map(id)
-      const pairs = !scope.semanticOnly || context.restrict ? scope.model.keyPairs(element) : []
+      const pairs = rest.length && (!scope.semanticOnly || context.restrict) ? scope.model.keyPairs(element) : []
       const fk = !path.slice(i).some(step => step.where || step.args) && !element.on && pairs.some(pair =>
         rest.length <= pair.path.length && rest.every((s, j) => s === pair.path[j]))
       if (context.restrict && rest.length && !fk) throw new Error('Only foreign keys of “' + name + '” can be accessed in infix filter, but found “' + rest[0] + '”')
@@ -140,7 +140,7 @@ function location(binding, leaf) {
       names = []
     } else {
       names.push(step.name)
-      if (step.element.target) {
+      if (step.element.target && (i < steps.length - 1 || !leaf)) {
         const remaining = [...steps.slice(i + 1).map(s => s.name), ...(leaf?.path || [])]
         const pair = binding.source.scope.model.keyPairs(step.element).find(pair => pair.path.length === remaining.length && pair.path.every((s, j) => s === remaining[j]))
         if (pair) return { source, name: [binding.physicalPrefix, ...names, pair.source].filter(Boolean).join('_') }
