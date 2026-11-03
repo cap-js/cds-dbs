@@ -869,7 +869,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
     }
 
     function stepNotFoundInPredecessor(step, def) {
-      throw Object.assign (new Error(`"${step}" not found in "${def}"`), { code: 400 })
+      throw new cds.error(400, `"${step}" not found in "${def}"`)
     }
 
     function stepIsAmbiguous(step) {
