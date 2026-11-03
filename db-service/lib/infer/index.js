@@ -898,7 +898,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
     }
   }
   function rejectDuplicatedElement(elementName) {
-    throw new Error(`Duplicate definition of element “${elementName}”`)
+    throw new cds.error(400, `Duplicate definition of element “${elementName}”`)
   }
 
   function linkCalculatedElement(column, baseLink, baseColumn, context = {}) {
