@@ -18,7 +18,19 @@ const LOG = cds.log('sql|db'), DEBUG = cds.debug('sql|db')
 const SYSTEM_VERSIONED = '@hana.systemversioned'
 
 /**
- * @implements SQLService
+ * Error codes that indicate the connection to the server was lost. When a
+ * ROLLBACK fails with one of these, the transaction has already been rolled
+ * back server-side on disconnect, so the failure is a no-op we can ignore.
+ *   - hdb / node sockets: string codes
+ *   - @sap/hana-client:   negative SQLDBC codes (connection failed / down)
+ */
+const CONNECTION_CLOSED_CODES = new Set([
+  'EHDBCLOSE', 'ECONNRESET', 'EPIPE', 'ETIMEDOUT',
+  -10709, -10807,
+])
+
+/**
+ * @implements SQLService  
  */
 class HANAService extends SQLService {
   init() {
@@ -1410,9 +1422,20 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     return this.dbc?.commit()
   }
 
-  onROLLBACK() {
+  async onROLLBACK() {
     DEBUG?.('ROLLBACK')
-    return this.dbc?.rollback()
+    if (!this.dbc) return
+    try {
+      return await this.dbc.rollback()
+    } catch (err) {
+      // connection is dead
+      if (CONNECTION_CLOSED_CODES.has(err?.code)) {
+        DEBUG?.('ignoring ROLLBACK on lost connection:', err)
+        this.destroy()
+        return
+      }
+      throw err
+    }
   }
 
   // Creates a new database using HDI container groups
