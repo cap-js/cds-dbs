@@ -12,6 +12,32 @@ npm add @cap-js/hana
 
 Learn more about setup and usage in the [respective database guide](https://cap.cloud.sap/docs/guides/databases/hana).
 
+## Fuzzy search similarity calculation mode
+
+Fuzzy search uses the HANA similarity calculation mode `search` by default.
+Set `cds.hana.similarityCalculationMode` in your application's `package.json` to
+choose another mode, for example:
+
+```json
+{
+  "cds": {
+    "hana": {
+      "similarityCalculationMode": "substring search"
+    }
+  }
+}
+```
+
+The supported values are `compare`, `type ahead`, `search compare`, `search`,
+`symmetric search`, `substring search`, and `flexible`, as documented in the
+[SAP HANA Cloud SCORE reference](https://help.sap.com/docs/hana-cloud-database/sap-hana-cloud-sap-hana-database-sql-reference-guide/score-function-miscellaneous-20e6f8e97519101489a0cd3c29991e72).
+Invalid values cause an error when rendering fuzzy-search SQL.
+
+The setting applies to all fuzzy-search columns, including columns annotated with
+`@Search.ranking` or `@Search.fuzzinessThreshold`, and to relevance ordering.
+It does not change the fuzziness threshold. When `cds.hana.fuzzy` is `false`, the
+existing case-insensitive `LIKE` search is used and this setting is ignored.
+
 ## Support
 
 This project is open to feature requests/suggestions, bug reports etc. via [GitHub issues](https://github.com/cap-js/cds-dbs/issues).
