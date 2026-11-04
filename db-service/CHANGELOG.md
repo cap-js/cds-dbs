@@ -4,6 +4,16 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.1.3](https://github.com/cap-js/cds-dbs/compare/db-service-v3.1.2...db-service-v3.1.3) (2026-11-04)
+
+
+### Fixed
+
+* $count uses localized view when a localized value drives the result set ([#1768](https://github.com/cap-js/cds-dbs/issues/1768)) ([0cae7ce](https://github.com/cap-js/cds-dbs/commit/0cae7cef4db02d4bad0b80c5fb38c86c38dfa126))
+* correct DrillState 'collapsed' when ExpandLevels mixes L=0 and L=1 ([#1788](https://github.com/cap-js/cds-dbs/issues/1788)) ([4bb1267](https://github.com/cap-js/cds-dbs/commit/4bb12677eb6cf07ca0515b314750fcf3a2cb0207))
+* prefix nested-inline expression refs against the correct alias ([#1770](https://github.com/cap-js/cds-dbs/issues/1770)) ([7f8da01](https://github.com/cap-js/cds-dbs/commit/7f8da01aa9e9d7c233769ec8e2f4b0b1135752a2))
+* use left joins in expand and EXISTS filters ([#1776](https://github.com/cap-js/cds-dbs/issues/1776)) ([cd28ea9](https://github.com/cap-js/cds-dbs/commit/cd28ea91f4bee44ba9d7bd54e3634e2e3258b78b))
+
 ## [3.1.2](https://github.com/cap-js/cds-dbs/compare/db-service-v3.1.1...db-service-v3.1.2) (2026-10-09)
 
 
