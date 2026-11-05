@@ -2,6 +2,7 @@
 
 const cds = require('@sap/cds')
 const { loadModel } = require('../helpers/model')
+const freezeData = require('../helpers/freezeData')
 
 const { expectCqn } = require('../helpers/expectCqn')
 const { expect } = cds.test
@@ -10,12 +11,22 @@ let cqn4sql = require('../../../lib/cqn4sql')
 
 describe('(nested projections) expand structures', () => {
   before(async () => {
-    const m = await loadModel()
+    const [m, flatModel] = await Promise.all([loadModel(), loadModel({ flat: true })])
     const orig = cqn4sql // keep reference to original to avoid recursion
-    cqn4sql = (q, flat = false) => orig(q, flat ? cds.compile.for.nodejs(m) : m)
+    cqn4sql = (q, flat = false) => orig(q, flat ? flatModel : m)
   })
 
   describe('basic', () => {
+    it('flattens nested structures and literal projections', () => {
+      const input = freezeData(cds.ql`SELECT from bookshop.Books as Books {
+        dedication { text, sub { foo }, 'label' as label }
+      }`)
+      const expected = cds.ql`SELECT from bookshop.Books as Books {
+        Books.dedication_text, Books.dedication_sub_foo, 'label' as dedication_label
+      }`
+      expectCqn(cqn4sql(input)).to.equal(expected)
+    })
+
     it('with one leaf', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Books as Books

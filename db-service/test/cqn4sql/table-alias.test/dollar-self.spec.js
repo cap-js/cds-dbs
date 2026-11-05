@@ -2,7 +2,8 @@
 
 const cds = require('@sap/cds')
 const { loadModel } = require('../helpers/model')
-const { expectCqn } = require('../helpers/expectCqn')
+const { expectCqn, expect } = require('../helpers/expectCqn')
+const freezeData = require('../helpers/freezeData')
 
 let cqn4sql = require('../../../lib/cqn4sql')
 
@@ -69,6 +70,27 @@ describe('table alias access - replace $self references', () => {
   }`
     expectCqn(transformed).to.equal(expected)
   })
+
+  it('resolves a reverse-ordered dependency chain', () => {
+    const input = freezeData(cds.ql`SELECT from bookshop.Books as Books {
+      $self.b as a, $self.c as b, $self.d as c, ID as d
+    }`)
+    const expected = cds.ql`SELECT from bookshop.Books as Books {
+      Books.ID as a, Books.ID as b, Books.ID as c, Books.ID as d
+    }`
+    expectCqn(cqn4sql(input)).to.equal(expected)
+  })
+
+  for (const columns of [
+    '$self.a as a',
+    '$self.b as a, $self.a as b',
+    '$self.b + 1 as a, $self.a + 1 as b',
+  ]) {
+    it('rejects cyclic projection dependencies: ' + columns, () => {
+      const input = freezeData(cds.ql(`SELECT from bookshop.Books { ${columns} }`))
+      expect(() => cqn4sql(input)).to.throw(/Cyclic \$self reference/)
+    })
+  }
 
   it('late replace join relevant paths', () => {
     const transformed = cqn4sql(cds.ql`SELECT from bookshop.Authors as Authors {

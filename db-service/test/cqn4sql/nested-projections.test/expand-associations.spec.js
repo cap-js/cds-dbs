@@ -3,6 +3,7 @@
 const cds = require('@sap/cds')
 const { loadModel } = require('../helpers/model')
 const { expectCqn, expect } = require('../helpers/expectCqn')
+const freezeData = require('../helpers/freezeData')
 
 let cqn4sql = require('../../../lib/cqn4sql')
 
@@ -10,7 +11,7 @@ describe('(nested projections) expand', () => {
   before(async () => {
     const m = await loadModel()
     const orig = cqn4sql // keep reference to original to avoid recursion
-    cqn4sql = q => orig(q, m)
+    cqn4sql = q => orig(freezeData(q), m)
   })
 
   describe('basic', () => {
@@ -66,6 +67,12 @@ describe('(nested projections) expand', () => {
         }`
 
       expectCqn(transformed).to.equal(expected)
+      const expand = transformed.SELECT.columns[0]
+      const cloned = cds.ql.clone(expand)
+      cloned.SELECT.one = undefined
+      expect(expand.SELECT.one).to.equal(true)
+      expect(cloned.SELECT).not.to.equal(expand.SELECT)
+      expect(expand.as).to.equal('a')
     })
 
     it('prototype of the subquery is not polluted', () => {

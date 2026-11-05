@@ -167,9 +167,11 @@ class HANAService extends SQLService {
     const { query, data, iterator, objectMode } = req
 
     if (!query._target || query._target._unresolved) {
-      try { this.infer(query) } catch { /**/ }
+      try { cds.infer.target(query, this.model) } catch { /**/ }
     }
-    if (!query._target || query._target._unresolved) {
+    // Custom joins and FROM subqueries have result metadata without one entity target.
+    const { from } = query.SELECT
+    if (query._target?._unresolved || (!query._target && !from?.join && !from?.SELECT)) {
       return super.onSELECT(req)
     }
 
