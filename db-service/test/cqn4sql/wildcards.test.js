@@ -5,6 +5,7 @@ const cds = require('@sap/cds')
 const { expect } = cds.test
 
 const { expectCqn } = require('./helpers/expectCqn')
+const freezeData = require('./helpers/freezeData')
 
 // TODO: UCSN -> order is different compared to odata model
 function customSort(a, b) {
@@ -389,6 +390,16 @@ describe('wildcard expansion and exclude clause', () => {
     )
   })
 
+  it('association inline wildcard keeps vectors and excludes flattened foreign keys', () => {
+    const input = freezeData(cds.ql`SELECT from bookshop.WithVector as V {
+      self.{*} excluding {self_ID, struct}
+    }`)
+    const expected = cds.ql`SELECT from bookshop.WithVector as V
+      left join bookshop.WithVector as self on self.ID = V.self_ID
+      { V.self_ID, self.name as self_name, self.embedding as self_embedding, self.image as self_image }`
+    expectCqn(cqn4sql(input, model)).to.equal(expected)
+  })
+
   it('expand subquery wildcard excludes Vector and LargeBinary', () => {
     // The expand correlated-subquery goes through the same infer wildcard path,
     // so Vector and LargeBinary are already excluded — no special handling needed.
@@ -411,7 +422,7 @@ describe('wildcard expansion and exclude clause', () => {
   })
 
   it('MUST transform wildcard into explicit column refs (1)', () => {
-    const input = cds.ql`SELECT from bookshop.Bar as Bar { * }`
+    const input = freezeData(cds.ql`SELECT from bookshop.Bar as Bar { * }`)
     const inputClone = JSON.parse(JSON.stringify(input))
     let query = cqn4sql(input, model)
     expect(query).to.deep.equal(

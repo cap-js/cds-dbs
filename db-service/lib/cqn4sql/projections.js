@@ -8,6 +8,11 @@ const { reference } = require('./bind')
 const { id, nameOf } = require('./syntax')
 const { typeFor, calculated } = require('./model')
 
+// Define an own property even when the model's inherited elements are frozen.
+const withElements = (element, elements) => Object.create(element, {
+  elements: { value: elements, enumerable: true, configurable: true, writable: true },
+})
+
 function columns(scope, syntax = scope.clause.columns || ['*'], context = {}) {
   const excluding = new Set(context.excluding || scope.clause.excluding || [])
   const explicit = new Map()
@@ -131,14 +136,14 @@ function project(scope, record, context = {}) {
       } else {
         const query = scope.compiler.expand(scope, bound, syntax)
         record.expand = true
-        record.element = Object.assign(Object.create(bound.element), { elements: query.elements })
+        record.element = withElements(bound.element, query.elements)
         output.push({ kind: 'query', syntax, query, element: record.element, name: prefix, expand: true })
       }
     } else if (nested) {
       const base = syntax.ref ? { source: bound.source, path: bound.path } : context.base
       const nestedColumns = columns(scope, nested, { ...context, base, prefix, physicalPrefix: context.physicalPrefix || (!syntax.ref && nested.includes('*') && syntax.as), excluding: syntax.excluding || [] })
       output.push(...nestedColumns)
-      record.element = Object.assign(Object.create(bound.element || cds.builtin.types.struct), { elements: {} })
+      record.element = withElements(bound.element || cds.builtin.types.struct, {})
       for (const column of nestedColumns) record.element.elements[column.name.slice(prefix.length + 1)] = column.element
     } else if (bound.kind === 'ref' && !bound.calculation) {
       if (!bound.leaf.target && (!bound.leaf.elements || bound.leaf.type === 'cds.Map')) {
@@ -198,6 +203,6 @@ function grouped(scope, binding, syntax, name) {
     }
   }
   if (!columns.length) return null
-  const element = Object.assign(Object.create(binding.element), { elements })
+  const element = withElements(binding.element, elements)
   return { kind: 'shape', syntax, columns, name, elements, element, one: binding.leaf.cardinality?.max !== '*' }
 }

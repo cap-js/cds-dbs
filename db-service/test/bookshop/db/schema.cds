@@ -45,6 +45,10 @@ entity BooksWithWeirdOnConditions {
   oddNumberWithForeignKeyAccess: Association to many WithStructuredKey on oddNumberWithForeignKeyAccess.struct.mid.anotherLeaf = oddNumberWithForeignKeyAccess.struct.mid.leaf / oddNumberWithForeignKeyAccess.second;
   refComparedToVal: Association to BooksWithWeirdOnConditions on ID != 1;
   refComparedToValFlipped: Association to BooksWithWeirdOnConditions on 1 != ID;
+  functionAndList: Association to BooksWithWeirdOnConditions on functionAndList.ID = ID
+    and (lower(functionAndList.foo) = 'a' or functionAndList.foo in ('b', 'c'));
+  functionAndListBacklink: Association to many BooksWithWeirdOnConditions
+    on functionAndListBacklink.functionAndList = $self;
 }
 
 entity Books.twin {

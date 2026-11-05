@@ -515,10 +515,11 @@ Changes should preserve these boundaries:
 
 The [reference suite](../../test/cqn4sql/) covers query transformations, and the
 [infer suite](../../test/cds-infer/) checks logical metadata compatibility.
-[Planning regressions](../../test/cqn4sql/planning.test.js) exercise scoped
-calculations, recursive planning and execution semantics;
-[immutability tests](../../test/cqn4sql/immutability.test.js) cover input
-ownership and descriptors. Run the reference and infer suites from the repository
+[Calculated-element references](../../test/cqn4sql/calculated-elements.test/) cover
+scoped calculations and nested queries. Reference tests also compile frozen input
+CQN and CSN using [freezeData](../../test/cqn4sql/helpers/freezeData.js);
+[API tests](../../test/cqn4sql/API.test.js) cover repeated calls, ownership and
+extension accessors. Run the reference and infer suites from the repository
 root with:
 
 ```sh

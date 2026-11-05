@@ -2,6 +2,7 @@
 
 const cds = require('@sap/cds')
 const { loadModel } = require('../helpers/model')
+const freezeData = require('../helpers/freezeData')
 
 const { expectCqn } = require('../helpers/expectCqn')
 const { expect } = cds.test
@@ -16,6 +17,16 @@ describe('(nested projections) expand structures', () => {
   })
 
   describe('basic', () => {
+    it('flattens nested structures and literal projections', () => {
+      const input = freezeData(cds.ql`SELECT from bookshop.Books as Books {
+        dedication { text, sub { foo }, 'label' as label }
+      }`)
+      const expected = cds.ql`SELECT from bookshop.Books as Books {
+        Books.dedication_text, Books.dedication_sub_foo, 'label' as dedication_label
+      }`
+      expectCqn(cqn4sql(input)).to.equal(expected)
+    })
+
     it('with one leaf', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Books as Books

@@ -3,14 +3,15 @@
 const cds = require('@sap/cds')
 const { loadModel } = require('../helpers/model')
 const { expectCqn } = require('../helpers/expectCqn')
+const freezeData = require('../helpers/freezeData')
 
 let cqn4sql = require('../../../lib/cqn4sql')
 
 describe('Unfolding calculated elements - inline / expand / subquery', () => {
   before(async () => {
-    const model = await loadModel()
+    const model = freezeData(await loadModel())
     const orig = cqn4sql
-    cqn4sql = (q, m) => orig(q, m ?? model)
+    cqn4sql = (q, m) => orig(freezeData(q), m ?? model)
   })
 
   it('in inline', () => {
@@ -24,6 +25,22 @@ describe('Unfolding calculated elements - inline / expand / subquery', () => {
         'DE' || author.checksum || author.sortCode  || author.accountNumber as author_IBAN
       }`
     expectCqn(transformed).to.equal(expected)
+  })
+
+  it('binds calculations in inline wildcards to each associated row', () => {
+    const input = cds.ql`SELECT from booksCalc.Simple as S {
+      my[ID=1].{*} excluding {ID, name, my},
+      my[ID=2].{*} excluding {ID, name, my}
+    }`
+    input.SELECT.columns[0].as = 'first'
+    input.SELECT.columns[1].as = 'second'
+    const expected = cds.ql`SELECT from booksCalc.Simple as S
+      left join booksCalc.Simple as my on my.ID = S.my_ID and my.ID = 1
+      left join booksCalc.Simple as my2 on my2.ID = my.my_ID
+      left join booksCalc.Simple as my3 on my3.ID = S.my_ID and my3.ID = 2
+      left join booksCalc.Simple as my4 on my4.ID = my3.my_ID
+      { my2.name as first_myName, my4.name as second_myName }`
+    expectCqn(cqn4sql(input)).to.equal(expected)
   })
 
   it('in inline back and forth', () => {
