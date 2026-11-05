@@ -11,9 +11,9 @@ let cqn4sql = require('../../../lib/cqn4sql')
 
 describe('(nested projections) expand structures', () => {
   before(async () => {
-    const m = await loadModel()
+    const [m, flatModel] = await Promise.all([loadModel(), loadModel({ flat: true })])
     const orig = cqn4sql // keep reference to original to avoid recursion
-    cqn4sql = (q, flat = false) => orig(q, flat ? cds.compile.for.nodejs(m) : m)
+    cqn4sql = (q, flat = false) => orig(q, flat ? flatModel : m)
   })
 
   describe('basic', () => {

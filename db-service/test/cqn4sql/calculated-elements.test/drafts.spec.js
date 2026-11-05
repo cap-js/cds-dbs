@@ -9,7 +9,7 @@ let cqn4sql = require('../../../lib/cqn4sql')
 
 describe('calculated elements in draft enabled entities', () => {
   before(async () => {
-    const model = freezeData(await loadModel({ flat: true }, [__dirname + '/../../bookshop/srv/calc-elem-service']))
+    const model = await loadModel({ flat: true }, [__dirname + '/../../bookshop/srv/calc-elem-service'])
     const orig = cqn4sql
     cqn4sql = (q, m) => orig(freezeData(q), m ?? model)
   })

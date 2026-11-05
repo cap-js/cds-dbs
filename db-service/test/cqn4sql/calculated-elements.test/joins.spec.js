@@ -9,7 +9,7 @@ let cqn4sql = require('../../../lib/cqn4sql')
 
 describe('Unfolding calculated elements - joins', () => {
   before(async () => {
-    const model = freezeData(await loadModel())
+    const model = await loadModel()
     const orig = cqn4sql
     cqn4sql = (q, m) => orig(freezeData(q), m ?? model)
   })

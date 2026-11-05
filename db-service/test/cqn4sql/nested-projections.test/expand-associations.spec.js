@@ -9,7 +9,7 @@ let cqn4sql = require('../../../lib/cqn4sql')
 
 describe('(nested projections) expand', () => {
   before(async () => {
-    const m = freezeData(await loadModel())
+    const m = await loadModel()
     const orig = cqn4sql // keep reference to original to avoid recursion
     cqn4sql = q => orig(freezeData(q), m)
   })

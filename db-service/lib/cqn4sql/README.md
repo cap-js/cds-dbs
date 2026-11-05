@@ -516,8 +516,10 @@ Changes should preserve these boundaries:
 The [reference suite](../../test/cqn4sql/) covers query transformations, and the
 [infer suite](../../test/cds-infer/) checks logical metadata compatibility.
 [Calculated-element references](../../test/cqn4sql/calculated-elements.test/) cover
-scoped calculations and nested queries. Reference tests also compile frozen input
-CQN and CSN using [freezeData](../../test/cqn4sql/helpers/freezeData.js);
+scoped calculations and nested queries. The shared
+[model loader](../../test/cqn4sql/helpers/model.js) freezes CSN after linking and
+optional compilation; reference tests also freeze input CQN using
+[freezeData](../../test/cqn4sql/helpers/freezeData.js).
 [API tests](../../test/cqn4sql/API.test.js) cover repeated calls, ownership and
 extension accessors. Run the reference and infer suites from the repository
 root with:
