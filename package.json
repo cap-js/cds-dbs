@@ -5,6 +5,7 @@
   "author": "SAP SE (https://www.sap.com)",
   "workspaces": [
     "db-service",
+    "db-fractal",
     "sqlite",
     "postgres",
     "hana"
