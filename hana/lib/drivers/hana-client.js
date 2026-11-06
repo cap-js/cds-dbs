@@ -45,6 +45,22 @@ class HANAClientDriver extends driver {
       if (m.old in creds && !(m.new in creds)) creds[m.new] = creds[m.old]
     }
 
+    if (creds['credential-type'] === 'x509') {
+      // hana-client expects the key first, then the certificate chain
+      const parts = creds.password.split(/(?=-----BEGIN [^-]*-----)/);
+
+      const cert = parts.filter(part => part.startsWith('-----BEGIN CERTIFICATE-----')).join('');
+      const key = parts.filter(part => /-----BEGIN (RSA |)PRIVATE KEY-----/.test(part)).join('');
+
+      Object.assign(creds, {
+          serverNode: `${creds.host}:${creds.port}`,
+          authenticationX509: `${key}${cert}`,
+
+          sslCryptoProvider: 'openssl',
+          authenticationMethods: 'x509',
+      })
+  }
+
     super(creds)
     this._native = hdb.createConnection(creds)
     this._native = wrap_client(this._native, creds, creds.tenant)
