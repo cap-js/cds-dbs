@@ -88,8 +88,9 @@ entity C : managed {
 }
 
 entity Values {
-  key ID    : Integer;
-      value : String;
+  key ID     : Integer;
+      value  : String;
+      active : Boolean default true;
 }
 
 entity BooksAnnotated as projection on Books;

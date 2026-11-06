@@ -10,4 +10,10 @@ service AdminService @(requires:'admin', path:'/admin') {
     author,
     author.name
   }
+
+  @cds.redirection.target: false
+  entity HideFlag as projection on my.Values {
+    key ID as foo,
+    value
+  }
 }

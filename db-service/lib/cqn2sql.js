@@ -1188,7 +1188,7 @@ class CQN2SQLRenderer {
       else return true
     }).map(c => `${this.quote(c)} = excluded.${this.quote(c)}`)
 
-    return (this.sql = `INSERT INTO ${this.quote(entity)} (${columns.map(c => this.quote(isEntries ? c : transitions.mapping.get(c)?.ref?.[0] || c))}) ${sql
+    return (this.sql = `INSERT INTO ${this.quote(entity)} (${columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))}) ${sql
       } WHERE TRUE ON CONFLICT(${keys.map(c => this.quote(c))}) DO ${updateColumns.length ? `UPDATE SET ${updateColumns}` : 'NOTHING'}`)
   }
 
@@ -1519,9 +1519,9 @@ class CQN2SQLRenderer {
           // Actual mandatory check
           if (!(element.default || element[cdsOnInsert] || element[cdsOnUpdate])) return false
           // Physical column check
-          if (discoverTargets ? !this.physical_column(requiredElements, e) : !element || element.virtual || element.isAssociation) return false
+          if (!element || element.virtual || element.isAssociation) return false
           // Existence check
-          if (columns.find(c => (discoverTargets ? c.target || transitions.mapping.get(c.name)?.ref?.[0] || c.name : c.name) === e)) return false
+          if (columns.find(c => c.name === e)) return false
           return true
         })
         .map(name => ({ name, sql: 'NULL', ...(discoverTargets && { target: name }) }))
@@ -1551,7 +1551,7 @@ class CQN2SQLRenderer {
       if (onInsert) onInsert = this.expr(onInsert)
       if (onUpdate) onUpdate = this.expr(onUpdate)
 
-      const qname = this.quote(target || name)
+      const qname = this.quote(name)
 
       // Hidden columns must not test client input, even when its name matches an exposed alias.
       const insert = onInsert ? hidden ? converter(onInsert) : this.managed_default(name, converter(onInsert), sql) : sql

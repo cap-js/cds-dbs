@@ -20,4 +20,13 @@ describe('Bookshop - Upsert', () => {
     expect(result[0].title).to.equal('Upserted Book')
   })
 
+  test('upsert an existing row via a projection that renames the key', async () => {
+    const { RenameKeys, Books } = cds.entities('AdminService')
+    await cds.run(INSERT({ foo: 347 }).into(RenameKeys))
+    // Regression: the existing-row join must reference the physical key (OLD.ID), not the alias.
+    await cds.run(UPSERT({ foo: 347 }).into(RenameKeys))
+    const res = await SELECT.from(Books, { ID: 347 })
+    expect(res).to.containSubset({ genre_ID: 10, createdBy: 'anonymous', modifiedBy: 'anonymous' })
+  })
+
 })

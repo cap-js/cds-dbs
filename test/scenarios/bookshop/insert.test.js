@@ -66,6 +66,15 @@ describe('Bookshop - Insert', () => {
     expect(res).to.containSubset({ genre_ID: 10, createdBy: 'anonymous', modifiedBy: 'anonymous' })
   })
 
+  test('insert via a projection that hides a defaulted boolean field', async () => {
+    // Regression: the hidden Boolean must not emit a JSON_TABLE extraction declaration on HANA.
+    const { HideFlag } = cds.entities('AdminService')
+    const { Values } = cds.entities('sap.capire.bookshop')
+    await cds.run(INSERT({ foo: 350, value: 'hidden-bool' }).into(HideFlag))
+    const res = await SELECT.from(Values, { ID: 350 })
+    expect(res).to.containSubset({ ID: 350, value: 'hidden-bool', active: true })
+  })
+
   test('insert into @readonly service projection via cds.run', async () => {
     await cds.run(INSERT.into('CatalogService.Books').entries([{ ID: 9991, title: 'Readonly Insert Test' }]))
     const result = await cds.run(SELECT.from('CatalogService.Books').where({ ID: 9991 }))
