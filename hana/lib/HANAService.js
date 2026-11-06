@@ -814,10 +814,15 @@ class HANAService extends SQLService {
         : ObjectKeys(INSERT.entries[0])
       this.columns = columns
 
-      const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), elements).slice(0, columns.length)
+      const isEntries = !INSERT.rows
+      const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), elements)
+        .filter((c, i) => !isEntries && q.UPSERT
+          ? i < columns.length
+          : i < columns.length || !transitions.target.elements[c.name]?.[SYSTEM_VERSIONED])
+      this.columns = extractions.map(c => c.name)
 
       // REVISIT: @cds.extension required
-      const extraction = extractions.map(c => c.extract)
+      const extraction = extractions.filter(c => c.extract !== 'NULL').map(c => c.extract)
       const converter = extractions.map(c => c.insert)
 
       const _stream = entries => {
@@ -854,7 +859,7 @@ class HANAService extends SQLService {
       // With the buffer table approach the data is processed in chunks of a configurable size
       // Which allows even smaller HANA systems to process large datasets
       // But the chunk size determines the maximum size of a single row
-      return (this.sql = `INSERT INTO ${this.quote(entity)} (${this.columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))
+      return (this.sql = `INSERT INTO ${this.quote(entity)} (${extractions.map((c, i) => this.quote(isEntries || i >= columns.length ? c.name : transitions.mapping.get(c.name)?.ref?.[0] || c.name))
         }) WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
       SELECT ${converter} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON ERROR) AS NEW`)
     }
@@ -898,6 +903,8 @@ class HANAService extends SQLService {
 
     UPSERT(q) {
       const { UPSERT } = q
+      const isEntries = UPSERT.entries && !UPSERT.rows
+      const transitions = this.srv.resolve.transitions(q)
       const entity = q._target ? this.table_name(q) : UPSERT.into.ref[0]
       const elements = q._target?.elements || {}
       const insert = this.INSERT({ __proto__: q, INSERT: UPSERT })
@@ -908,8 +915,9 @@ class HANAService extends SQLService {
 
       // temporal data
       keys.push(...ObjectKeys(q._target.elements).filter(e => q._target.elements[e]['@cds.valid.from']))
+      if (isEntries) keys = keys.map(k => transitions.mapping.get(k)?.ref?.[0] || k)
 
-      const managed = this.managed(
+      const managed = isEntries ? this._managed : this.managed(
         this.columns.map(c => ({ name: c })),
         elements
       )
@@ -920,7 +928,7 @@ class HANAService extends SQLService {
         .join(' AND ')
 
       const mixing = managed.map(c => c.upsert)
-      const extraction = managed.map(c => c.extract)
+      const extraction = (isEntries ? managed.filter(c => c.extract !== 'NULL') : managed).map(c => c.extract)
 
       let sql
       if (UPSERT.entries || UPSERT.rows || UPSERT.values) {

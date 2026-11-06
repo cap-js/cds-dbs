@@ -923,8 +923,9 @@ class CQN2SQLRenderer {
     }
 
     const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), elements)
-    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))
-      }) SELECT ${extractions.slice(0, columns.length).map(c => c.insert)} FROM json_each(?)`)
+    this.columns = extractions.map(c => c.name)
+    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(c))
+      }) SELECT ${extractions.map(c => c.insert)} FROM json_each(?)`)
   }
 
   async *INSERT_entries_stream(entries, binaryEncoding = 'base64') {
@@ -1127,10 +1128,12 @@ class CQN2SQLRenderer {
    */
   UPSERT(q) {
     const { UPSERT } = q
+    const isEntries = UPSERT.entries && !UPSERT.rows
+    const transitions = this.srv.resolve.transitions(q)
 
     let sql = this.INSERT({ __proto__: q, INSERT: UPSERT })
     if (!q._target?.keys) return sql
-    const keys = []
+    let keys = []
     for (const k of ObjectKeys(q._target?.keys)) {
       const element = q._target.keys[k]
       if (element.isAssociation || element.virtual) continue
@@ -1142,6 +1145,7 @@ class CQN2SQLRenderer {
     for (const k of ObjectKeys(elements)) {
       if (elements[k]['@cds.valid.from']) keys.push(k)
     }
+    if (isEntries) keys = keys.map(k => transitions.mapping.get(k)?.ref?.[0] || k)
 
     const keyCompare = keys
       .map(k => `NEW.${this.quote(k)}=OLD.${this.quote(k)}`)
@@ -1184,7 +1188,6 @@ class CQN2SQLRenderer {
       else return true
     }).map(c => `${this.quote(c)} = excluded.${this.quote(c)}`)
 
-    const transitions = this.srv.resolve.transitions(q)
     return (this.sql = `INSERT INTO ${this.quote(entity)} (${columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))}) ${sql
       } WHERE TRUE ON CONFLICT(${keys.map(c => this.quote(c))}) DO ${updateColumns.length ? `UPDATE SET ${updateColumns}` : 'NOTHING'}`)
   }
@@ -1500,12 +1503,19 @@ class CQN2SQLRenderer {
     const cdsOnUpdate = '@cds.on.update'
 
     const { _convertInput } = this.class
+    const { INSERT, UPSERT } = this.cqn
+    const isEntries = (INSERT?.entries || UPSERT?.entries) && !(INSERT?.rows || UPSERT?.rows)
+    // HANA also converts positional INSERT rows to entries; keep its existing hidden defaults.
+    const discoverTargets = isEntries || (INSERT?.entries && INSERT.rows)
+    const transitions = discoverTargets ? this.srv.resolve.transitions(this.cqn) : undefined
+    if (isEntries) columns = columns.map(c => ({ ...c, target: transitions.mapping.get(c.name)?.ref?.[0] || c.name }))
+    const requiredElements = discoverTargets ? transitions.target.elements : elements
     // Ensure that missing managed columns are added
-    const requiredColumns = !elements
+    const requiredColumns = !requiredElements
       ? []
-      : ObjectKeys(elements)
+      : ObjectKeys(requiredElements)
         .filter(e => {
-          const element = elements[e]
+          const element = requiredElements[e]
           // Actual mandatory check
           if (!(element.default || element[cdsOnInsert] || element[cdsOnUpdate])) return false
           // Physical column check
@@ -1514,20 +1524,22 @@ class CQN2SQLRenderer {
           if (columns.find(c => c.name === e)) return false
           return true
         })
-        .map(name => ({ name, sql: 'NULL' }))
+        .map(name => ({ name, sql: 'NULL', ...(discoverTargets && { target: name }) }))
 
     const keys = ObjectKeys(elements).filter(e => elements[e].key && !elements[e].isAssociation)
-    const keyZero = keys[0] && this.quote(keys[0])
+    const keyZero = keys[0] && this.quote(isEntries ? transitions.mapping.get(keys[0])?.ref?.[0] || keys[0] : keys[0])
 
-    return [...columns, ...requiredColumns].map(({ name, sql }) => {
-      const element = elements?.[name] || {}
+    return [...columns, ...requiredColumns].map(({ name, sql, target }) => {
+      const hidden = target && sql === 'NULL'
+      const element = (hidden ? requiredElements[name] : elements?.[name]) || {}
 
       const converter = a => element[_convertInput]?.(a, element) || a
       let extract
       if (!sql) {
         ({ sql, extract } = this.managed_extract(name, element, converter))
       } else {
-        extract = sql = converter(sql)
+        sql = converter(sql)
+        extract = hidden ? 'NULL' : sql
       }
       // if (sql[0] !== '$') sql = converter(sql, element)
 
@@ -1541,8 +1553,9 @@ class CQN2SQLRenderer {
 
       const qname = this.quote(name)
 
-      const insert = onInsert ? this.managed_default(name, converter(onInsert), sql) : sql
-      const update = onUpdate ? this.managed_default(name, converter(onUpdate), sql) : sql
+      // Hidden columns must not test client input, even when its name matches an exposed alias.
+      const insert = onInsert ? hidden ? converter(onInsert) : this.managed_default(name, converter(onInsert), sql) : sql
+      const update = onUpdate ? hidden ? converter(onUpdate) : this.managed_default(name, converter(onUpdate), sql) : sql
       const upsert = keyZero && (
         // upsert requires the keys to be provided for the existance join (default values optional)
         element.key
@@ -1554,12 +1567,12 @@ class CQN2SQLRenderer {
           insert
           } ELSE ${
           // Else execute managed update or keep old if no new data if provided
-          onUpdate ? update : this.managed_default(name, `OLD.${qname}`, update)
+          onUpdate ? update : hidden ? `OLD.${qname}` : this.managed_default(name, `OLD.${qname}`, update)
           } END as ${qname}`
       )
 
       return {
-        name, // Element name
+        name: target || name, // Physical target for entries; sql and extract retain the input identity
         sql, // Reference SQL
         extract, // Source SQL
         converter, // Converter logic
