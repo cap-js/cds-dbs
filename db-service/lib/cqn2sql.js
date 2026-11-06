@@ -1130,11 +1130,10 @@ class CQN2SQLRenderer {
     const { UPSERT } = q
     const isEntries = UPSERT.entries && !UPSERT.rows
     const transitions = this.srv.resolve.transitions(q)
-    const targetName = name => isEntries ? transitions.mapping.get(name)?.ref?.[0] || name : name
 
     let sql = this.INSERT({ __proto__: q, INSERT: UPSERT })
     if (!q._target?.keys) return sql
-    const keys = []
+    let keys = []
     for (const k of ObjectKeys(q._target?.keys)) {
       const element = q._target.keys[k]
       if (element.isAssociation || element.virtual) continue
@@ -1146,9 +1145,10 @@ class CQN2SQLRenderer {
     for (const k of ObjectKeys(elements)) {
       if (elements[k]['@cds.valid.from']) keys.push(k)
     }
+    if (isEntries) keys = keys.map(k => transitions.mapping.get(k)?.ref?.[0] || k)
 
     const keyCompare = keys
-      .map(k => `NEW.${this.quote(targetName(k))}=OLD.${this.quote(targetName(k))}`)
+      .map(k => `NEW.${this.quote(k)}=OLD.${this.quote(k)}`)
       .join(' AND ')
 
     let columns = this.columns // this.columns is computed as part of this.INSERT
@@ -1157,7 +1157,7 @@ class CQN2SQLRenderer {
       const managed = this._managed.slice(0, columns.length)
 
       const extractkeys = managed
-        .filter(c => (isEntries ? keys.map(targetName) : keys).includes(c.name))
+        .filter(c => keys.includes(c.name))
         .map(c => `${c.onInsert || c.sql} as ${this.quote(c.name)}`)
 
       sql = `SELECT ${managed.map(c => c.upsert
@@ -1178,21 +1178,18 @@ class CQN2SQLRenderer {
       this.entries = [this.values]
     }
 
-    const updateColumns = isEntries
-      ? this._managed.filter(c => !keys.map(targetName).includes(c.name))
-        .map(c => `${this.quote(c.name)} = excluded.${this.quote(c.name)}`)
-      : columns.filter(c => {
-        if (keys.includes(c)) return false //> keys go into ON CONFLICT clause
-        let e = elements[c]
-        if (!e) return true //> pass through to native SQL columns not in CDS model
-        if (e.virtual) return true //> skip virtual elements
-        if (e.value) return true //> skip calculated elements
-        // if (e.isAssociation) return true //> this breaks a a test in @sap/cds -> need to follow up how to correctly handle deep upserts
-        else return true
-      }).map(c => `${this.quote(c)} = excluded.${this.quote(c)}`)
+    const updateColumns = columns.filter(c => {
+      if (keys.includes(c)) return false //> keys go into ON CONFLICT clause
+      let e = elements[c]
+      if (!e) return true //> pass through to native SQL columns not in CDS model
+      if (e.virtual) return true //> skip virtual elements
+      if (e.value) return true //> skip calculated elements
+      // if (e.isAssociation) return true //> this breaks a a test in @sap/cds -> need to follow up how to correctly handle deep upserts
+      else return true
+    }).map(c => `${this.quote(c)} = excluded.${this.quote(c)}`)
 
     return (this.sql = `INSERT INTO ${this.quote(entity)} (${columns.map(c => this.quote(isEntries ? c : transitions.mapping.get(c)?.ref?.[0] || c))}) ${sql
-      } WHERE TRUE ON CONFLICT(${keys.map(c => this.quote(targetName(c)))}) DO ${updateColumns.length ? `UPDATE SET ${updateColumns}` : 'NOTHING'}`)
+      } WHERE TRUE ON CONFLICT(${keys.map(c => this.quote(c))}) DO ${updateColumns.length ? `UPDATE SET ${updateColumns}` : 'NOTHING'}`)
   }
 
   // UPDATE Statements ------------------------------------------------

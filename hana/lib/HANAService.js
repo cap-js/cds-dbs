@@ -915,6 +915,7 @@ class HANAService extends SQLService {
 
       // temporal data
       keys.push(...ObjectKeys(q._target.elements).filter(e => q._target.elements[e]['@cds.valid.from']))
+      if (isEntries) keys = keys.map(k => transitions.mapping.get(k)?.ref?.[0] || k)
 
       const managed = isEntries ? this._managed : this.managed(
         this.columns.map(c => ({ name: c })),
@@ -922,7 +923,7 @@ class HANAService extends SQLService {
       )
 
       const keyCompare = managed
-        .filter(c => (isEntries ? keys.map(k => transitions.mapping.get(k)?.ref?.[0] || k) : keys).includes(c.name))
+        .filter(c => keys.includes(c.name))
         .map(c => `${c.insert}=OLD.${this.quote(c.name)}`)
         .join(' AND ')
 
