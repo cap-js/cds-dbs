@@ -59,6 +59,13 @@ describe('Bookshop - Insert', () => {
     expect(res.modifiedAt).to.not.be.null
   })
 
+  test('should ignore client values for managed fields excluded from projection', async () => {
+    const { RenameKeys, Books } = cds.entities('AdminService')
+    await cds.run(INSERT({ foo: 346, createdBy: 'Alice' }).into(RenameKeys))
+    const res = await SELECT.from(Books, { ID: 346 })
+    expect(res).to.containSubset({ genre_ID: 10, createdBy: 'anonymous', modifiedBy: 'anonymous' })
+  })
+
   test('insert into @readonly service projection via cds.run', async () => {
     await cds.run(INSERT.into('CatalogService.Books').entries([{ ID: 9991, title: 'Readonly Insert Test' }]))
     const result = await cds.run(SELECT.from('CatalogService.Books').where({ ID: 9991 }))
