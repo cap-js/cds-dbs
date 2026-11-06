@@ -818,7 +818,7 @@ class HANAService extends SQLService {
       const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), elements)
         .filter((c, i) => !isEntries && q.UPSERT
           ? i < columns.length
-          : !transitions.target.elements[isEntries || i >= columns.length ? c.name : transitions.mapping.get(c.name)?.ref?.[0] || c.name]?.[SYSTEM_VERSIONED])
+          : i < columns.length || !transitions.target.elements[c.name]?.[SYSTEM_VERSIONED])
       this.columns = extractions.map(c => c.name)
 
       // REVISIT: @cds.extension required
