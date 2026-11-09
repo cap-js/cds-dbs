@@ -90,11 +90,8 @@ class DatabaseService extends cds.Service {
 
   /**
    * Rolls back a transaction and releases the connection to the pool.
-   *
-   * By default a failed ROLLBACK is rethrown after releasing the connection.
-   * With `cds.env.features.ignore_rollback_errors` enabled, the error is instead
-   * swallowed and the connection is destroyed rather than returned to the pool
-   * (e.g. for dead connections, where the server already rolled back on disconnect).
+   * If `cds.env.features.destroy_on_failed_rollback` is enabled,
+   * errors are ignored and the connection is destroyed.
    */
   async rollback() {
     if (!this.dbc) return
