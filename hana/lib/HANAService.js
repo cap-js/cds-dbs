@@ -25,8 +25,7 @@ const SYSTEM_VERSIONED = '@hana.systemversioned'
  *   - @sap/hana-client:   negative SQLDBC codes (connection failed / down)
  */
 const CONNECTION_CLOSED_CODES = new Set([
-  'EHDBCLOSE', 'ECONNRESET', 'EPIPE', 'ETIMEDOUT',
-  -10709, -10807,
+  'EHDBCLOSE', 'ECONNRESET', 'EPIPE', 'ETIMEDOUT'
 ])
 
 /**
