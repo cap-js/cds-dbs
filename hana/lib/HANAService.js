@@ -16,14 +16,6 @@ const hanaKeywords = keywords.reduce((prev, curr) => {
 
 const LOG = cds.log('sql|db'), DEBUG = cds.debug('sql|db')
 const SYSTEM_VERSIONED = '@hana.systemversioned'
-
-/**
- * Error codes that indicate the connection to the server was lost. When a
- * ROLLBACK fails with one of these, the transaction has already been rolled
- * back server-side on disconnect, so the failure is a no-op we can ignore.
- *   - hdb / node sockets: string codes
- *   - @sap/hana-client:   negative SQLDBC codes (connection failed / down)
- */
 const CONNECTION_CLOSED_CODES = new Set([
   'EHDBCLOSE', 'ECONNRESET', 'EPIPE', 'ETIMEDOUT'
 ])
