@@ -1,0 +1,17 @@
+{
+  "cds": {
+    "requires": {
+      "db": {
+        "kind": "hana",
+        "credentials": {}
+      },
+      "embeddings": {
+        "model": "TEST.MODEL"
+      },
+      "special-embeddings": {
+        "kind": "embeddings",
+        "model": "SPECIAL.MODEL"
+      }
+    }
+  }
+}
