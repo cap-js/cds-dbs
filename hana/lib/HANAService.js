@@ -21,7 +21,7 @@ const CONNECTION_CLOSED_CODES = new Set([
 ])
 
 /**
- * @implements SQLService  
+ * @implements SQLService
  */
 class HANAService extends SQLService {
   init() {
