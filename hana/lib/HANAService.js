@@ -16,12 +16,9 @@ const hanaKeywords = keywords.reduce((prev, curr) => {
 
 const LOG = cds.log('sql|db'), DEBUG = cds.debug('sql|db')
 const SYSTEM_VERSIONED = '@hana.systemversioned'
-const CONNECTION_CLOSED_CODES = new Set([
-  'EHDBCLOSE', 'ECONNRESET', 'EPIPE', 'ETIMEDOUT'
-])
 
 /**
- * @implements SQLService
+ * @implements SQLService  
  */
 class HANAService extends SQLService {
   init() {
@@ -1413,20 +1410,9 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     return this.dbc?.commit()
   }
 
-  async onROLLBACK() {
+  onROLLBACK() {
     DEBUG?.('ROLLBACK')
-    if (!this.dbc) return
-    try {
-      return await this.dbc.rollback()
-    } catch (err) {
-      // connection is dead
-      if (CONNECTION_CLOSED_CODES.has(err?.code)) {
-        DEBUG?.('ignoring ROLLBACK on lost connection:', err)
-        this.destroy()
-        return
-      }
-      throw err
-    }
+    return this.dbc?.rollback()
   }
 
   // Creates a new database using HDI container groups

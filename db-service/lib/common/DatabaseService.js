@@ -2,6 +2,9 @@ const SessionContext = require('./session-context')
 const ConnectionPool = require('./generic-pool')
 const infer = require('../infer')
 const cds = require('@sap/cds')
+const LOG = cds.log('db')
+
+const DEBUG = cds.debug('sql|db')
 
 /** @typedef {unknown} DatabaseDriver */
 
@@ -88,13 +91,24 @@ class DatabaseService extends cds.Service {
 
   /**
    * Rolls back a transaction and releases the connection to the pool.
+   *
+   * On a failed ROLLBACK the connection is instead discarded (`this.destroy()`)
+   * when `cds.env.features.destroy_on_failed_rollback` is enabled, so a connection
+   * with a possibly still-open transaction is never returned to the pool.
    */
   async rollback() {
     if (!this.dbc) return
     try {
       await this.send('ROLLBACK')
-    } finally {
       this.release()
+    } catch (err) {
+      if (cds.env.features.destroy_on_failed_rollback) {
+        LOG.warn('ROLLBACK failed, discarding connection:', err)
+        this.destroy()
+      } else {
+        DEBUG?.('ignoring failed rollback', err)
+        this.release()
+      }
     }
   }
 
