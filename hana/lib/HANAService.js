@@ -18,7 +18,7 @@ const LOG = cds.log('sql|db'), DEBUG = cds.debug('sql|db')
 const SYSTEM_VERSIONED = '@hana.systemversioned'
 
 /**
- * @implements SQLService  
+ * @implements SQLService
  */
 class HANAService extends SQLService {
   init() {
