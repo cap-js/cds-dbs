@@ -3,8 +3,6 @@ const ConnectionPool = require('./generic-pool')
 const infer = require('../infer')
 const cds = require('@sap/cds')
 
-const DEBUG = cds.debug('sql|db')
-
 /** @typedef {unknown} DatabaseDriver */
 
 class DatabaseService extends cds.Service {
@@ -95,20 +93,15 @@ class DatabaseService extends cds.Service {
    */
   async rollback() {
     if (!this.dbc) return
-    if (cds.env.features.ignore_rollback_errors) {
-      try {
-        await this.send('ROLLBACK')
-        this.release()
-      } catch (err) {
-        DEBUG?.('ROLLBACK failed, discarding connection:', err)
+    try {
+      await this.send('ROLLBACK')
+      this.release()
+    } catch (err) {
+      if (cds.env.features.ignore_rollback_errors) {
         this.destroy()
       }
-    } else {
-      try {
-        await this.send('ROLLBACK')
-      } finally {
-        this.release()
-      }
+    } finally {
+      this.release()
     }
   }
 
