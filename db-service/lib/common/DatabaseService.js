@@ -88,11 +88,19 @@ class DatabaseService extends cds.Service {
 
   /**
    * Rolls back a transaction and releases the connection to the pool.
+   * If `cds.env.features.destroy_on_failed_rollback` is enabled,
+   * errors are ignored and the connection is destroyed.
    */
   async rollback() {
     if (!this.dbc) return
     try {
       await this.send('ROLLBACK')
+    } catch (err) {
+      if (cds.env.features.ignore_rollback_errors) {
+        await this.destroy()
+      } else {
+        throw err
+      }
     } finally {
       this.release()
     }
