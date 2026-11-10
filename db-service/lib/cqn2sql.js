@@ -1502,13 +1502,10 @@ class CQN2SQLRenderer {
     const cdsOnUpdate = '@cds.on.update'
 
     const { _convertInput } = this.class
-    const { INSERT, UPSERT } = this.cqn
-    const isEntries = (INSERT?.entries || UPSERT?.entries) && !(INSERT?.rows || UPSERT?.rows)
     // HANA also converts positional INSERT rows to entries; keep its existing hidden defaults.
-    const discoverTargets = isEntries || (INSERT?.entries && INSERT.rows)
-    const transitions = discoverTargets ? this.srv.resolve.transitions(this.cqn) : undefined
-    if (isEntries) columns = columns.map(c => ({ ...c, target: transitions.mapping.get(c.name)?.ref?.[0] || c.name }))
-    const requiredElements = discoverTargets ? transitions.target.elements : elements
+    const transitions = this.srv.resolve.transitions(this.cqn)
+    columns = columns.map(c => ({ ...c, target: transitions.mapping.get(c.name)?.ref?.[0] || c.name }))
+    const requiredElements = transitions.target.elements
     // Ensure that missing managed columns are added
     const requiredColumns = !requiredElements
       ? []
@@ -1523,10 +1520,10 @@ class CQN2SQLRenderer {
           if (columns.find(c => c.name === e)) return false
           return true
         })
-        .map(name => ({ name, sql: 'NULL', ...(discoverTargets && { target: name }) }))
+        .map(name => ({ name, sql: 'NULL', target: name  }))
 
     const keys = ObjectKeys(elements).filter(e => elements[e].key && !elements[e].isAssociation)
-    const keyZero = keys[0] && this.quote(isEntries ? transitions.mapping.get(keys[0])?.ref?.[0] || keys[0] : keys[0])
+    const keyZero = keys[0] && this.quote(transitions.mapping.get(keys[0])?.ref?.[0] || keys[0])
 
     return [...columns, ...requiredColumns].map(({ name, sql, target }) => {
       const hidden = target && sql === 'NULL'

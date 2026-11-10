@@ -75,17 +75,13 @@ class CQN2PQLRenderer extends CQN2SQL {
 
   managed(columns, elements) {
     const keys = ObjectKeys(elements).filter(e => elements[e].key && !elements[e].isAssociation)
-    const { INSERT, UPSERT } = this.cqn
-    const isEntries = (INSERT?.entries || UPSERT?.entries) && !(INSERT?.rows || UPSERT?.rows)
-    const transitions = isEntries ? this.srv.resolve.transitions(this.cqn) : undefined
-    const ret = super.managed(columns, elements)
-    const keyZero = isEntries ? transitions.mapping.get(keys[0])?.ref?.[0] || keys[0] : keys[0]
+    const keyZero = keys[0]
 
-    ret.forEach((c, i) => {
-      const { name, extract, insert, update, onInsert, onUpdate } = c
-      const hidden = isEntries && extract === 'NULL'
-      const source = isEntries && !hidden ? columns[i].name : name
-      const element = hidden ? transitions.target.elements[name] : elements?.[source]
+    const ret = super.managed(columns, elements)
+
+    ret.forEach(c => {
+      const { name, insert, update, onInsert, onUpdate } = c
+      const element = elements?.[name]
       c.upsert = keyZero && (
         // upsert requires the keys to be provided for the existance join (default values optional)
         element?.key
@@ -97,7 +93,7 @@ class CQN2PQLRenderer extends CQN2SQL {
           insert
           } : ${
           // Else execute managed update or keep old if no new data if provided
-          onUpdate ? update : hidden ? `OLD.${name}` : `(${this.managed_default(source, `OLD.${name}`, update)})`
+          onUpdate ? update : `(${this.managed_default(name, `OLD.${name}`, update)})`
           } as ${name}`
       )
       if (c.upsert) c.upsert = '\n  ' + c.upsert
