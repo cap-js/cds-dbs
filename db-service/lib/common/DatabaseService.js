@@ -98,6 +98,8 @@ class DatabaseService extends cds.Service {
     } catch (err) {
       if (cds.env.features.ignore_rollback_errors) {
         this.destroy()
+      } else {
+        throw err
       }
     } finally {
       this.release()
