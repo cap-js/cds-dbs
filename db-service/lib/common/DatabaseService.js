@@ -95,7 +95,6 @@ class DatabaseService extends cds.Service {
     if (!this.dbc) return
     try {
       await this.send('ROLLBACK')
-      this.release()
     } catch (err) {
       if (cds.env.features.ignore_rollback_errors) {
         this.destroy()
