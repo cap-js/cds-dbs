@@ -1133,11 +1133,11 @@ class CQN2SQLRenderer {
 
     let sql = this.INSERT({ __proto__: q, INSERT: UPSERT })
     if (!q._target?.keys) return sql
-    let keys = []
+    const keys = []
     for (const k of ObjectKeys(q._target?.keys)) {
       const element = q._target.keys[k]
       if (element.isAssociation || element.virtual) continue
-      keys.push(k)
+      keys.push(isEntries ? transitions.mapping.get(k)?.ref?.[0] || k : k)
     }
 
     const elements = q._target?.elements || {}
@@ -1145,7 +1145,6 @@ class CQN2SQLRenderer {
     for (const k of ObjectKeys(elements)) {
       if (elements[k]['@cds.valid.from']) keys.push(k)
     }
-    if (isEntries) keys = keys.map(k => transitions.mapping.get(k)?.ref?.[0] || k)
 
     const keyCompare = keys
       .map(k => `NEW.${this.quote(k)}=OLD.${this.quote(k)}`)
