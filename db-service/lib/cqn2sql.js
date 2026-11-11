@@ -1128,7 +1128,6 @@ class CQN2SQLRenderer {
    */
   UPSERT(q) {
     const { UPSERT } = q
-    const isEntries = UPSERT.entries && !UPSERT.rows
     const transitions = this.srv.resolve.transitions(q)
 
     let sql = this.INSERT({ __proto__: q, INSERT: UPSERT })
@@ -1137,7 +1136,7 @@ class CQN2SQLRenderer {
     for (const k of ObjectKeys(q._target?.keys)) {
       const element = q._target.keys[k]
       if (element.isAssociation || element.virtual) continue
-      keys.push(isEntries ? transitions.mapping.get(k)?.ref?.[0] || k : k)
+      keys.push(transitions.mapping.get(k)?.ref?.[0] || k)
     }
 
     const elements = q._target?.elements || {}
