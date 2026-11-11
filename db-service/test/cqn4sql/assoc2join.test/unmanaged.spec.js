@@ -3,6 +3,7 @@
 const cds = require('@sap/cds')
 const { loadModel } = require('../helpers/model')
 const { expectCqn } = require('../helpers/expectCqn')
+const freezeData = require('../helpers/freezeData')
 
 let cqn4sql = require('../../../lib/cqn4sql')
 
@@ -122,6 +123,18 @@ describe('(a2j) unmanaged associations', () => {
   })
 
   describe('variations in on-conditions', () => {
+    it('binds function and list arguments in the target scope', () => {
+      const input = freezeData(cds.ql`SELECT from bookshop.BooksWithWeirdOnConditions as B {
+        ID, functionAndList.foo
+      }`)
+      const expected = cds.ql`SELECT from bookshop.BooksWithWeirdOnConditions as B
+        left join bookshop.BooksWithWeirdOnConditions as functionAndList
+          on functionAndList.ID = B.ID
+            and (lower(functionAndList.foo) = 'a' or functionAndList.foo in ('b', 'c'))
+        { B.ID, functionAndList.foo as functionAndList_foo }`
+      expectCqn(cqn4sql(input)).to.equal(expected)
+    })
+
     it('on-condition with length === 1', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.BooksWithWeirdOnConditions as BooksWithWeirdOnConditions

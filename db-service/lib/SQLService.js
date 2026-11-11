@@ -131,10 +131,9 @@ class SQLService extends DatabaseService {
    * @type {Handler}
    */
   async onSELECT({ query, data, iterator, objectMode }) {
-    // REVISIT: for custom joins, infer is called twice, which is bad
-    //          --> make cds.infer properly work with custom joins and remove this
+    // Only the target is needed here; cqn4sql resolves columns and joins once.
     if (!(query._target instanceof cds.entity)) {
-      try { this.infer(query) } catch { /**/ }
+      try { cds.infer.target(query, this.model) } catch { /**/ }
     }
     if (!query._target?._unresolved) { // REVISIT: use query._target instead
       // Will return multiple rows with objects inside

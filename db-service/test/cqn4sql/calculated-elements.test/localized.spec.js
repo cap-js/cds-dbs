@@ -8,8 +8,7 @@ let cqn4sql = require('../../../lib/cqn4sql')
 
 describe('Unfolding calculated elements and localized', () => {
   before(async () => {
-    cds.model = await loadModel({}, [__dirname + '/../../bookshop/db/booksWithExpr'])
-    const model = cds.compile.for.nodejs(cds.model)
+    const model = cds.model = await loadModel({ flat: true }, [__dirname + '/../../bookshop/db/booksWithExpr'])
     const orig = cqn4sql
     cqn4sql = (q, m) => orig(q, m ?? model)
   })

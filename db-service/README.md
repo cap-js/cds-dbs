@@ -12,6 +12,8 @@ This project is open to feature requests/suggestions, bug reports etc. via [GitH
 
 Contribution and feedback are encouraged and always welcome. For more information about how to contribute, the project structure, as well as additional contribution information, see our [Contribution Guidelines](CONTRIBUTING.md).
 
+For query transformation internals, see the [CQN4SQL compiler guide](lib/cqn4sql/README.md), including its pipeline, algorithms, data structures and examples.
+
 ## Versioning
 
 This library follows [Semantic Versioning](https://semver.org/).

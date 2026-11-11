@@ -3,6 +3,7 @@
 const cds = require('@sap/cds')
 const { loadModel } = require('../helpers/model')
 const { expectCqn } = require('../helpers/expectCqn')
+const freezeData = require('../helpers/freezeData')
 
 let cqn4sql = require('../../../lib/cqn4sql')
 
@@ -14,6 +15,15 @@ describe('(exist predicate) on-condition construction for semi-join in subquery'
   })
 
   describe('unmanaged', () => {
+    it('binds function and list arguments when reversing a backlink condition', () => {
+      const input = freezeData(cds.ql`SELECT from bookshop.BooksWithWeirdOnConditions as B { ID }
+        where exists functionAndListBacklink`)
+      const expected = cds.ql`SELECT from bookshop.BooksWithWeirdOnConditions as B { B.ID }
+        where exists (SELECT 1 from bookshop.BooksWithWeirdOnConditions as $f
+          where B.ID = $f.ID and (lower(B.foo) = 'a' or B.foo in ('b', 'c'))) `
+      expectCqn(cqn4sql(input)).to.equal(expected)
+    })
+
     it('assoc navigation in on-condition', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.TestPublisher:texts

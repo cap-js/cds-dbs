@@ -3,6 +3,7 @@
 const cds = require('@sap/cds')
 const { loadModel } = require('../helpers/model')
 const { expectCqn } = require('../helpers/expectCqn')
+const freezeData = require('../helpers/freezeData')
 
 let cqn4sql = require('../../../lib/cqn4sql')
 
@@ -10,7 +11,7 @@ describe('Unfolding calculated elements - joins', () => {
   before(async () => {
     const model = await loadModel()
     const orig = cqn4sql
-    cqn4sql = (q, m) => orig(q, m ?? model)
+    cqn4sql = (q, m) => orig(freezeData(q), m ?? model)
   })
 
   it('via an association path', () => {
@@ -61,6 +62,25 @@ describe('Unfolding calculated elements - joins', () => {
       }`
     expectCqn(transformed).to.equal(expected)
   })
+
+  for (const [field, low, high] of [
+    ['authorLastName', 'author.lastName', 'author2.lastName'],
+    ['authorName', "author.firstName || ' ' || author.lastName", "author2.firstName || ' ' || author2.lastName"],
+  ]) {
+    it('binds ' + field + ' and its joins independently through two filtered paths', () => {
+      const input = cds.ql(`SELECT from booksCalc.Authors as Authors {
+        books[stock<5].${field} as low, books[stock>5].${field} as high
+      }`)
+      const expected = cds.ql(`SELECT from booksCalc.Authors as Authors
+        left join booksCalc.Books as books on books.author_ID = Authors.ID and books.stock < 5
+        left join booksCalc.Authors as author on author.ID = books.author_ID
+        left join booksCalc.Books as books2 on books2.author_ID = Authors.ID and books2.stock > 5
+        left join booksCalc.Authors as author2 on author2.ID = books2.author_ID
+        { ${low} as low, ${high} as high }`)
+      expectCqn(cqn4sql(input)).to.equal(expected)
+      expectCqn(cqn4sql(input)).to.equal(expected)
+    })
+  }
 
   it('calc elem contains association', () => {
     const transformed = cqn4sql(cds.ql`SELECT from booksCalc.Books as Books { ID, authorName, authorLastName }`)

@@ -2,6 +2,7 @@
 
 const cds = require('@sap/cds')
 const inferred = require('../../lib/infer')
+const freezeData = require('../cqn4sql/helpers/freezeData')
 function _inferred(q, m = cds.model) {
   return inferred(q, m)
 }
@@ -23,7 +24,7 @@ describe('infer elements', () => {
         author.{*},
         dedication.{*}
       }`
-      let inferred = _inferred(query)
+      let inferred = _inferred(freezeData(query))
       Object.values(inferred.elements).forEach(e => {
         expect(e).to.be.an.instanceof(cds.type)
       })

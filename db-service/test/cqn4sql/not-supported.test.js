@@ -4,6 +4,7 @@ const cqn4sql = require('../../lib/cqn4sql')
 const cds = require('@sap/cds')
 const { expect } = cds.test
 const _inferred = require('../../lib/infer')
+const freezeData = require('./helpers/freezeData')
 
 describe('not supported features', () => {
   let model
@@ -13,7 +14,7 @@ describe('not supported features', () => {
 
   it('does not transform queries with multiple query sources, but just returns the inferred query', () => {
     let query = cds.ql`SELECT from bookshop.Books, bookshop.Receipt`
-    expect(cqn4sql(query, model)).to.deep.equal(_inferred(query, model))
+    expect(cqn4sql(freezeData(query), freezeData(model))).to.deep.equal(_inferred(query, model))
     // .to.throw(/Queries with multiple query sources are not supported/)
   })
 })

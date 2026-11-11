@@ -3,6 +3,7 @@
 const cqn4sql = require('../../lib/cqn4sql')
 const cds = require('@sap/cds')
 const { expect } = cds.test
+const freezeData = require('./helpers/freezeData')
 
 describe('UPDATE', () => {
   let model
@@ -15,7 +16,7 @@ describe('UPDATE', () => {
   it('normalize update target format', () => {
     const { UPDATE } = cds.ql
     let u = UPDATE.entity('bookshop.Books as Books').where({ 'dedication.text': { '=': 'foo' } })
-    const query = cqn4sql(u, model)
+    const query = cqn4sql(freezeData(u), model)
     const expected = JSON.parse(
       '{"UPDATE":{"entity":{"ref":["bookshop.Books"], "as": "Books"},"where":[{"ref":["Books","dedication_text"]},"=",{"val":"foo"}]}}',
     )
@@ -48,7 +49,7 @@ describe('UPDATE', () => {
         },
       },
     })
-    const query = cqn4sql(u, model)
+    const query = cqn4sql(freezeData(u), model)
     expect(query.UPDATE.with).deep.equal({
       applyDiscount: {
         func: 'discount',

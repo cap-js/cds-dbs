@@ -588,7 +588,7 @@ describe('caching searchable fields', () => {
     model = cds.model = cds.compile.for.nodejs(await cds.load(`${__dirname}/../bookshop/db/search`).then(cds.linked))
   })
 
-  it('should cache searchable fields for entity', () => {
+  it('should preserve searchable fields without modifying the entity', () => {
     let query = cds.ql`SELECT from search.BooksSearchAuthor as Books { ID, title }`
     query.SELECT.search = [{ val: 'x' }]
 
@@ -614,10 +614,7 @@ describe('caching searchable fields', () => {
     ) desc`
 
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
-    // test caching
-    expect(model.definitions['search.BooksSearchAuthor'])
-      .to.have.property('__searchableColumns')
-      .that.eqls([{ ref: ['title'] }, { ref: ['author', 'lastName'] }, { ref: ['author', 'firstName'] }])
+    expect(model.definitions['search.BooksSearchAuthor']).not.to.have.property('__searchableColumns')
 
     let secondRun = cqn4sql(query, model)
     expect(JSON.parse(JSON.stringify(secondRun))).to.deep.equal(expected)

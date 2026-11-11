@@ -2,6 +2,7 @@
 const cqn4sql = require('../../lib/cqn4sql')
 const cds = require('@sap/cds')
 const { expect } = cds.test
+const freezeData = require('./helpers/freezeData')
 describe('infix filter on entities', () => {
   let model
   beforeAll(async () => {
@@ -45,13 +46,13 @@ describe('infix filter on entities', () => {
   })
   it('handles query modifiers defined in infix filter at leaf', () => {
     let query = cqn4sql(
-      cds.ql`SELECT from bookshop.Books[
+      freezeData(cds.ql`SELECT from bookshop.Books[
         price < 12.13
         group by title
         having title
         order by title desc
         limit 2
-      ] as Books {ID}`, model)
+      ] as Books {ID}`), model)
     expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books {Books.ID} WHERE Books.price < 12.13 GROUP BY Books.title HAVING Books.title ORDER BY Books.title DESC LIMIT 2`)
   });
   it('merges query modifiers defined in infix filter at leaf with those defined at query root', () => {

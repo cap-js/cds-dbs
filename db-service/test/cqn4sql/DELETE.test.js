@@ -3,6 +3,7 @@
 const cqn4sql = require('../../lib/cqn4sql')
 const cds = require('@sap/cds')
 const { expect } = cds.test
+const freezeData = require('./helpers/freezeData')
 
 describe('DELETE', () => {
   let model
@@ -74,7 +75,7 @@ describe('DELETE', () => {
     const forNodeModel = cds.compile.for.nodejs(JSON.parse(JSON.stringify(cds.model)))
     const { DELETE } = cds.ql
     let d = DELETE.from('bookshop.Books:author as author').where(`books.title = 'Harry Potter'`)
-    const query = cqn4sql(d, forNodeModel)
+    const query = cqn4sql(freezeData(d), freezeData(forNodeModel))
 
     // this is the final exists subquery
     const subquery = cds.ql`

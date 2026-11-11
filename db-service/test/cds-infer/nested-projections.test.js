@@ -3,6 +3,8 @@
 const cds = require('@sap/cds')
 const {expect} = cds.test
 const inferred = require('../../lib/infer')
+const freezeData = require('../cqn4sql/helpers/freezeData')
+const { expectCqn } = require('../cqn4sql/helpers/expectCqn')
 function _inferred(q, m = cds.model) {
   return inferred(q, m)
 }
@@ -15,6 +17,23 @@ describe('nested projections', () => {
     })
 
     describe('structs', () => {
+      it('retains nested projection syntax and infers literals without changing the input', () => {
+        const query = freezeData(cds.ql`SELECT from bookshop.Books {
+          dedication { text, sub { foo }, 'label' as label }
+        }`)
+        const result = _inferred(query)
+        const { Books } = model.entities
+        expectCqn(result).to.equal(query)
+        expect(result).not.to.equal(query)
+        expect(result.elements.dedication.elements).to.containSubset({
+          text: Books.elements.dedication.elements.text,
+          sub: { elements: { foo: Books.elements.dedication.elements.sub.elements.foo } },
+          label: {},
+        })
+        expect(result.elements.dedication.elements.label).to.have.property('as', 'label')
+        expect(result.elements.dedication.elements.label._type).to.equal('cds.String')
+      })
+
       it('simple element access', () => {
         let query = cds.ql`SELECT from bookshop.Books { ID, dedication { text } }`
         let inferred = _inferred(query)
