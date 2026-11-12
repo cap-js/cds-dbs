@@ -1127,7 +1127,6 @@ class CQN2SQLRenderer {
    */
   UPSERT(q) {
     const { UPSERT } = q
-    const transitions = this.srv.resolve.transitions(q)
 
     let sql = this.INSERT({ __proto__: q, INSERT: UPSERT })
     if (!q._target?.keys) return sql
@@ -1135,17 +1134,17 @@ class CQN2SQLRenderer {
     for (const k of ObjectKeys(q._target?.keys)) {
       const element = q._target.keys[k]
       if (element.isAssociation || element.virtual) continue
-      keys.push(transitions.mapping.get(k)?.ref?.[0] || k)
+      keys.push(k)
     }
 
     const elements = q._target?.elements || {}
     // temporal data
     for (const k of ObjectKeys(elements)) {
-      if (elements[k]['@cds.valid.from']) keys.push(transitions.mapping.get(k)?.ref?.[0] || k)
+      if (elements[k]['@cds.valid.from']) keys.push(k)
     }
 
-    const keyCompare = this._managed
-      .filter(c => keys.includes(c.target))
+    const keyColumns = this._managed.filter(c => keys.includes(c.name))
+    const keyCompare = keyColumns
       .map(c => `NEW.${this.quote(c.name)}=OLD.${this.quote(c.target)}`)
       .join(' AND ')
 
@@ -1155,7 +1154,7 @@ class CQN2SQLRenderer {
       const managed = this._managed.slice(0, columns.length)
 
       const extractkeys = managed
-        .filter(c => keys.includes(c.target))
+        .filter(c => keys.includes(c.name))
         .map(c => `${c.onInsert || c.sql} as ${this.quote(c.name)}`)
 
       sql = `SELECT ${managed.map(c => c.upsert
@@ -1168,17 +1167,17 @@ class CQN2SQLRenderer {
       const src = this.cqn4sql(UPSERT.from || UPSERT.as)
       const aliasedQuery = `SELECT ${[
         ...src.SELECT.columns.map((c, i) => this.column_expr({ ref: [this.column_name(c)], as: this.columns[i] })),
-        ...extractions.slice(src.SELECT.columns.length).map(c => `${keys.includes(c.target) ? c.onInsert : 'NULL'} AS ${this.quote(c.name)}`), // fill in missing default values
+        ...extractions.slice(src.SELECT.columns.length).map(c => `${keys.includes(c.name) ? c.onInsert : 'NULL'} AS ${this.quote(c.name)}`), // fill in missing default values
       ]} FROM (${this.SELECT(src)})`
 
-      sql = `SELECT ${extractions.map(c => keys.includes(c.target) ? `NEW.${this.quote(c.name)}` : c.upsert)} FROM(${aliasedQuery}) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare} `
+      sql = `SELECT ${extractions.map(c => keys.includes(c.name) ? `NEW.${this.quote(c.name)}` : c.upsert)} FROM(${aliasedQuery}) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare} `
       if (extractions.length > columns.length) columns = this.columns = extractions.map(c => c.name)
       this.entries = [this.values]
     }
 
     const targetColumns = this._managed.slice(0, columns.length)
     const updateColumns = targetColumns.filter(c => {
-      if (keys.includes(c.target)) return false //> keys go into ON CONFLICT clause
+      if (keys.includes(c.name)) return false //> keys go into ON CONFLICT clause
       let e = elements[c.name]
       if (!e) return true //> pass through to native SQL columns not in CDS model
       if (e.virtual) return true //> skip virtual elements
@@ -1188,7 +1187,7 @@ class CQN2SQLRenderer {
     }).map(c => `${this.quote(c.target)} = excluded.${this.quote(c.target)}`)
 
     return (this.sql = `INSERT INTO ${this.quote(entity)} (${targetColumns.map(c => this.quote(c.target))}) ${sql
-      } WHERE TRUE ON CONFLICT(${keys.map(c => this.quote(c))}) DO ${updateColumns.length ? `UPDATE SET ${updateColumns}` : 'NOTHING'}`)
+      } WHERE TRUE ON CONFLICT(${keyColumns.map(c => this.quote(c.target))}) DO ${updateColumns.length ? `UPDATE SET ${updateColumns}` : 'NOTHING'}`)
   }
 
   // UPDATE Statements ------------------------------------------------
@@ -1507,35 +1506,35 @@ class CQN2SQLRenderer {
     columns = columns.map(c => ({ ...c, target: transitions.mapping.get(c.name)?.ref?.[0] || c.name }))
     const requiredElements = transitions.target.elements
     // Ensure that missing managed columns are added
-    const requiredColumns = !requiredElements
-      ? []
-      : ObjectKeys(requiredElements)
-        .filter(e => {
-          const element = requiredElements[e]
-          // Actual mandatory check
-          if (!(element.default || element[cdsOnInsert] || element[cdsOnUpdate])) return false
-          // Physical column check
-          if (!element || element.virtual || element.isAssociation) return false
-          // Existence check
-          if (columns.find(c => c.target === e)) return false
-          return true
-        })
-        .map(name => ({ name, sql: 'NULL', target: name  }))
+    const requiredColumns = ObjectKeys(requiredElements)
+      .filter(e => {
+        const element = requiredElements[e]
+        // Actual mandatory check
+        if (!(element.default || element[cdsOnInsert] || element[cdsOnUpdate])) return false
+        // Physical column check
+        if (!element || element.virtual || element.isAssociation) return false
+        // Existence check
+        if (columns.find(c => c.target === e)) return false
+        return true
+      })
+      .map(name => ({ name, sql: 'NULL', target: name, element: requiredElements[name] }))
 
     const keys = ObjectKeys(elements).filter(e => elements[e].key && !elements[e].isAssociation)
     const keyZero = keys[0] && this.quote(transitions.mapping.get(keys[0])?.ref?.[0] || keys[0])
 
-    return [...columns, ...requiredColumns].map(({ name, sql, target }) => {
-      const hidden = target && sql === 'NULL'
-      const element = (hidden ? requiredElements[name] : elements?.[name]) || {}
+    return [...columns, ...requiredColumns].map(({ name, sql, target, element = elements?.[name] || {} }) => {
+      // SQL inputs use their source value; JSON inputs distinguish missing properties from explicit nulls.
+      const defaultValue = sql
+        ? (value, source) => `COALESCE(${source},${value})`
+        : (value, source) => this.managed_default(name, value, source)
 
       const converter = a => element[_convertInput]?.(a, element) || a
       let extract
       if (!sql) {
         ({ sql, extract } = this.managed_extract(name, element, converter))
       } else {
+        extract = sql
         sql = converter(sql)
-        extract = hidden ? 'NULL' : sql
       }
       // if (sql[0] !== '$') sql = converter(sql, element)
 
@@ -1549,9 +1548,8 @@ class CQN2SQLRenderer {
 
       const qname = this.quote(target)
 
-      // Hidden columns must not test client input, even when its name matches an exposed alias.
-      const insert = onInsert ? hidden ? converter(onInsert) : this.managed_default(name, converter(onInsert), sql) : sql
-      const update = onUpdate ? hidden ? converter(onUpdate) : this.managed_default(name, converter(onUpdate), sql) : sql
+      const insert = onInsert ? defaultValue(converter(onInsert), sql) : sql
+      const update = onUpdate ? defaultValue(converter(onUpdate), sql) : sql
       const upsert = keyZero && (
         // upsert requires the keys to be provided for the existance join (default values optional)
         element.key
@@ -1563,7 +1561,7 @@ class CQN2SQLRenderer {
           insert
           } ELSE ${
           // Else execute managed update or keep old if no new data if provided
-          onUpdate ? update : hidden ? `OLD.${qname}` : this.managed_default(name, `OLD.${qname}`, update)
+          onUpdate ? update : defaultValue(`OLD.${qname}`, update)
           } END as ${qname}`
       )
 
