@@ -88,8 +88,10 @@ entity C : managed {
 }
 
 entity Values {
-  key ID    : Integer;
-      value : String;
+  key ID        : Integer;
+      value     : String;
+      active    : Boolean default true;
+      changedBy : String @cds.on.update: $user;
 }
 
 entity BooksAnnotated as projection on Books;

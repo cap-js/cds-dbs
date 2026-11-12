@@ -814,10 +814,14 @@ class HANAService extends SQLService {
         : ObjectKeys(INSERT.entries[0])
       this.columns = columns
 
-      const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), elements).slice(0, columns.length)
+      const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), elements)
+        .filter((c, i) => INSERT.rows && q.UPSERT
+          ? i < columns.length
+          : i < columns.length || !transitions.target.elements[c.target]?.[SYSTEM_VERSIONED])
+      this.columns = extractions.map(c => c.name)
 
       // REVISIT: @cds.extension required
-      const extraction = extractions.map(c => c.extract)
+      const extraction = extractions.filter(c => c.extract !== 'NULL').map(c => c.extract)
       const converter = extractions.map(c => c.insert)
 
       const _stream = entries => {
@@ -854,7 +858,7 @@ class HANAService extends SQLService {
       // With the buffer table approach the data is processed in chunks of a configurable size
       // Which allows even smaller HANA systems to process large datasets
       // But the chunk size determines the maximum size of a single row
-      return (this.sql = `INSERT INTO ${this.quote(entity)} (${this.columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))
+      return (this.sql = `INSERT INTO ${this.quote(entity)} (${extractions.map(c => this.quote(c.target))
         }) WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
       SELECT ${converter} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON ERROR) AS NEW`)
     }
@@ -898,8 +902,8 @@ class HANAService extends SQLService {
 
     UPSERT(q) {
       const { UPSERT } = q
+      const transitions = this.srv.resolve.transitions(q)
       const entity = q._target ? this.table_name(q) : UPSERT.into.ref[0]
-      const elements = q._target?.elements || {}
       const insert = this.INSERT({ __proto__: q, INSERT: UPSERT })
 
       let keys = q._target?.keys
@@ -908,19 +912,17 @@ class HANAService extends SQLService {
 
       // temporal data
       keys.push(...ObjectKeys(q._target.elements).filter(e => q._target.elements[e]['@cds.valid.from']))
+      keys = keys.map(k => transitions.mapping.get(k)?.ref?.[0] || k)
 
-      const managed = this.managed(
-        this.columns.map(c => ({ name: c })),
-        elements
-      )
+      const managed = this._managed
 
       const keyCompare = managed
-        .filter(c => keys.includes(c.name))
-        .map(c => `${c.insert}=OLD.${this.quote(c.name)}`)
+        .filter(c => keys.includes(c.target))
+        .map(c => `${c.insert}=OLD.${this.quote(c.target)}`)
         .join(' AND ')
 
       const mixing = managed.map(c => c.upsert)
-      const extraction = managed.map(c => c.extract)
+      const extraction = managed.filter(c => c.extract !== 'NULL').map(c => c.extract)
 
       let sql
       if (UPSERT.entries || UPSERT.rows || UPSERT.values) {
@@ -931,14 +933,14 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
         if (this.values) this.values = []
         const aliasedQuery = `SELECT ${[
           ...src.SELECT.columns.map((c, i) => this.column_expr({ ref: [this.column_name(c)], as: this.columns[i] })),
-          ...managed.slice(src.SELECT.columns.length).map(c => `${elements[c.name].key ? c.onInsert : 'NULL'} AS ${this.quote(c.name)}`), // fill in missing default values
+          ...managed.slice(src.SELECT.columns.length).map(c => `${keys.includes(c.target) ? c.onInsert : 'NULL'} AS ${this.quote(c.name)}`), // fill in missing default values
         ]} FROM (${this.SELECT(src)})`
 
         sql = `SELECT ${mixing} FROM (${aliasedQuery}) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
         this.entries = [this.values]
       }
 
-      return (this.sql = `UPSERT ${this.quote(entity)} (${this.columns.map(c => this.quote(c))}) ${sql}`)
+      return (this.sql = `UPSERT ${this.quote(entity)} (${managed.map(c => this.quote(c.target))}) ${sql}`)
     }
 
     DROP(q) {

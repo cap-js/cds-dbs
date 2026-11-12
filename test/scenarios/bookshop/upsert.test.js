@@ -20,4 +20,16 @@ describe('Bookshop - Upsert', () => {
     expect(result[0].title).to.equal('Upserted Book')
   })
 
+  test('should preserve hidden values when upserting through a renamed key', async () => {
+    const { RenameKeys, Books } = cds.entities('AdminService')
+    await INSERT.into(Books).entries({ ID: 347, genre_ID: 11, createdBy: 'creator', modifiedBy: 'previous editor' })
+    // Regression: the existing-row join must reference the physical key (OLD.ID), not the alias.
+    await cds.run(UPSERT({ foo: 347 }).into(RenameKeys))
+    const res = await SELECT.from(Books, { ID: 347 })
+    expect(res).to.exist
+    expect(res.genre_ID).to.equal(11)
+    expect(res.createdBy).to.equal('creator')
+    expect(res.modifiedBy).to.equal('anonymous')
+  })
+
 })

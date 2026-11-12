@@ -50,6 +50,47 @@ describe('Bookshop - Insert', () => {
     expect(res.genre_ID).to.be.eq(10)
   })
 
+  test('insert with default fields excluded from projection', async () => {
+    const { RenameKeys, Books } = cds.entities('AdminService')
+    await cds.run(INSERT({ foo: 345 }).into(RenameKeys))
+    const res = await SELECT.from(Books, { ID: 345 })
+    expect(res).to.containSubset({ genre_ID: 10, createdBy: 'anonymous', modifiedBy: 'anonymous' })
+    expect(res.createdAt).to.not.be.null
+    expect(res.modifiedAt).to.not.be.null
+  })
+
+  test('should ignore client values for managed fields excluded from projection', async () => {
+    const { RenameKeys, Books } = cds.entities('AdminService')
+    await cds.run(INSERT({ foo: 346, createdBy: 'Alice' }).into(RenameKeys))
+    const res = await SELECT.from(Books, { ID: 346 })
+    expect(res).to.containSubset({ genre_ID: 10, createdBy: 'anonymous', modifiedBy: 'anonymous' })
+  })
+
+  test('insert via a projection that hides a defaulted boolean field', async () => {
+    // Regression: the hidden Boolean must not emit a JSON_TABLE extraction declaration on HANA.
+    const { HideFlag } = cds.entities('AdminService')
+    const { Values } = cds.entities('sap.capire.bookshop')
+    await cds.run(INSERT({ foo: 350, value: 'hidden-bool' }).into(HideFlag))
+    const res = await SELECT.from(Values, { ID: 350 })
+    expect(res).to.containSubset({ ID: 350, value: 'hidden-bool', active: true })
+  })
+
+  test('should insert from SELECT with a hidden update-only field left null', async () => {
+    const { Values } = cds.entities('sap.capire.bookshop')
+    const { HideFlag } = cds.entities('AdminService')
+    await INSERT.into(Values).entries({ ID: 351, value: 'source value', changedBy: 'source user' })
+
+    await INSERT.into(HideFlag).columns('foo', 'value').from(
+      SELECT.from(Values).columns('352 as foo', 'value').where({ ID: 351 }),
+    )
+
+    const res = await SELECT.one.from(Values).where({ ID: 352 })
+    expect(res).to.exist
+    expect(res.ID).to.equal(352)
+    expect(res.value).to.equal('source value')
+    expect(res.changedBy).to.be.null
+  })
+
   test('insert into @readonly service projection via cds.run', async () => {
     await cds.run(INSERT.into('CatalogService.Books').entries([{ ID: 9991, title: 'Readonly Insert Test' }]))
     const result = await cds.run(SELECT.from('CatalogService.Books').where({ ID: 9991 }))
