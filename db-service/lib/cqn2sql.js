@@ -924,7 +924,7 @@ class CQN2SQLRenderer {
 
     const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), elements)
     this.columns = extractions.map(c => c.name)
-    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(c))
+    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${extractions.map(c => this.quote(c.target))
       }) SELECT ${extractions.map(c => c.insert)} FROM json_each(?)`)
   }
 
@@ -1052,12 +1052,11 @@ class CQN2SQLRenderer {
       this.entries = [[...this.values, stream]]
     }
 
-    const extraction = (this._managed = this.managed(columns.map(c => ({ name: c })), elements))
+    const managed = (this._managed = this.managed(columns.map(c => ({ name: c })), elements))
       .slice(0, columns.length)
-      .map(c => c.converter(c.extract))
+    const extraction = managed.map(c => c.converter(c.extract))
 
-    const transitions = this.srv.resolve.transitions(q)
-    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))
+    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${managed.map(c => this.quote(c.target))
       }) SELECT ${extraction} FROM json_each(?)`)
   }
 
@@ -1083,7 +1082,7 @@ class CQN2SQLRenderer {
     const src = this.cqn4sql(INSERT.from)
     const elements = q.elements || q._target?.elements || {}
     const transitions = this.srv.resolve.transitions(q)
-    let columns = (this.columns = (INSERT.columns || src.SELECT.columns?.map(c => this.column_name(c)) || ObjectKeys(src.elements) || ObjectKeys(elements))
+    const columns = (this.columns = (INSERT.columns || src.SELECT.columns?.map(c => this.column_name(c)) || ObjectKeys(src.elements) || ObjectKeys(elements))
       .filter(c => this.physical_column(elements, c)
         && (c = transitions.mapping.get(c)?.ref?.[0] || c)
         && c in transitions.target.elements
@@ -1094,8 +1093,8 @@ class CQN2SQLRenderer {
     const sql = extractions.length > columns.length
       ? `SELECT ${extractions.map((c, i) => `${i < columns.length ? c.insert : c.onInsert} AS ${this.quote(c.name)}`)} FROM (${this.SELECT(src)}) AS NEW`
       : this.SELECT(src)
-    if (extractions.length > columns.length) columns = this.columns = extractions.map(c => c.name)
-    this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))}) ${sql}`
+    if (extractions.length > columns.length) this.columns = extractions.map(c => c.name)
+    this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${extractions.map(c => this.quote(c.target))}) ${sql}`
     this.entries = [this.values]
     return this.sql
   }
@@ -1142,11 +1141,12 @@ class CQN2SQLRenderer {
     const elements = q._target?.elements || {}
     // temporal data
     for (const k of ObjectKeys(elements)) {
-      if (elements[k]['@cds.valid.from']) keys.push(k)
+      if (elements[k]['@cds.valid.from']) keys.push(transitions.mapping.get(k)?.ref?.[0] || k)
     }
 
-    const keyCompare = keys
-      .map(k => `NEW.${this.quote(k)}=OLD.${this.quote(k)}`)
+    const keyCompare = this._managed
+      .filter(c => keys.includes(c.target))
+      .map(c => `NEW.${this.quote(c.name)}=OLD.${this.quote(c.target)}`)
       .join(' AND ')
 
     let columns = this.columns // this.columns is computed as part of this.INSERT
@@ -1155,7 +1155,7 @@ class CQN2SQLRenderer {
       const managed = this._managed.slice(0, columns.length)
 
       const extractkeys = managed
-        .filter(c => keys.includes(c.name))
+        .filter(c => keys.includes(c.target))
         .map(c => `${c.onInsert || c.sql} as ${this.quote(c.name)}`)
 
       sql = `SELECT ${managed.map(c => c.upsert
@@ -1168,25 +1168,26 @@ class CQN2SQLRenderer {
       const src = this.cqn4sql(UPSERT.from || UPSERT.as)
       const aliasedQuery = `SELECT ${[
         ...src.SELECT.columns.map((c, i) => this.column_expr({ ref: [this.column_name(c)], as: this.columns[i] })),
-        ...extractions.slice(src.SELECT.columns.length).map(c => `${elements[c.name].key ? c.onInsert : 'NULL'} AS ${this.quote(c.name)}`), // fill in missing default values
+        ...extractions.slice(src.SELECT.columns.length).map(c => `${keys.includes(c.target) ? c.onInsert : 'NULL'} AS ${this.quote(c.name)}`), // fill in missing default values
       ]} FROM (${this.SELECT(src)})`
 
-      sql = `SELECT ${extractions.map(c => elements[c.name].key ? `NEW.${this.quote(c.name)}` : c.upsert)} FROM(${aliasedQuery}) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare} `
+      sql = `SELECT ${extractions.map(c => keys.includes(c.target) ? `NEW.${this.quote(c.name)}` : c.upsert)} FROM(${aliasedQuery}) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare} `
       if (extractions.length > columns.length) columns = this.columns = extractions.map(c => c.name)
       this.entries = [this.values]
     }
 
-    const updateColumns = columns.filter(c => {
-      if (keys.includes(c)) return false //> keys go into ON CONFLICT clause
-      let e = elements[c]
+    const targetColumns = this._managed.slice(0, columns.length)
+    const updateColumns = targetColumns.filter(c => {
+      if (keys.includes(c.target)) return false //> keys go into ON CONFLICT clause
+      let e = elements[c.name]
       if (!e) return true //> pass through to native SQL columns not in CDS model
       if (e.virtual) return true //> skip virtual elements
       if (e.value) return true //> skip calculated elements
       // if (e.isAssociation) return true //> this breaks a a test in @sap/cds -> need to follow up how to correctly handle deep upserts
       else return true
-    }).map(c => `${this.quote(c)} = excluded.${this.quote(c)}`)
+    }).map(c => `${this.quote(c.target)} = excluded.${this.quote(c.target)}`)
 
-    return (this.sql = `INSERT INTO ${this.quote(entity)} (${columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))}) ${sql
+    return (this.sql = `INSERT INTO ${this.quote(entity)} (${targetColumns.map(c => this.quote(c.target))}) ${sql
       } WHERE TRUE ON CONFLICT(${keys.map(c => this.quote(c))}) DO ${updateColumns.length ? `UPDATE SET ${updateColumns}` : 'NOTHING'}`)
   }
 
@@ -1212,7 +1213,7 @@ class CQN2SQLRenderer {
           && c in transitions.target.elements
           && this.physical_column(transitions.target.elements, c)
         if (!elements || columnExistsInDatabase) {
-          columns.push({ name: c, sql: sql4(data[col], col) })
+          columns.push({ name: col, sql: sql4(data[col], col) })
         }
       }
     }
@@ -1225,7 +1226,7 @@ class CQN2SQLRenderer {
       .filter((c, i) => {
         if (transitions.mapping.get(c.name)?.ref?.length > 1) return false
         return columns[i] || c.onUpdate
-      }).map((c, i) => `${this.quote(transitions.mapping.get(c.name)?.ref?.[0] || c.name)}=${!columns[i] ? c.onUpdate : c.sql}`)
+      }).map((c, i) => `${this.quote(c.target)}=${!columns[i] ? c.onUpdate : c.sql}`)
 
     sql += ` SET ${extraction}`
     if (where) sql += ` WHERE ${this.where_resolved(entity.as, where, q)}`
@@ -1516,7 +1517,7 @@ class CQN2SQLRenderer {
           // Physical column check
           if (!element || element.virtual || element.isAssociation) return false
           // Existence check
-          if (columns.find(c => c.name === e)) return false
+          if (columns.find(c => c.target === e)) return false
           return true
         })
         .map(name => ({ name, sql: 'NULL', target: name  }))
@@ -1546,7 +1547,7 @@ class CQN2SQLRenderer {
       if (onInsert) onInsert = this.expr(onInsert)
       if (onUpdate) onUpdate = this.expr(onUpdate)
 
-      const qname = this.quote(name)
+      const qname = this.quote(target)
 
       // Hidden columns must not test client input, even when its name matches an exposed alias.
       const insert = onInsert ? hidden ? converter(onInsert) : this.managed_default(name, converter(onInsert), sql) : sql
@@ -1567,7 +1568,8 @@ class CQN2SQLRenderer {
       )
 
       return {
-        name: target || name, // Physical target for entries; sql and extract retain the input identity
+        name, // Element name
+        target, // Unquoted physical column name
         sql, // Reference SQL
         extract, // Source SQL
         converter, // Converter logic

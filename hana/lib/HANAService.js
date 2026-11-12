@@ -817,7 +817,7 @@ class HANAService extends SQLService {
       const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), elements)
         .filter((c, i) => INSERT.rows && q.UPSERT
           ? i < columns.length
-          : i < columns.length || !transitions.target.elements[c.name]?.[SYSTEM_VERSIONED])
+          : i < columns.length || !transitions.target.elements[c.target]?.[SYSTEM_VERSIONED])
       this.columns = extractions.map(c => c.name)
 
       // REVISIT: @cds.extension required
@@ -858,7 +858,7 @@ class HANAService extends SQLService {
       // With the buffer table approach the data is processed in chunks of a configurable size
       // Which allows even smaller HANA systems to process large datasets
       // But the chunk size determines the maximum size of a single row
-      return (this.sql = `INSERT INTO ${this.quote(entity)} (${extractions.map((c, i) => this.quote(!INSERT.rows || i >= columns.length ? c.name : transitions.mapping.get(c.name)?.ref?.[0] || c.name))
+      return (this.sql = `INSERT INTO ${this.quote(entity)} (${extractions.map(c => this.quote(c.target))
         }) WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
       SELECT ${converter} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON ERROR) AS NEW`)
     }
@@ -917,8 +917,8 @@ class HANAService extends SQLService {
       const managed = this._managed
 
       const keyCompare = managed
-        .filter(c => keys.includes(c.name))
-        .map(c => `${c.insert}=OLD.${this.quote(c.name)}`)
+        .filter(c => keys.includes(c.target))
+        .map(c => `${c.insert}=OLD.${this.quote(c.target)}`)
         .join(' AND ')
 
       const mixing = managed.map(c => c.upsert)
@@ -933,14 +933,14 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
         if (this.values) this.values = []
         const aliasedQuery = `SELECT ${[
           ...src.SELECT.columns.map((c, i) => this.column_expr({ ref: [this.column_name(c)], as: this.columns[i] })),
-          ...managed.slice(src.SELECT.columns.length).map(c => `${keys.includes(c.name) ? c.onInsert : 'NULL'} AS ${this.quote(c.name)}`), // fill in missing default values
+          ...managed.slice(src.SELECT.columns.length).map(c => `${keys.includes(c.target) ? c.onInsert : 'NULL'} AS ${this.quote(c.name)}`), // fill in missing default values
         ]} FROM (${this.SELECT(src)})`
 
         sql = `SELECT ${mixing} FROM (${aliasedQuery}) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
         this.entries = [this.values]
       }
 
-      return (this.sql = `UPSERT ${this.quote(entity)} (${this.columns.map(c => this.quote(c))}) ${sql}`)
+      return (this.sql = `UPSERT ${this.quote(entity)} (${managed.map(c => this.quote(c.target))}) ${sql}`)
     }
 
     DROP(q) {
