@@ -1091,7 +1091,7 @@ class CQN2SQLRenderer {
 
     const extractions = this._managed = this.managed(columns.map(c => ({ name: c, sql: `NEW.${this.quote(c)}` })), elements)
     const sql = extractions.length > columns.length
-      ? `SELECT ${extractions.map((c, i) => `${i < columns.length ? c.insert : c.onInsert} AS ${this.quote(c.name)}`)} FROM (${this.SELECT(src)}) AS NEW`
+      ? `SELECT ${extractions.map(c => `${c.insert} AS ${this.quote(c.name)}`)} FROM (${this.SELECT(src)}) AS NEW`
       : this.SELECT(src)
     if (extractions.length > columns.length) this.columns = extractions.map(c => c.name)
     this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${extractions.map(c => this.quote(c.target))}) ${sql}`

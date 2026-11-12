@@ -75,6 +75,22 @@ describe('Bookshop - Insert', () => {
     expect(res).to.containSubset({ ID: 350, value: 'hidden-bool', active: true })
   })
 
+  test('should insert from SELECT with a hidden update-only field left null', async () => {
+    const { Values } = cds.entities('sap.capire.bookshop')
+    const { HideFlag } = cds.entities('AdminService')
+    await INSERT.into(Values).entries({ ID: 351, value: 'source value', changedBy: 'source user' })
+
+    await INSERT.into(HideFlag).columns('foo', 'value').from(
+      SELECT.from(Values).columns('352 as foo', 'value').where({ ID: 351 }),
+    )
+
+    const res = await SELECT.one.from(Values).where({ ID: 352 })
+    expect(res).to.exist
+    expect(res.ID).to.equal(352)
+    expect(res.value).to.equal('source value')
+    expect(res.changedBy).to.be.null
+  })
+
   test('insert into @readonly service projection via cds.run', async () => {
     await cds.run(INSERT.into('CatalogService.Books').entries([{ ID: 9991, title: 'Readonly Insert Test' }]))
     const result = await cds.run(SELECT.from('CatalogService.Books').where({ ID: 9991 }))
