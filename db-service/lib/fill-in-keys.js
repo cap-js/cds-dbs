@@ -1,9 +1,7 @@
 const cds = require('@sap/cds')
-const { hasDeep } = require('./deep-queries')
 
 // REVISIT: very deep & fragile dependencies to internal modules -> copy these into here
 const propagateForeignKeys = require('@sap/cds/libx/_runtime/common/utils/propagateForeignKeys')
-const { enrichDataWithKeysFromWhere } = require('@sap/cds/libx/_runtime/common/utils/keys')
 
 const assoc4 = (e) => e.own('$fk4', ()=> {
   const old = e['@odata.foreignKey4']; if (old) return old
@@ -58,11 +56,6 @@ const generateUUIDandPropagateKeys = (entity, data, event) => {
 module.exports = async function fill_in_keys(req, next) {
   // REVISIT dummy handler until we have input processing
   if (!req.target || !this.model || req.target._unresolved) return next()
-  // only for deep update
-  if (req.event === 'UPDATE' && hasDeep(req.query)) {
-    // REVISIT for deep update we need to inject the keys first
-    enrichDataWithKeysFromWhere(req.data, req, this)
-  }
 
   // REVISIT no input processing for INPUT with rows/values
   if (!(req.query.INSERT?.rows || req.query.INSERT?.values)) {
