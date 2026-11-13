@@ -1434,9 +1434,34 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
       const con = await this.factory.create(this.options.credentials)
       this.dbc = con
 
-      const stmt = await this.dbc.prepare(createContainerDatabase)
-      const res = this.ensureDBC() && await stmt.run([creds.user, creds.password, creds.containerGroup, !clean])
-      res && DEBUG?.(res.changes.map(r => r.MESSAGE).join('\n'))
+      // Ensuring the lock table exists (container-lock.sql) can collide when
+      // multiple connections create it concurrently: HANA rejects the losers with
+      // an internal-error rollback ("... being created from another transaction")
+      // that cannot be caught inside the DO block. Retry only that transient case;
+      // any other error is fatal and rethrown immediately.
+      const isConcurrentLockCreation = e =>
+        /being created from another transaction|duplicate table name/i.test(e?.message || '')
+      let i = 0
+      let err
+      for (; i < 1000; i++) {
+        try {
+          const lockStmt = await this.dbc.prepare(createContainerLock)
+          this.ensureDBC() && await lockStmt.run([])
+
+          const stmt = await this.dbc.prepare(createContainerDatabase)
+          const res = this.ensureDBC() && await stmt.run([creds.user, creds.password, creds.containerGroup, !clean])
+          res && DEBUG?.(res.changes.map(r => r.MESSAGE).join('\n'))
+          break
+        } catch (e) {
+          if (!isConcurrentLockCreation(e)) throw e
+          err = e
+          await this.dbc.disconnect()
+          this.dbc = await this.factory.create(this.options.credentials)
+        }
+      }
+      if (i === 1000) {
+        throw new Error(`Failed to create database: ${err.message || err.stack || err}`)
+      }
     } finally {
       if (this.dbc) {
         // Release table lock
@@ -1526,6 +1551,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
   }
 }
 const createContainerDatabase = fs.readFileSync(path.resolve(__dirname, 'scripts/container-database.sql'), 'utf-8')
+const createContainerLock = fs.readFileSync(path.resolve(__dirname, 'scripts/container-lock.sql'), 'utf-8')
 const createContainerTenant = fs.readFileSync(path.resolve(__dirname, 'scripts/container-tenant.sql'), 'utf-8')
 
 
