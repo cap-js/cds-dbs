@@ -261,6 +261,7 @@ const default_model = 'SAP_GXY.20250407'
 const getEmbeddingsModel = operand => {
   standard_model ??= cds.env.requires?.embeddings?.model || default_model
   const element = operand?.func?.toLowerCase() === 'l2normalize' ? operand.args[0].element : operand?.element
+  // TODO: how get @cds.embeddings.model from read-calculated element without using $refLinks?
   return element?.['@cds.embeddings.model']
     ? cds.env.requires?.[element['@cds.embeddings.model']]?.model || standard_model
     : standard_model
