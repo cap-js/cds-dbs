@@ -775,7 +775,7 @@ class HANAService extends SQLService {
     }
 
     from_dummy() {
-      return ' FROM DUMMY'
+      return ' FROM SYS.DUMMY'
     }
 
     extractForeignKeys(xpr, alias, foreignKeys = []) {
@@ -855,7 +855,7 @@ class HANAService extends SQLService {
       // Which allows even smaller HANA systems to process large datasets
       // But the chunk size determines the maximum size of a single row
       return (this.sql = `INSERT INTO ${this.quote(entity)} (${this.columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))
-        }) WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
+        }) WITH SRC AS (SELECT ? AS JSON FROM SYS.DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM SYS.DUMMY)
       SELECT ${converter} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON ERROR) AS NEW`)
     }
 
@@ -924,7 +924,7 @@ class HANAService extends SQLService {
 
       let sql
       if (UPSERT.entries || UPSERT.rows || UPSERT.values) {
-        sql = `WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
+        sql = `WITH SRC AS (SELECT ? AS JSON FROM SYS.DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM SYS.DUMMY)
 SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON ERROR) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
       } else {
         const src = this.cqn4sql(UPSERT.from || UPSERT.as)
