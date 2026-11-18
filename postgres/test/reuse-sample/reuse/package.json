@@ -1,0 +1,5 @@
+{
+  "name": "@cap-js-test/reuse-code-list",
+  "version": "1.0.0",
+  "description": "A reuse module shipping initial data, to test the build plugin"
+}

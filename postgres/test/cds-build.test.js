@@ -12,9 +12,13 @@ const genDir = path.join(workDir, 'gen')
 const pgDest = path.join(genDir, 'pg')
 const dbDest = path.join(pgDest, 'db')
 
+const reuseWorkDir = path.join(__dirname, 'reuse-sample')
+const reuseGenDir = path.join(reuseWorkDir, 'gen')
+
 // delete the generated folder after each test
 afterEach(() => {
   if (fs.existsSync(genDir)) fs.rmSync(genDir, { recursive: true })
+  if (fs.existsSync(reuseGenDir)) fs.rmSync(reuseGenDir, { recursive: true })
 })
 
 describe('cds build plugin', () => {
@@ -60,5 +64,13 @@ describe('cds build plugin', () => {
     expect(packageJson.dependencies?.['@sap/cds']).to.equal(cds.version)
     const pgAdapterVersion = require(path.join(__dirname,'..','package.json')).version;
     expect(packageJson.dependencies?.['@cap-js/postgres']).to.equal(pgAdapterVersion)
+  })
+
+  test('should merge initial data of reuse modules into gen/pg/db/data', () => {
+    execSync('npx cds build --for postgres', { cwd: reuseWorkDir })
+    const csv = fs.readFileSync(path.join(reuseGenDir, 'pg', 'db', 'data', 'my.reuse-CodeList.csv'), 'utf8')
+    const codes = csv.trim().split(/\r?\n/).slice(1).map(line => line.split(',')[0])
+    // union of the reuse module's rows (A, B, C) and the consumer's own row (D)
+    expect(codes.sort()).to.eql(['A', 'B', 'C', 'D'])
   })
 })
