@@ -577,6 +577,10 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
         if ((!definition.target && definition.kind !== 'entity') || (!inFrom && !inCalcElement && danglingFilter))
           throw new Error('A filter can only be provided when navigating along associations')
         if (!inFrom && !arg.expand)defineProperty(arg, 'isJoinRelevant', true)
+        // The filter of an `expand` becomes the `where` of the expand subquery.
+        // Just like `where exists <assoc>[…]` semi-joins, path expressions in it are
+        // resolved via joins inside that subquery, so they must not be rejected here.
+        const filterOfExpand = !!arg.expand
         let skipJoinsForFilter = false
         step.where.forEach(token => {
           if (token === 'exists') {
@@ -587,7 +591,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
             // because they will become part of an EXISTS subquery
             inferArg(token, false, arg.$refLinks[i], {
               ...context,
-              inExists: skipJoinsForFilter || inExists || (inFrom && !danglingFilter),
+              inExists: skipJoinsForFilter || inExists || filterOfExpand || (inFrom && !danglingFilter),
               inXpr: !!token.xpr,
               inInfixFilter: true,
               inFrom,
@@ -597,7 +601,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
               applyToFunctionArgs(token.args, inferArg, [
                 false,
                 arg.$refLinks[i],
-                { inExists: skipJoinsForFilter || inExists || (inFrom && !danglingFilter), inXpr: true, inInfixFilter: true, inFrom },
+                { inExists: skipJoinsForFilter || inExists || filterOfExpand || (inFrom && !danglingFilter), inXpr: true, inInfixFilter: true, inFrom },
               ])
             }
           }
@@ -661,9 +665,6 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
         }
       }
     }
-    // we need inner joins for the path expressions inside filter expressions after exists predicate
-    if ($baseLink?.pathExpressionInsideFilter) defineProperty(arg, 'join', 'inner')
-
     // ignore whole expand if target of assoc along path has ”@cds.persistence.skip”
     if (arg.expand) {
       const { $refLinks } = arg
@@ -1095,7 +1096,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
       for (const k in elements) {
         if (!exclude(k)) {
           const element = elements[k]
-          if (element.type !== 'cds.LargeBinary') {
+          if (element.type !== 'cds.LargeBinary' && element.type !== 'cds.Vector') {
             queryElements[k] = element
           }
           // only relevant if we actually select the calculated element
@@ -1115,7 +1116,7 @@ function infer(originalQuery, model, useTechnicalAlias = true) {
       }
       if (exclude(name) || name in queryElements) return true
       const element = tableAliases[0].tableAlias.elements[name]
-      if (element.type !== 'cds.LargeBinary') queryElements[name] = element
+      if (element.type !== 'cds.LargeBinary' && element.type !== 'cds.Vector') queryElements[name] = element
       if (isCalculatedOnRead(element)) {
         linkCalculatedElement(element)
       }

@@ -13,7 +13,34 @@ describe('(exist predicate) with joins', () => {
     cqn4sql = q => orig(q, m)
   })
 
-  describe('inner join in EXISTS subquery for path expressions in infix filter', () => {
+  describe('left outer join in EXISTS subquery for path expressions in infix filter', () => {
+    it('preserves books without a genre for the other OR branch', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors as Authors { ID }
+        WHERE EXISTS books[genre.name = 'foo' or title = 'bar']`)
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as Authors { Authors.ID }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $b
+            left outer join bookshop.Genres as genre on genre.ID = $b.genre_ID
+          WHERE $b.author_ID = Authors.ID and (genre.name = 'foo' or $b.title = 'bar')
+        )`
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('preserves books without a genre for the other OR branch (scoped query)', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books[genre.name = 'foo' or title = 'bar']:author as Authors { ID }`)
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as Authors { Authors.ID }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $B
+            left outer join bookshop.Genres as genre on genre.ID = $B.genre_ID
+          WHERE $B.author_ID = Authors.ID and (genre.name = 'foo' or $B.title = 'bar')
+        )`
+      expectCqn(transformed).to.equal(expected)
+    })
+
     it('managed association', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Authors as Authors
@@ -29,7 +56,7 @@ describe('(exist predicate) with joins', () => {
         }
         WHERE EXISTS (
           SELECT 1 from bookshop.Books as $b
-            inner join bookshop.Genres as genre
+            left outer join bookshop.Genres as genre
               on genre.ID = $b.genre_ID
           WHERE $b.author_ID = Authors.ID
             and genre.name = 'Thriller'
@@ -53,7 +80,7 @@ describe('(exist predicate) with joins', () => {
         }
         WHERE EXISTS (
           SELECT 1 from bookshop.Books as $B
-            inner join bookshop.Genres as genre
+            left outer join bookshop.Genres as genre
               on genre.ID = $B.genre_ID
           WHERE $B.author_ID = Authors.ID
             and genre.name = 'Thriller'
@@ -79,7 +106,7 @@ describe('(exist predicate) with joins', () => {
         }
         WHERE EXISTS (
           SELECT 1 from CollaborationLeads as $l
-            inner join CollaborationParticipants as participant
+            left outer join CollaborationParticipants as participant
               on participant.id = $l.participant_id
           WHERE ($l.collaboration_id = $C.id)
             and $l.isLead = true
@@ -106,7 +133,7 @@ describe('(exist predicate) with joins', () => {
         }
         WHERE EXISTS (
           SELECT 1 from bookshop.Books as $b
-            inner join bookshop.Authors as coAuthorUnmanaged
+            left outer join bookshop.Authors as coAuthorUnmanaged
               on coAuthorUnmanaged.ID = $b.coAuthor_ID_unmanaged
           WHERE $b.author_ID = Authors.ID
             and coAuthorUnmanaged.name = 'King'
@@ -130,7 +157,7 @@ describe('(exist predicate) with joins', () => {
         }
         WHERE EXISTS (
           SELECT 1 from bookshop.Books as $B
-            inner join bookshop.Authors as coAuthorUnmanaged
+            left outer join bookshop.Authors as coAuthorUnmanaged
               on coAuthorUnmanaged.ID = $B.coAuthor_ID_unmanaged
           WHERE $B.author_ID = Authors.ID
             and coAuthorUnmanaged.name = 'King'
@@ -153,7 +180,7 @@ describe('(exist predicate) with joins', () => {
         }
         WHERE EXISTS (
           SELECT 1 from bookshop.Books as $b
-            inner join bookshop.Person as addressee on addressee.ID = $b.dedication_addressee_ID
+            left outer join bookshop.Person as addressee on addressee.ID = $b.dedication_addressee_ID
           WHERE $b.author_ID = $A.ID
             and addressee.name = 'Hasso'
         )`
@@ -174,7 +201,7 @@ describe('(exist predicate) with joins', () => {
         }
         WHERE EXISTS (
           SELECT 1 from bookshop.Books as $B
-            inner join bookshop.Person as addressee on addressee.ID = $B.dedication_addressee_ID
+            left outer join bookshop.Person as addressee on addressee.ID = $B.dedication_addressee_ID
           WHERE $B.author_ID = Authors.ID
             and addressee.name = 'Hasso'
         )`
@@ -202,9 +229,9 @@ describe('(exist predicate) with joins', () => {
               WHERE $a.ID = $b.author_ID
                 and EXISTS (
                   SELECT 1 from bookshop.Books as $b2
-                    inner join bookshop.Genres as genre
+                    left outer join bookshop.Genres as genre
                       on genre.ID = $b2.genre_ID
-                    inner join bookshop.Genres as parent
+                    left outer join bookshop.Genres as parent
                       on parent.ID = genre.parent_ID
                   WHERE $b2.author_ID = $a.ID
                     and parent.name = 'Thriller'
@@ -230,7 +257,7 @@ describe('(exist predicate) with joins', () => {
         }
         WHERE EXISTS (
           SELECT 1 from bookshop.Books as $b
-            inner join bookshop.Genres as genre
+            left outer join bookshop.Genres as genre
               on genre.ID = $b.genre_ID
           WHERE $b.author_ID = Authors.ID
             and toLower(genre.name) = 'thriller'
@@ -254,7 +281,7 @@ describe('(exist predicate) with joins', () => {
         }
         WHERE EXISTS (
           SELECT 1 from bookshop.Books as $B
-            inner join bookshop.Genres as genre
+            left outer join bookshop.Genres as genre
               on genre.ID = $B.genre_ID
           WHERE $B.author_ID = Authors.ID
             and toLower(genre.name) = 'thriller'
@@ -278,7 +305,7 @@ describe('(exist predicate) with joins', () => {
         }
         WHERE EXISTS (
           SELECT 1 from bookshop.Genres as $g
-            inner join bookshop.Genres as parent
+            left outer join bookshop.Genres as parent
               on parent.ID = $g.parent_ID
           WHERE $g.ID = Books.genre_ID
             and ('foo' || parent.name || 'bar') LIKE 'foo%bar'
@@ -305,13 +332,13 @@ describe('(exist predicate) with joins', () => {
         }
         WHERE EXISTS (
           SELECT 1 from bookshop.Books as $b
-            inner join bookshop.Genres as genre
+            left outer join bookshop.Genres as genre
               on genre.ID = $b.genre_ID
           WHERE $b.author_ID = Authors.ID
             and toLower(genre.name) = 'thriller'
             and EXISTS (
               SELECT 1 from bookshop.Genres as $g
-                inner join bookshop.Genres as parent
+                left outer join bookshop.Genres as parent
                   on parent.ID = $g.parent_ID
               WHERE $g.ID = $b.genre_ID
                 and parent.name = 'Fiction'
@@ -336,7 +363,7 @@ describe('(exist predicate) with joins', () => {
         }
         WHERE EXISTS (
           SELECT 1 from bookshop.Books as $b
-            inner join bookshop.Genres as genre
+            left outer join bookshop.Genres as genre
               on genre.ID = $b.genre_ID and
                  genre.name = 'Drama'
           WHERE $b.author_ID = Authors.ID
@@ -361,11 +388,11 @@ describe('(exist predicate) with joins', () => {
         }
         WHERE EXISTS (
           SELECT 1 from bookshop.Books as $b
-            inner join bookshop.Genres as genre
+            left outer join bookshop.Genres as genre
               on genre.ID = $b.genre_ID and (
                   
               )
-            inner join bookshop.Genres as parent
+            left outer join bookshop.Genres as parent
               on parent.ID = genre.parent_ID and
                  parent.name = 'Drama'
           WHERE $b.author_ID = Authors.ID
@@ -391,7 +418,7 @@ describe('(exist predicate) with joins', () => {
         }
         WHERE EXISTS (
           SELECT 1 from bookshop.Books as $b
-            inner join bookshop.Person as addressee
+            left outer join bookshop.Person as addressee
               on addressee.ID = $b.dedication_addressee_ID
           where $b.author_ID = Authors.ID AND toLower(toUpper(addressee.name)) = 'Hasso'
         )`
@@ -414,7 +441,7 @@ describe('(exist predicate) with joins', () => {
         }
         WHERE EXISTS (
           SELECT 1 from bookshop.Books as $B
-            inner join bookshop.Person as addressee
+            left outer join bookshop.Person as addressee
               on addressee.ID = $B.dedication_addressee_ID
           where $B.author_ID = Authors.ID AND toLower(toUpper(addressee.name)) = 'Hasso'
         )`
@@ -439,7 +466,7 @@ describe('(exist predicate) with joins', () => {
           WHERE $A.ID = books.author_ID
             and EXISTS (
               SELECT 1 from bookshop.Books as $b
-                inner join bookshop.Genres as genre
+                left outer join bookshop.Genres as genre
                   on genre.ID = $b.genre_ID
               WHERE $b.author_ID = $A.ID
                 and genre.name LIKE '%Fiction'
@@ -469,7 +496,7 @@ describe('(exist predicate) with joins', () => {
         }
         WHERE EXISTS (
           SELECT 1 from bookshop.Genres as $g
-            inner join bookshop.Genres as parent
+            left outer join bookshop.Genres as parent
               on parent.ID = $g.parent_ID
           WHERE $g.parent_ID = $p.ID
             and parent.name LIKE '%Fiction%'
@@ -500,13 +527,13 @@ describe('(exist predicate) with joins', () => {
           case
             when EXISTS (
               select 1 from bookshop.Books as $b
-              inner join bookshop.Genres as genre on genre.ID = $b.genre_ID
+              left outer join bookshop.Genres as genre on genre.ID = $b.genre_ID
               where $b.author_ID = Authors.ID and toLower(genre.name) = 'Thriller' and $b.price > 10
             )
             then 1
             when EXISTS (
               select 1 from bookshop.Books as $b2
-              inner join bookshop.Genres as genre on genre.ID = $b2.genre_ID
+              left outer join bookshop.Genres as genre on genre.ID = $b2.genre_ID
               where $b2.author_ID = Authors.ID and toLower(genre.name) = 'Thriller' and $b2.price > 100
                     and EXISTS (
                       select 1 from bookshop.Genres as $g where $g.ID = $b2.genre_ID

@@ -88,6 +88,42 @@ describe('UPSERT', () => {
         { ID: '1-overwritten' },
       ])
     })
+
+    test('defaults', async () => {
+      const { cuid, keys, default: _default } = cds.entities('basic.common')
+
+      const ID = '1234'
+      // fill other table first
+      await cds.run(UPSERT([{ ID }]).into(cuid))
+
+      // default key column
+      await UPSERT.into(keys).from(cds.ql`SELECT cast(ID as Integer) as id FROM ${cuid} WHERE ID = ${ID}`)
+      await UPSERT.into(keys).from(cds.ql`SELECT cast(ID as Integer) as id, 'overwritten' as default FROM ${cuid} WHERE ID = ${ID}`)
+
+      const keysAfter = await SELECT.from(keys).where`id = ${ID}`.orderBy('default')
+      expect(keysAfter).deep.eq([
+        { id: 1234, default: 'defaulted', data: null },
+        { id: 1234, default: 'overwritten', data: null },
+      ])
+
+      // default column
+      const unchangedQuery = UPSERT.into(_default).from(cds.ql`SELECT ID FROM ${cuid} WHERE ID = ${ID}`)
+      const changedQuery = UPSERT.into(_default).from(cds.ql`SELECT ID, 'c' as char FROM ${cuid} WHERE ID = ${ID}`)
+
+      await unchangedQuery.clone()
+      const defaultInsert = await SELECT.from(_default).where`ID = ${ID}`
+      await unchangedQuery.clone()
+      const defaultUnchanged = await SELECT.from(_default).where`ID = ${ID}`
+      expect(defaultUnchanged).deep.eq(defaultInsert)
+
+      await changedQuery.clone()
+      const defaultChanged = await SELECT.from(_default).where`ID = ${ID}`
+      expect(defaultChanged).property(0).property('char').eq('c')
+
+      await unchangedQuery.clone()
+      const defaultUnchangedChanged = await SELECT.from(_default).where`ID = ${ID}`
+      expect(defaultChanged).deep.eq(defaultUnchangedChanged)
+    })
   })
 
   test('affected row', async () => {

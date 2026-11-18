@@ -35,6 +35,16 @@ describe('search', () => {
       await cqn
     })
 
+    test('global config as object', async () => {
+      // fuzzy may be an object carrying the minimal score as `.score` (alongside `ranked_search`)
+      cds.env.hana.fuzzy = { score: 0.9, ranked_search: false }
+      const { Books } = cds.entities('sap.capire.bookshop')
+      const cqn = SELECT.from(Books).search('"autobio"').columns('1')
+      const { sql } = cds.db.cqn2sql(cqn)
+      expect(sql).to.include('FUZZY MINIMAL SCORE 0.9')
+      await cqn
+    })
+
     test('list of elements - annotations', async () => {
       const { BooksAnnotated } = cds.entities('sap.capire.bookshop')
       const cqn = SELECT.from(BooksAnnotated).search('"first-person"').columns('1')

@@ -69,6 +69,9 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
       const { where, having } = transformSearch(searchTerm)
       if (where) inferred.SELECT.where = where
       else if (having) inferred.SELECT.having = having
+      // Defer the ranking ORDER BY to after infer(), where the outer table alias is known and the
+      // deep-search sub-select can be correlated to the outer row (see buildSearchRankOrderBy).
+      defineProperty(inferred, '$searchRank', searchTerm)
     }
   }
   // query modifiers can also be defined in from ref leaf infix filter
@@ -315,15 +318,65 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
       }
     }
 
+    // flag queries whose count depends on the localized view
+    if (inferred.SELECT.localized && refersToLocalizedElement([having, groupBy, inferred.SELECT.where])) {
+      defineProperty(transformedQuery.SELECT, 'localizedCountRelevant', true)
+    }
+
     // Since all the expressions in the SELECT part of the query have been computed,
     // one can reference aliases of the queries columns in the orderBy clause.
-    if (orderBy) {
-      const transformedOrderBy = getTransformedOrderByGroupBy(orderBy, true)
+    let effectiveOrderBy = orderBy
+    // Rank by $search relevance — only when the score exists (HANA fuzzy, not opted out); else
+    // it would sort by a constant boolean.
+    const ranksSearch =
+      cds.db?.kind === 'hana' && cds.env.hana?.fuzzy !== false && cds.env.hana?.fuzzy?.ranked_search !== false
+    // count queries or static values do not need ranked search
+    const isCountQuery = columns?.length === 1 && typeof columns[0] === 'object' && (columns[0].func === 'count' || 'val' in columns[0])
+    // a user-provided ORDER BY takes precedence over the search rank — don't inject the ranking then
+    const hasExplicitOrderBy = (orderBy || []).some(o => !o.implicit)
+    const searchRank = ranksSearch && !isCountQuery && !hasExplicitOrderBy && inferred.$searchRank && buildSearchRankOrderBy(inferred.$searchRank)
+    if (searchRank) {
+      // precedence: user ordering, then rank, then the runtime's implicit key ordering
+      const implicitAt = (orderBy || []).findIndex(o => o.implicit)
+      const at = implicitAt === -1 ? (orderBy?.length ?? 0) : implicitAt
+      effectiveOrderBy = [...(orderBy || [])]
+      effectiveOrderBy.splice(at, 0, searchRank)
+    }
+    if (effectiveOrderBy) {
+      const transformedOrderBy = getTransformedOrderByGroupBy(effectiveOrderBy, true)
       if (transformedOrderBy.length) {
+        // the rank is the only order-by entry that is a correlated sub-select
+        if (searchRank?.$searchRank) {
+          const rank = transformedOrderBy.find(o => o.SELECT)
+          if (rank) correlateSearchRank(rank, transformedFrom.as)
+        }
         transformedQuery.SELECT.orderBy = transformedOrderBy
       }
     }
     return transformedQuery
+  }
+
+  /**
+   * True if any token in the given clauses filters or groups on a localized element — a value
+   * that differs between base table and localized view, so a count on the base table is wrong.
+   */
+  function refersToLocalizedElement(tokenStreams) {
+    const scan = tokens => {
+      if (!tokens) return false
+      return tokens.some(t => {
+        if (t?.ref) {
+          const leaf = t.$refLinks?.[t.$refLinks.length - 1]
+          if (leaf?.definition?.localized && isLocalized(leaf.target)) return true
+          // path-filter infixes may carry their own refs (e.g. `assoc[title = 'x']`)
+          if (t.ref.some(step => typeof step === 'object' && step.where && scan(step.where))) return true
+        }
+        if (t?.xpr) return scan(t.xpr)
+        if (t?.args) return scan(Array.isArray(t.args) ? t.args : Object.values(t.args))
+        if (t?.list) return scan(t.list)
+        return false // subqueries decide for themselves
+      })
+    }
+    return tokenStreams.some(scan)
   }
 
   /**
@@ -375,6 +428,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
    * Rewrites the from clause based on the `query.joinTree`.
    *
    * For each join relevant node in the join tree, the respective join is generated.
+   * Use left joins also in expand and EXISTS filters to preserve rows for OR and null comparisons.
    * Each join relevant node in the join tree has an unique table alias which is the query source for the respective
    * path traversals. Hence, all join relevant `ref`s must be rewritten to point to the generated join aliases. However,
    * this is done in the @function getFlatColumnsFor().
@@ -398,10 +452,10 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
         const id = getLocalizedName(r.queryArtifact)
         args.push({ ref: [r.args ? { id, args: r.args } : id], as: r.alias })
       }
-      from = { join: r.join || 'left', args, on: [] }
+      from = { join: 'left', args, on: [] }
       r.children.forEach(c => {
         from = joinForBranch(from, c)
-        from = { join: c.join || 'left', args: [from], on: [] }
+        from = { join: 'left', args: [from], on: [] }
       })
     })
     return from.args.length > 1 ? from : from.args[0]
@@ -443,7 +497,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
       }
       if (node.children) {
         node.children.forEach(c => {
-          lhs = { join: c.join || 'left', args: [lhs], on: [] }
+          lhs = { join: 'left', args: [lhs], on: [] }
           lhs = joinForBranch(lhs, c)
         })
       }
@@ -763,7 +817,13 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
         res.push(...expandNestedProjectionWildcard(col, i, prop))
       } else {
         const nameParts = col.as ? [col.as] : [col.ref.map(idOnly).join('_')]
-        nameParts.push(nestedProjection.as ? nestedProjection.as : nestedProjection.ref.map(idOnly).join('_'))
+        nameParts.push(
+          nestedProjection.as
+            ? nestedProjection.as
+            : nestedProjection.ref
+              ? nestedProjection.ref.map(idOnly).join('_')
+              : nestedProjection.func || `expr${i}`,
+        )
         const name = nameParts.join('_')
         if (nestedProjection.ref) {
           const augmentedInlineCol = augmentInlineRefWithParent(nestedProjection, col)
@@ -791,9 +851,11 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
           if (!res.some(c => (c.as || c.ref.slice(1).map(idOnly).join('_')) === name)) {
             const rewrittenColumn = { ...nestedProjection }
             rewrittenColumn.as = name
-            // For xpr, we need to transform refs inside to include the struct prefix
+            // For xpr/func, we need to transform refs inside to include the struct prefix
             if (nestedProjection.xpr && col.ref) {
               rewrittenColumn.xpr = augmentInlineXprRefs(nestedProjection.xpr, col)
+            } else if (nestedProjection.func && nestedProjection.args && col.ref) {
+              rewrittenColumn.args = augmentInlineXprRefs([nestedProjection], col)[0].args
             }
             rewrittenColumns.push(rewrittenColumn)
           }
@@ -842,15 +904,21 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
         if (token.xpr) {
           return { ...token, xpr: augmentInlineXprRefs(token.xpr, parentCol) }
         }
+        if (token.list) {
+          return { ...token, list: augmentInlineXprRefs(token.list, parentCol) }
+        }
         if (token.func && token.args) {
-          return {
-            ...token, args: token.args.map(arg =>
-              arg.ref ? augmentInlineXprRefs([arg], parentCol)[0] : arg
-            )
-          }
+          return { ...token, args: augmentInlineFunctionArgs(token.args, parentCol) }
         }
         return token
       })
+    }
+
+    function augmentInlineFunctionArgs(args, parentCol) {
+      if (Array.isArray(args)) return augmentInlineXprRefs(args, parentCol)
+      const result = {}
+      for (const prop in args) result[prop] = augmentInlineXprRefs([args[prop]], parentCol)[0]
+      return result
     }
   }
 
@@ -1397,8 +1465,13 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
       if (!exclude.includes(k)) {
         const { index, tableAlias } = inferred.$combinedElements[k][0]
         const element = tableAlias.elements[k]
-        // ignore FK for odata csn (but not for subquery sources where FK is not a separate element) / ignore blobs from wildcard expansion
-        if ((!tableAlias.SELECT && isManagedAssocInFlatMode(element)) || element.type === 'cds.LargeBinary') continue
+        // ignore FK for odata csn (but not for subquery sources where FK is not a separate element) / ignore blobs and vectors from wildcard expansion
+        if (
+          (!tableAlias.SELECT && isManagedAssocInFlatMode(element)) ||
+          element.type === 'cds.LargeBinary' ||
+          element.type === 'cds.Vector'
+        )
+          continue
         // for wildcard on subquery in from, just reference the elements
         if (tableAlias.SELECT && !element.elements && !element.target) {
           wildcardColumns.push(index ? { ref: [index, k] } : { ref: [k] })
@@ -1461,7 +1534,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
    *   - `tableAlias` — table alias prepended to the column ref.
    * @param {string[]} [csnPath=[]] - Accumulated CSN element path (used for `_csnPath` metadata on leaf columns).
    * @param {{ exclude?: Array, replace?: Array }} [excludeAndReplace] - Columns to exclude or replace during wildcard expansion.
-   * @param {boolean} [isWildcard=false] - Whether this expansion originates from a wildcard; filters out LargeBinary.
+   * @param {boolean} [isWildcard=false] - Whether this expansion originates from a wildcard; filters out LargeBinary and Vector.
    * @returns {object[]} Flat column(s) for the given element.
    */
   function getFlatColumnsFor(column, names, csnPath = [], excludeAndReplace, isWildcard = false) {
@@ -1474,7 +1547,7 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
     const { $refLinks, flatName, isJoinRelevant } = column
     let firstNonJoinRelevantAssoc, stepAfterAssoc
     let element = $refLinks ? $refLinks[$refLinks.length - 1].definition : column
-    if (isWildcard && element.type === 'cds.LargeBinary') return []
+    if (isWildcard && (element.type === 'cds.LargeBinary' || element.type === 'cds.Vector')) return []
     if (element.on && !element.keys) return [] // unmanaged doesn't make it into columns
     if (element.virtual === true) return []
 
@@ -1733,8 +1806,10 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
         }
 
         const whereExists = { SELECT: whereExistsSubqueries(whereExistsSubSelects) }
-        transformedTokenStream[i + 1] = whereExists
-        // skip newly created subquery from being iterated
+        // append, don't index by `i`: a preceding branch (e.g. flattening `<assoc> is null`)
+        // may have changed the transformed stream's length, so `[i + 1]` would leave holes
+        transformedTokenStream.push(whereExists)
+        // skip the association ref which we just turned into the subquery
         i += 1
       } else if (token !== null && typeof token === 'object' && '#' in token) {
         // Enum token: resolve to its value
@@ -2578,6 +2653,65 @@ function cqn4sql(originalQuery, model, useTechnicalAlias = true) {
   }
 
   /**
+   * Builds the ORDER BY entry ranking rows by $search relevance, sorted desc.
+   *
+   * Flat search: the score is on the outer row.
+   * Deep search: the score lives in a semi-join, so emit a correlated scalar sub-select
+   *   (SELECT search(…, true) FROM <same source> WHERE innerKey = <outerAlias>.key) DESC.
+   * Key comparisons are seeded unqualified (infer() binds them to the sub-select's own source);
+   * correlateSearchRank redirects the rhs to the outer alias afterwards.
+   *
+   * @param {object} searchTerm the search term as returned by getSearch (func or xpr shape)
+   * @returns {object|null} an orderBy entry, or null if there is nothing to rank by
+   */
+  function buildSearchRankOrderBy(searchTerm) {
+    if (searchTerm.func) return { func: searchTerm.func, args: [...searchTerm.args, { val: true }], sort: 'desc' }
+    if (!searchTerm.xpr) return null
+
+    const searchSelect = searchTerm.xpr[2]
+    const searchFunc = searchSelect.SELECT.where[0]
+    const innerKeys = searchSelect.SELECT.columns // unqualified pk refs, e.g. [{ ref: ['ID'] }]
+
+    const where = []
+    for (let i = 0; i < innerKeys.length; i++) {
+      if (i) where.push('and')
+      // seeded unqualified on both sides; correlateSearchRank redirects the rhs to the outer row
+      where.push({ ref: [...innerKeys[i].ref] }, '=', { ref: [...innerKeys[i].ref] })
+    }
+
+    const entry = {
+      __proto__: SELECT.from(searchSelect.SELECT.from)
+        // the correlated outer row fans out to many child rows -> MAX makes it a single score
+        .columns({ func: 'max', args: [{ func: searchFunc.func, args: [...searchFunc.args, { val: true }] }] })
+        .where(where),
+      sort: 'desc',
+    }
+    defineProperty(entry, '$searchRank', true)
+    return entry
+  }
+
+  /**
+   * Correlates the (transformed) deep-search ranking sub-select to the outer row.
+   *
+   * buildSearchRankOrderBy seeds its WHERE as `ref = ref` comparisons on the sub-select's own
+   * alias; this rewrites each rhs to `<outerAlias>.<key>`. Driven off the `=` operator (not a
+   * fixed stride) so it holds for any key count.
+   *
+   * @param {object} entry the transformed orderBy entry produced from a `$searchRank` sub-select
+   * @param {string} outerAlias the final table alias of the outer query source
+   */
+  function correlateSearchRank(entry, outerAlias) {
+    const where = entry.SELECT.where
+    for (let i = 1; i < where.length; i++) {
+      // seeded comparisons are exactly `<ref> = <ref>`; rewrite the rhs ref to the outer row
+      if (where[i] === '=' && where[i - 1]?.ref && where[i + 1]?.ref) {
+        const rhs = where[i + 1]
+        rhs.ref = [outerAlias, ...rhs.ref.slice(1)]
+      }
+    }
+  }
+
+  /**
    * Calculates the name of the source which can be used to address the given node.
    *
    * @param {object} node a csn object with a `ref` and `$refLinks`
@@ -2864,7 +2998,7 @@ function setElementOnColumns(col, element) {
 
 function getPrimaryKey(entity, tableAlias = null) {
   const primaryKey = []
-  for (const k of Object.keys(entity.elements)) {
+  for (const k in entity.elements) {
     const e = entity.elements[k]
     if (e.key === true && !e.virtual && e.isAssociation !== true) {
       primaryKey.push({ ref: tableAlias ? [tableAlias, e.name] : [e.name] })

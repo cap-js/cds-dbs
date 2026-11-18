@@ -347,6 +347,108 @@ describe('(nested projections) inline', () => {
 
       expectCqn(transformed).to.equal(expected)
     })
+
+    it('assoc inline into assoc inline - func with explicit alias prefixes its args', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from issue.Authors as Authors
+        {
+          address.{
+            city.{ concat(name, '/', country) as combined }
+          }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from issue.Authors as Authors
+          left join issue.Addresses as address on address.ID = Authors.address_ID
+          left join issue.Cities as city on city.ID = address.city_ID
+        {
+          concat(city.name, '/', city.country) as address_city_combined
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('assoc inline into assoc inline - func without alias prefixes its args', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from issue.Authors as Authors
+        {
+          address.{
+            city.{ name, concat(name, '/', country) }
+          }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from issue.Authors as Authors
+          left join issue.Addresses as address on address.ID = Authors.address_ID
+          left join issue.Cities as city on city.ID = address.city_ID
+        {
+          city.name as address_city_name,
+          concat(city.name, '/', city.country) as address_city_concat
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('assoc inline into assoc inline - nested func args are prefixed', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from issue.Authors as Authors
+        {
+          address.{
+            city.{ concat(upper(name), '/', country) as combined }
+          }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from issue.Authors as Authors
+          left join issue.Addresses as address on address.ID = Authors.address_ID
+          left join issue.Cities as city on city.ID = address.city_ID
+        {
+          concat(upper(city.name), '/', city.country) as address_city_combined
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('assoc inline into assoc inline - sibling aliasless xprs get distinct names', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from issue.Authors as Authors
+        {
+          address.{
+            city.{ name || country, country || name }
+          }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from issue.Authors as Authors
+          left join issue.Addresses as address on address.ID = Authors.address_ID
+          left join issue.Cities as city on city.ID = address.city_ID
+        {
+          city.name || city.country as address_city_expr0,
+          city.country || city.name as address_city_expr1
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('assoc inline into assoc inline - refs inside a list are prefixed', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from issue.Authors as Authors
+        {
+          address.{
+            city.{ (name in (country, name)) as f }
+          }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from issue.Authors as Authors
+          left join issue.Addresses as address on address.ID = Authors.address_ID
+          left join issue.Cities as city on city.ID = address.city_ID
+        {
+          (city.name in (city.country, city.name)) as address_city_f
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
   })
 
   describe('mixed structures and associations', () => {

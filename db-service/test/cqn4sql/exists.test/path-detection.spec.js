@@ -126,6 +126,37 @@ describe('(exist predicate) detection in other places', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
+    // Regression: a CASE that mixes `<assoc> is null` with `not exists <assoc>`.
+    // The `is null` branch flattens the association to its foreign key first, which shifts the
+    // transformed stream's length; `not exists author` must still expand to a clean
+    // `"not","exists",{SELECT}` and not leave stray `null` tokens before the subquery (those
+    // crashed the HANA renderer's xpr() with an uncaught TypeError → HTTP 500 + server teardown).
+    it('EXISTS alongside a flattened `<assoc> is null` branch', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books
+        {
+          ID,
+          case when author is null       then 'must'
+               when not exists author    then 'noexist'
+          end as x
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Books as $B
+        {
+          $B.ID,
+          case
+            when ($B.author_ID is null) then 'must'
+            when not exists (
+              SELECT 1 from bookshop.Authors as $a
+              WHERE $a.ID = $B.author_ID
+            ) then 'noexist'
+          end as x
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
     it('negated EXISTS with disjunction', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Books

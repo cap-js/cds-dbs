@@ -181,5 +181,17 @@ describe('QL to PostgreSQL', () => {
       const affectedRows = await cds.run(UPDATE(Beers).set({ abv: 1.0 }))
       expect(affectedRows).to.equal(11)
     })
+
+    test('-> Boolean SET and WHERE (non-array values object)', async () => {
+      const { TypeChecks } = cds.entities('csw')
+      await cds.run(UPDATE(TypeChecks).set({ type_Boolean: false }).where({ type_Boolean: true }))
+    })
+  })
+
+  describe('DELETE', () => {
+    test('-> Boolean WHERE (empty values array)', async () => {
+      const { TypeChecks } = cds.entities('csw')
+      await cds.run(DELETE.from(TypeChecks).where({ type_Boolean: true }))
+    })
   })
 })

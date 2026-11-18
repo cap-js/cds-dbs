@@ -199,11 +199,7 @@ GROUP BY k
   }
 
   _getValues(values) {
-    // empty values
-    if (!values || Object.keys(values).length === 0) return null
-    // values are already in array form
-    if (Array.isArray(values)) return values
-    return values
+    return Array.isArray(values) ? values : null
   }
 
   _prepareStreams(query, values) {
@@ -473,7 +469,9 @@ GROUP BY k
     }
 
     managed_default(name, managed, src) {
-      return `(CASE WHEN json_typeof(value->${this.managed_extract(name).extract.slice(8)}) IS NULL THEN ${managed} ELSE ${src} END)`
+      const { UPSERT, INSERT } = this.cqn
+      const isJson = INSERT?.entries || UPSERT?.entries || INSERT?.rows || UPSERT?.rows
+      return `(CASE WHEN ${isJson ? `json_typeof(value->${this.managed_extract(name).extract.slice(8)})` : `NEW.${this.quote(name)}`} IS NULL THEN ${managed} ELSE ${src} END)`
     }
 
     param({ ref }) {

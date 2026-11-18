@@ -4,6 +4,61 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.2.0](https://github.com/cap-js/cds-dbs/compare/db-service-v3.1.2...db-service-v3.2.0) (2026-11-10)
+
+
+### Added
+
+* ignore rollback on dead connections ([#1782](https://github.com/cap-js/cds-dbs/issues/1782)) ([12603bd](https://github.com/cap-js/cds-dbs/commit/12603bdf0c16b5675b90a21efc3e980cd082d2c7))
+
+
+### Fixed
+
+* $count uses localized view when a localized value drives the result set ([#1768](https://github.com/cap-js/cds-dbs/issues/1768)) ([0cae7ce](https://github.com/cap-js/cds-dbs/commit/0cae7cef4db02d4bad0b80c5fb38c86c38dfa126))
+* correct DrillState 'collapsed' when ExpandLevels mixes L=0 and L=1 ([#1788](https://github.com/cap-js/cds-dbs/issues/1788)) ([4bb1267](https://github.com/cap-js/cds-dbs/commit/4bb12677eb6cf07ca0515b314750fcf3a2cb0207))
+* prefix nested-inline expression refs against the correct alias ([#1770](https://github.com/cap-js/cds-dbs/issues/1770)) ([7f8da01](https://github.com/cap-js/cds-dbs/commit/7f8da01aa9e9d7c233769ec8e2f4b0b1135752a2))
+* use left joins in expand and EXISTS filters ([#1776](https://github.com/cap-js/cds-dbs/issues/1776)) ([cd28ea9](https://github.com/cap-js/cds-dbs/commit/cd28ea91f4bee44ba9d7bd54e3634e2e3258b78b))
+
+## [3.1.2](https://github.com/cap-js/cds-dbs/compare/db-service-v3.1.1...db-service-v3.1.2) (2026-10-09)
+
+
+### Fixed
+
+* allow path expressions in infix filter of expands ([#1755](https://github.com/cap-js/cds-dbs/issues/1755)) ([cbe4f65](https://github.com/cap-js/cds-dbs/commit/cbe4f659add279fdb4155aad6bc155552dd276db))
+* **cqn2pql:** handle parameterized views in from_args ([#1738](https://github.com/cap-js/cds-dbs/issues/1738)) ([8f4dc35](https://github.com/cap-js/cds-dbs/commit/8f4dc354022b861569eab014cb469d4259c91278))
+* Primary keys were not resolved for localized. entities ([#1749](https://github.com/cap-js/cds-dbs/issues/1749)) ([410eef8](https://github.com/cap-js/cds-dbs/commit/410eef8f4487bd8e0c8b5a34a3637959095e255b))
+* recurse into xpr nodes in collectDistanceTo ([#1746](https://github.com/cap-js/cds-dbs/issues/1746)) ([c5dc20d](https://github.com/cap-js/cds-dbs/commit/c5dc20d8c1cd467aec4df3a33f0b6abe43027fe8))
+
+## [3.1.1](https://github.com/cap-js/cds-dbs/compare/db-service-v3.1.0...db-service-v3.1.1) (2026-09-15)
+
+
+### Fixed
+
+* **cqn4sql:** correctly expand `not exists <assoc>` alongside a null-check branch ([#1736](https://github.com/cap-js/cds-dbs/issues/1736)) ([bfb0a01](https://github.com/cap-js/cds-dbs/commit/bfb0a010cce2cea089f4fabf92a3ecea43486a09))
+
+
+### Performance Improvements
+
+* do not use ranked search for static values ([#1727](https://github.com/cap-js/cds-dbs/issues/1727)) ([33fb36b](https://github.com/cap-js/cds-dbs/commit/33fb36bbf0f86291e5fc0b9e2ff5b7244b49d19e))
+* if explicit order by is specified, do not add ranked search as a secondary clause ([33fb36b](https://github.com/cap-js/cds-dbs/commit/33fb36bbf0f86291e5fc0b9e2ff5b7244b49d19e))
+
+## [3.1.0](https://github.com/cap-js/cds-dbs/compare/db-service-v3.0.1...db-service-v3.1.0) (2026-09-07)
+
+
+### Added
+
+* rank $search results by relevance ([#1725](https://github.com/cap-js/cds-dbs/issues/1725)) ([bc93160](https://github.com/cap-js/cds-dbs/commit/bc931601a721f7c9e00b89e6844ba064352b541d))
+
+
+### Fixed
+
+* **cqn4sql:** reject overly nested query expressions instead of crashing ([#1712](https://github.com/cap-js/cds-dbs/issues/1712)) ([29a45b7](https://github.com/cap-js/cds-dbs/commit/29a45b7daadbc77433b882148700d73c00efae62))
+* don't throw when releasing/destroying a resource that's no longer in the pool ([#1696](https://github.com/cap-js/cds-dbs/issues/1696)) ([5d3b277](https://github.com/cap-js/cds-dbs/commit/5d3b277a1cf7cac02e41f2f24975a8e9473e5b5e))
+* exclude cds.Vector from wildcard select expansion ([#1716](https://github.com/cap-js/cds-dbs/issues/1716)) ([398bacc](https://github.com/cap-js/cds-dbs/commit/398bacc2a74883dcd93acba288deae362570a4c1))
+* INSERT.from(SELECT) used non-existent `value`  ([#1565](https://github.com/cap-js/cds-dbs/issues/1565)) ([fd98844](https://github.com/cap-js/cds-dbs/commit/fd98844c83a78d6cf2b0b71344d3ee1d88528106))
+* **pool:** recover lost connection after stale acquire timeout ([#1724](https://github.com/cap-js/cds-dbs/issues/1724)) ([cf6af99](https://github.com/cap-js/cds-dbs/commit/cf6af991d02be7cf5f861e2a424d4d733b8f9238))
+* pql groupby path expression ([#1700](https://github.com/cap-js/cds-dbs/issues/1700)) ([82b5e03](https://github.com/cap-js/cds-dbs/commit/82b5e0385e680321f30c352f0f78ade6d25259a6))
+
 ## [3.0.1](https://github.com/cap-js/cds-dbs/compare/db-service-v3.0.0...db-service-v3.0.1) (2026-06-29)
 
 

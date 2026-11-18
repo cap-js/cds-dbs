@@ -1,4 +1,3 @@
-process.env.cds_requires_db_kind = 'better-sqlite'
 const cds = require('../../cds.js'), { path } = cds.utils
 const sflight = path.resolve(__dirname,'../../../test/sflight')
 

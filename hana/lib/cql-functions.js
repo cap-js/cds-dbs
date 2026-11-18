@@ -114,7 +114,7 @@ const StandardFunctions = {
    * @param {string} arg - Argument object containing search values
    * @returns {string} - SQL statement
    */
-  search: function (ref, arg) {
+  search: function (ref, arg, numeric) {
     if (cds.env.hana.fuzzy === false) {
       // Handle non-fuzzy search
       arg = arg.xpr ? arg.xpr : arg
@@ -156,8 +156,10 @@ const StandardFunctions = {
       return `(CASE WHEN (${toString({ xpr })}) THEN TRUE ELSE FALSE END)`
     }
 
-    // fuzziness config
-    const fuzzyIndex = cds.env.hana?.fuzzy || 0.7
+    // fuzziness config; `fuzzy` is either the minimal score directly or an object
+    // `{ score, ranked_search }` carrying it as `.score`
+    const fuzzyConfig = cds.env.hana?.fuzzy
+    const fuzzyIndex = (typeof fuzzyConfig === 'object' ? fuzzyConfig?.score : fuzzyConfig) || 0.7
 
     const csnElements = ref.list || [ref]
     // if column specific value is provided, the configuration has to be defined on column level
@@ -184,8 +186,12 @@ const StandardFunctions = {
         }
         fuzzy += ` MINIMAL SCORE ${e.element?.['@Search.fuzzinessThreshold'] || fuzzyIndex} SIMILARITY CALCULATION MODE 'search'`
         // rewrite ref to xpr to mix in search config
-        // ensure in place modification to reuse .toString method that ensures quoting
-        e.xpr = [{ ref: e.ref }, fuzzy]
+        // ensure in place modification to reuse .toString method that ensures quoting.
+        // idempotent: the same search() args may be rendered twice (e.g. WHERE predicate and the
+        // injected ranking ORDER BY), so recover the original ref from a prior rewrite instead of
+        // reading a now-deleted e.ref.
+        const originalRef = e.ref || e.xpr?.[0]?.ref
+        e.xpr = [{ ref: originalRef }, fuzzy]
         delete e.ref
       })
     } else {
@@ -207,7 +213,7 @@ const StandardFunctions = {
       }
     }
 
-    return `(CASE WHEN SCORE(${arg} IN ${ref}) > 0 THEN TRUE ELSE FALSE END)`
+    return numeric ? `SCORE(${arg} IN ${ref})` : `(CASE WHEN SCORE(${arg} IN ${ref}) > 0 THEN TRUE ELSE FALSE END)`
   },
 
   // ==============================
@@ -250,6 +256,24 @@ const StandardFunctions = {
   fractionalseconds: x => `(TO_DECIMAL(SECOND(${x}),5,3) - TO_INTEGER(SECOND(${x})))`,
 }
 
+let standard_model
+const default_model = 'SAP_GXY.20250407'
+const getEmbeddingsModel = operand => {
+  standard_model ??= cds.env.requires?.embeddings?.model || default_model
+  const element = operand?.func?.toLowerCase() === 'l2normalize' ? operand.args[0].element : operand?.element
+  return element?.['@cds.embeddings.model']
+    ? cds.env.requires?.[element['@cds.embeddings.model']]?.model || standard_model
+    : standard_model
+}
+const ensureEmbeddingsFunc = right => {
+  if (typeof right.val === 'string' && !right.cast) return { func: 'vector_embedding', args: [{ val: right.val }] }
+  return right
+}
+const augmentEmbeddingsArgs = (args, left) => {
+  if (args.length === 1) args.push({ val: 'QUERY', param: false })
+  if (args.length === 2) args.push({ val: getEmbeddingsModel(left), param: false })
+}
+
 const HANAFunctions = {
   current_connection: () => 'current_connection',
   current_date: () => 'current_utcdate',
@@ -267,6 +291,27 @@ const HANAFunctions = {
   HIERARCHY: undefined,
   HIERARCHY_DESCENDANTS: undefined,
   HIERARCHY_ANCESTORS: undefined,
+
+  vector_embedding: function (...args) {
+    augmentEmbeddingsArgs(args)
+    return `vector_embedding(${args.map(arg => this.expr(arg))})`
+  },
+  cosine_similarity: function (left, right) {
+    right = ensureEmbeddingsFunc(right)
+    let { func, args } = right
+    if (func?.toLowerCase() === 'l2normalize' && args[0].func?.toLowerCase() === 'vector_embedding')
+      [func, args] = [args[0].func, right.args[0].args]
+    if (func?.toLowerCase() === 'vector_embedding') augmentEmbeddingsArgs(args, left)
+    return `cosine_similarity(${left},${this.expr(right)})`
+  },
+  l2distance: function (left, right) {
+    right = ensureEmbeddingsFunc(right)
+    let { func, args } = right
+    if (func?.toLowerCase() === 'l2normalize' && args[0].func?.toLowerCase() === 'vector_embedding')
+      [func, args] = [args[0].func, right.args[0].args]
+    if (func?.toLowerCase() === 'vector_embedding') augmentEmbeddingsArgs(args, left)
+    return `l2distance(${left},${this.expr(right)})`
+  },
 }
 
 for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunctions[each]
