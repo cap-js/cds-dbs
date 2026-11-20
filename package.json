@@ -11,8 +11,8 @@
   ],
   "devDependencies": {
     "@cap-js/cds-test": "^1.0.2",
-    "better-sqlite3": "^13.0.3",
-    "sql.js": "^1.15.2"
+    "better-sqlite3": "^13.2.0",
+    "sql.js": "^1.16.0"
   },
   "scripts": {
     "test": "npm t -w db-service -w sqlite",
