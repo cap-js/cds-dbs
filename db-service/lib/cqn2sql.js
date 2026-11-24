@@ -350,6 +350,18 @@ class CQN2SQLRenderer {
     const columnsOut = []
     const columnsIn = []
     const target = q._target || q.target
+    // columns of the own entity referenced via `$self` in the ON condition of an expanded unmanaged association
+    const onConditionColumns = new Set()
+    for (const c of q.SELECT.columns) {
+      const on = c.element?.isAssociation && c.element.on
+      if (!on) continue
+      for (const x of on) {
+        if (!x.ref) continue
+        // own columns appear either as `$self.<name>` or, once `$self` is resolved, as a plain `<name>`
+        if (x.ref[0] === '$self' && x.ref.length === 2) onConditionColumns.add(x.ref[1])
+        else if (x.ref.length === 1 && x.ref[0] !== '$self') onConditionColumns.add(x.ref[0])
+      }
+    }
     for (const name in target.elements) {
       const ref = { ref: [name] }
       const element = target.elements[name]
@@ -368,7 +380,9 @@ class CQN2SQLRenderer {
         from.args ||
         columnsFiltered.find(c => this.column_name(c) === name) ||
         // foreignkey needs to be included when the association is expanded
-        (foreignkey4 && q.SELECT.columns.some(c => c.element?.isAssociation && c.element.name === foreignkey4))
+        (foreignkey4 && q.SELECT.columns.some(c => c.element?.isAssociation && c.element.name === foreignkey4)) ||
+        // columns used in the ON condition of an expanded unmanaged association need to be included as well
+        onConditionColumns.has(name)
       ) {
         columnsOut.push(ref.as ? { ref: [ref.as], as: name } : ref)
       }
