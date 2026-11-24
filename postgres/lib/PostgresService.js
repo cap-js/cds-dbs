@@ -10,6 +10,10 @@ const sessionVariableMap = require('./session.json')
 
 const LOG = cds.log('sql|db')
 
+// With sql_simple_queries the result is not wrapped in to_jsonb, so pg would return numeric and bigint as strings.
+// Casting to double precision gives the same JS number that parsing the jsonb output produces.
+const _simpleNumber = cds.env.features.sql_simple_queries ? expr => `cast(${expr} as double precision)` : undefined
+
 class PostgresService extends SQLService {
   init() {
     if (!this.options.independentDeploy) {
@@ -592,13 +596,13 @@ GROUP BY k
       struct: e => `jsonb(${e})`,
       array: e => `jsonb(${e})`,
       // Reading int64 as string to not loose precision
-      Int64: cds.env.features.ieee754compatible ? expr => `cast(${expr} as varchar)` : undefined,
+      Int64: cds.env.features.ieee754compatible ? expr => `cast(${expr} as varchar)` : _simpleNumber,
       // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
       Decimal: cds.env.features.ieee754compatible ? (expr, elem) => elem?.scale
         ? `to_char(${expr},'FM${'0'.padStart(elem.precision, '9')}${'D'.padEnd(elem.scale + 1, '0')}')`
         : `cast(${expr} as varchar)`
-        : undefined,
+        : _simpleNumber,
 
       // Convert ST types back to WKT format
       'cds.hana.ST_POINT': expr => `ST_AsText(${expr})`,
