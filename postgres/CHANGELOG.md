@@ -4,6 +4,20 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.1.3](https://github.com/cap-js/cds-dbs/compare/postgres-v3.1.2...postgres-v3.1.3) (2026-11-10)
+
+
+### Fixed
+
+* normalize non-array bind values for the PostgreSQL driver ([#1778](https://github.com/cap-js/cds-dbs/issues/1778)) ([a782105](https://github.com/cap-js/cds-dbs/commit/a782105234f0ae546753639286714f8ffb773a6c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^3.1.2 to ^3.2.0
+
 ## [3.1.2](https://github.com/cap-js/cds-dbs/compare/postgres-v3.1.1...postgres-v3.1.2) (2026-10-09)
 
 

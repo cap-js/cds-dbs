@@ -163,7 +163,7 @@ describe('Bookshop - Genres', () => {
       { DrillState: 'leaf',     ID: 23, name: 'Essay' },
       { DrillState: 'leaf',     ID: 24, name: 'Speech' },
       { DrillState: 'expanded', ID: 52, name: 'Historical' },
-      { DrillState: 'expanded', ID: 51, name: 'Medieval' },
+      { DrillState: 'collapsed', ID: 51, name: 'Medieval' },
       { DrillState: 'leaf',     ID: 53, name: 'Contemporary' },
     ])
   })

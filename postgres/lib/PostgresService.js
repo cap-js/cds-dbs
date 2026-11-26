@@ -199,11 +199,7 @@ GROUP BY k
   }
 
   _getValues(values) {
-    // empty values
-    if (!values || Object.keys(values).length === 0) return null
-    // values are already in array form
-    if (Array.isArray(values)) return values
-    return values
+    return Array.isArray(values) ? values : null
   }
 
   _prepareStreams(query, values) {

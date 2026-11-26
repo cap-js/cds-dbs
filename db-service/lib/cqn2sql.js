@@ -470,7 +470,7 @@ class CQN2SQLRenderer {
           ]
           : []
         ), // Default to expanded when default filter behavior is truthy
-        'ELSE', { val: (recurse.where && !expandedByZero.list.length) && distanceType ? 'collapsed' : 'expanded', param: false },
+        'ELSE', { val: recurse.where && (distanceType === 'DistanceFromRoot' || !expandedByZero.list.length) && distanceType ? 'collapsed' : 'expanded', param: false },
         'END',
       ],
       as: 'DrillState'
