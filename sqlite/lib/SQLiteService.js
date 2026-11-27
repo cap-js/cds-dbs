@@ -59,6 +59,10 @@ class SQLiteService extends SQLService {
     return cds.utils.path.resolve(cds.root, db)
   }
 
+  ensureDBC() {
+    return this.dbc || cds.error`Database connection is ${this._done || 'disconnected'}`
+  }
+
   set(variables) {
     const dbc = this.dbc || cds.error('Cannot set session context: No database connection')
 
@@ -82,8 +86,8 @@ class SQLiteService extends SQLService {
       const stmt = this.dbc.prepare(sql)
       return {
         run: (..._) => this._run(stmt, ..._),
-        get: (..._) => stmt.get(..._),
-        all: (..._) => stmt.all(..._),
+        get: (..._) => this._get(stmt, ..._),
+        all: (..._) => this._all(stmt, ..._),
         stream: (..._) => this._allStream(stmt, ..._),
       }
     } catch (e) {
@@ -102,7 +106,18 @@ class SQLiteService extends SQLService {
         binding_params[i] = Buffer.from(val.toString('base64'))
       }
     }
+    this.ensureDBC()
     return stmt.run(binding_params)
+  }
+
+  _get(stmt, ...binding_params) {
+    this.ensureDBC()
+    return stmt.get(...binding_params)
+  }
+
+  _all(stmt, ...binding_params) {
+    this.ensureDBC()
+    return stmt.all(...binding_params)
   }
 
   async *_iteratorRaw(rs, one) {
@@ -142,6 +157,7 @@ class SQLiteService extends SQLService {
   async _allStream(stmt, binding_params, one, objectMode) {
     stmt = stmt.iterate ? stmt : stmt.__proto__
     stmt.raw?.(true)
+    this.ensureDBC()
     const rs = stmt.iterate(binding_params)
     const stream = Readable.from(objectMode ? this._iteratorObjectMode(rs) : this._iteratorRaw(rs, one), { objectMode })
     const close = () => rs.return() // finish result set when closed early
